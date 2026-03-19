@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  READER
+  WRITER
+  DESIGNER
+  EDITOR
+}
+
+enum Section {
+  NEWS
+  OPINIONS
+  LIONS_DEN
+  A_AND_E
+  FEATURES
+  THE_ROUNDTABLE
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  image     String?
+  role      Role     @default(READER)
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles       Article[]
+  articleCredits ArticleCredit[]
+  accounts       Account[]
+  sessions       Session[]
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Article {
+  id            String        @id @default(uuid())
+  title         String        @db.VarChar(300)
+  slug          String        @unique
+  body          String
+  excerpt       String?       @db.VarChar(500)
+  featuredImage String?
+  section       Section
+  status        ArticleStatus @default(DRAFT)
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdById   String
+
+  createdBy User           @relation(fields: [createdById], references: [id])
+  credits   ArticleCredit[]
+  images    ArticleImage[]
+}
+
+model ArticleCredit {
+  id         String @id @default(uuid())
+  articleId  String
+  userId     String
+  creditRole String @db.VarChar(50)
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([articleId, userId, creditRole])
+}
+
+model ArticleImage {
+  id        String  @id @default(uuid())
+  articleId String
+  url       String
+  caption   String?
+  altText   String
+  order     Int
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+}
