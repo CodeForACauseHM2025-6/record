@@ -1,8 +1,13 @@
-import { PrismaClient, Role, Section, ArticleStatus } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { initEncryption } from "../lib/encryption";
+import { prisma } from "../lib/prisma";
 
 async function main() {
+  // Initialize encryption if key is available
+  const key = process.env.ENCRYPTION_KEY;
+  if (key) {
+    initEncryption(key);
+    console.log("Encryption enabled for seeding");
+  }
   // Create sample users
   const admin = await prisma.user.upsert({
     where: { email: "admin@horacemann.org" },
@@ -51,9 +56,7 @@ async function main() {
       publishedAt: new Date(),
       createdById: editor.id,
       credits: {
-        create: [
-          { userId: writer.id, creditRole: "Writer" },
-        ],
+        create: [{ userId: writer.id, creditRole: "Writer" }],
       },
     },
   });
@@ -72,15 +75,21 @@ async function main() {
     },
   });
 
-  console.log("Seed data created:", { admin, editor, writer, article1: article1.slug, article2: article2.slug });
+  console.log("Seed data created:", {
+    admin: admin.email,
+    editor: editor.email,
+    writer: writer.email,
+    article1: article1.slug,
+    article2: article2.slug,
+  });
 }
 
 main()
   .then(async () => {
-    await prisma.$disconnect();
+    await (prisma as any).$disconnect();
   })
   .catch(async (e) => {
     console.error(e);
-    await prisma.$disconnect();
+    await (prisma as any).$disconnect();
     process.exit(1);
   });
