@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# docs (specs/plans kept locally, not in git)
+/docs
+
 # debug
 npm-debug.log*
 yarn-debug.log*
