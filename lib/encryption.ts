@@ -76,6 +76,9 @@ export function decrypt(ciphertext: string): string {
 
   try {
     const combined = Buffer.from(ciphertext.slice(PREFIX.length), "base64");
+    if (combined.length < IV_LENGTH + AUTH_TAG_LENGTH + 1) {
+      throw new Error("Ciphertext too short");
+    }
     const iv = combined.subarray(0, IV_LENGTH);
     const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
     const encrypted = combined.subarray(IV_LENGTH, combined.length - AUTH_TAG_LENGTH);

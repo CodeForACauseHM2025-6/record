@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { filename, contentType, contentLength } = parsed.data;
-  const ext = filename.split(".").pop();
+  const ext = filename.split(".").pop()?.toLowerCase();
+  const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+  if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+    return errorResponse("BAD_REQUEST", "File extension must be jpg, jpeg, png, or webp");
+  }
   const key = `uploads/${randomUUID()}.${ext}`;
 
   const uploadUrl = await createPresignedUploadUrl(key, contentType, contentLength);

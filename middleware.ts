@@ -10,7 +10,7 @@ export default auth((req) => {
 
   // Rate limiting for API routes
   if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+    const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
     const limiter = req.auth?.user ? authLimiter : publicLimiter;
     if (!limiter.check(ip)) {
       return NextResponse.json(
