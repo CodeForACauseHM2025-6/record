@@ -95,7 +95,7 @@ model ArticleCredit {
   id         String @id @default(uuid())
   articleId  String
   userId     String
-  creditRole String @db.VarChar(50)
+  creditRole String
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
