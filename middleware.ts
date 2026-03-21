@@ -20,30 +20,24 @@ export default auth((req) => {
     }
   }
 
-  // Dashboard routes require EDITOR role or isAdmin
-  if (pathname.startsWith("/dashboard")) {
+  // All non-API, non-login pages require authentication
+  if (!pathname.startsWith("/api") && pathname !== "/login") {
     if (!req.auth?.user) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
-    if (req.auth.user.role !== "EDITOR" && !req.auth.user.isAdmin) {
+  }
+
+  // Dashboard routes require EDITOR role or isAdmin
+  if (pathname.startsWith("/dashboard")) {
+    if (req.auth?.user && req.auth.user.role !== "EDITOR" && !req.auth.user.isAdmin) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
   // Admin routes require isAdmin
   if (pathname.startsWith("/admin")) {
-    if (!req.auth?.user) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
-    if (!req.auth.user.isAdmin) {
+    if (req.auth?.user && !req.auth.user.isAdmin) {
       return NextResponse.redirect(new URL("/", req.url));
-    }
-  }
-
-  // Profile routes require authentication
-  if (pathname.startsWith("/profile")) {
-    if (!req.auth?.user) {
-      return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 
@@ -51,5 +45,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/api/:path*", "/dashboard/:path*", "/admin/:path*", "/profile/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico).*)"],
 };

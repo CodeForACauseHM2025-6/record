@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { AccountDropdown } from "@/app/account-dropdown";
 
 const NAV_SECTIONS = [
   { label: "News", href: "/section/news" },
@@ -86,6 +88,7 @@ function getAuthorInfo(article: ArticleData) {
 }
 
 export default async function HomePage() {
+  const session = await auth();
   const articles = (await prisma.article.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { publishedAt: "desc" },
@@ -173,10 +176,15 @@ export default async function HomePage() {
             >
               About
             </Link>
-            <button className="hidden md:inline tracking-wide">
-              Account{" "}
-              <span className="text-[10px] align-middle">&#9662;</span>
-            </button>
+            <div className="hidden md:block">
+              <AccountDropdown
+                userName={session?.user?.name}
+                userEmail={session?.user?.email}
+                userRole={session?.user?.role ?? "READER"}
+                isAdmin={session?.user?.isAdmin ?? false}
+                isEditor={session?.user?.role === "EDITOR"}
+              />
+            </div>
             <button aria-label="Search" className="p-1">
               <svg
                 width="18"
