@@ -46,3 +46,74 @@ body {
 .reveal-delay-3 { animation-delay: 0.4s; }
 .reveal-delay-4 { animation-delay: 0.55s; }
 .reveal-delay-5 { animation-delay: 0.7s; }
+.reveal-delay-6 { animation-delay: 0.85s; }
+.reveal-delay-7 { animation-delay: 1.0s; }
+
+/* Newsprint grain overlay */
+.newsprint-grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* Thick-thin double rule — classic broadsheet */
+.rule-double {
+  border: none;
+  height: 0;
+  border-top: 2px solid var(--color-rule);
+  border-bottom: 1px solid var(--color-rule);
+  padding-top: 3px;
+}
+
+/* Hairline frame border */
+.editorial-frame {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow:
+    inset 0 0 0 3px #FAFAF5,
+    inset 0 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Ink stamp hover effect for button */
+@keyframes stampPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.stamp-press:active {
+  animation: stampPress 0.2s ease-out;
+}
+
+/* Slow fade for background warmth */
+@keyframes warmFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.warm-fade {
+  animation: warmFade 1.2s ease-out forwards;
+}
+
+/* Page cross-fade via View Transitions API */
+::view-transition-old(root) {
+  animation: fade-out 0.25s ease-in forwards;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -6,7 +6,6 @@ const NAV_SECTIONS = [
   { label: "Features", href: "/section/features" },
   { label: "Opinion", href: "/section/opinions" },
   { label: "A&E", href: "/section/a-and-e" },
-  { label: "MD&Alumni", href: "/section/md-alumni" },
   { label: "Lion\u2019s Den", href: "/section/lions-den" },
 ];
 
