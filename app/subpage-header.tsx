@@ -22,7 +22,7 @@ export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
 
         {/* Right: search */}
         <div className="flex items-center">
-          <button aria-label="Search" className="p-1">
+          <Link href="/search" aria-label="Search" className="p-1">
             <svg
               width="18"
               height="18"
@@ -36,7 +36,7 @@ export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
               />
             </svg>
-          </button>
+          </Link>
         </div>
       </div>
     </header>

@@ -144,7 +144,7 @@ export default async function HomePage() {
                 isEditor={session?.user?.role === "EDITOR"}
               />
             </div>
-            <button aria-label="Search" className="p-1">
+            <Link href="/search" aria-label="Search" className="p-1">
               <svg
                 width="18"
                 height="18"
@@ -169,7 +169,7 @@ export default async function HomePage() {
                   strokeLinecap="round"
                 />
               </svg>
-            </button>
+            </Link>
           </div>
         </div>
       </header>
