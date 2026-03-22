@@ -109,15 +109,15 @@ export default async function HomePage() {
     <div className="min-h-screen bg-white font-body">
       {/* ============ HEADER ============ */}
       <header className="px-4 sm:px-8 pt-4 pb-2">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between relative">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
           {/* Left nav */}
           <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
             <HamburgerButton />
           </div>
 
-          {/* Center: Masthead — absolutely positioned for true centering */}
-          <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
-            <Link href="/" className="pointer-events-auto">
+          {/* Center: Masthead */}
+          <div className="text-center">
+            <Link href="/">
               <h1 className="font-masthead text-[36px] sm:text-[48px] lg:text-[54px] leading-none tracking-tight">
                 The Record
               </h1>
@@ -128,7 +128,7 @@ export default async function HomePage() {
           </div>
 
           {/* Right nav */}
-          <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
+          <div className="flex items-center justify-end gap-4 sm:gap-5 font-headline text-base">
             <Link
               href="/about"
               className="hidden sm:inline font-bold tracking-wide"
