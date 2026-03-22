@@ -1,6 +1,7 @@
-import { initEncryption } from "@/lib/encryption";
-
 export async function register() {
+  if (typeof EdgeRuntime !== "undefined") return;
+
+  const { initEncryption } = await import("@/lib/encryption");
   if (process.env.NODE_ENV === "production") {
     const { SecretsManagerClient, GetSecretValueCommand } = await import(
       "@aws-sdk/client-secrets-manager"
@@ -24,3 +25,5 @@ export async function register() {
     }
   }
 }
+
+declare const EdgeRuntime: string | undefined;

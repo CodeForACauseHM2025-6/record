@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypto";
+import type { BinaryLike } from "crypto";
+
+function getCrypto() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require("crypto") as typeof import("crypto");
+}
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
@@ -14,7 +19,7 @@ export function initEncryption(hexKey: string): void {
     throw new Error("Encryption key must be 32 bytes (64 hex characters)");
   }
   deterministicSubKey = Buffer.from(
-    createHmac("sha256", encryptionKey).update("deterministic-iv").digest()
+    getCrypto().createHmac("sha256", encryptionKey).update("deterministic-iv").digest()
   );
 }
 
@@ -36,16 +41,16 @@ export function encrypt(
   let iv: Buffer;
   if (mode === "deterministic") {
     iv = Buffer.from(
-      createHmac("sha256", deterministicSubKey)
+      getCrypto().createHmac("sha256", deterministicSubKey as BinaryLike)
         .update(plaintext)
         .digest()
         .subarray(0, IV_LENGTH)
     );
   } else {
-    iv = randomBytes(IV_LENGTH);
+    iv = getCrypto().randomBytes(IV_LENGTH);
   }
 
-  const cipher = createCipheriv(ALGORITHM, encryptionKey, iv, {
+  const cipher = getCrypto().createCipheriv(ALGORITHM, encryptionKey, iv, {
     authTagLength: AUTH_TAG_LENGTH,
   });
   const encrypted = Buffer.concat([
@@ -83,7 +88,7 @@ export function decrypt(ciphertext: string): string {
     const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
     const encrypted = combined.subarray(IV_LENGTH, combined.length - AUTH_TAG_LENGTH);
 
-    const decipher = createDecipheriv(ALGORITHM, encryptionKey, iv, {
+    const decipher = getCrypto().createDecipheriv(ALGORITHM, encryptionKey, iv, {
       authTagLength: AUTH_TAG_LENGTH,
     });
     decipher.setAuthTag(authTag);
