@@ -23,7 +23,7 @@ export function HamburgerButton() {
     <>
       <button
         aria-label="Open menu"
-        className="p-1"
+        className="p-1 cursor-pointer"
         onClick={() => setOpen(true)}
       >
         <svg
