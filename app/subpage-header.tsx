@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HamburgerButton } from "@/app/sidebar-menu";
 
 export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
   return (
@@ -6,19 +7,7 @@ export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
       <div className="max-w-[1200px] mx-auto flex items-center justify-between">
         {/* Left: hamburger + page label */}
         <div className="flex items-center gap-4 font-headline text-base">
-          <button aria-label="Toggle sections menu" className="p-1">
-            <svg
-              width="22"
-              height="16"
-              viewBox="0 0 22 16"
-              fill="none"
-              aria-hidden="true"
-            >
-              <line y1="1" x2="22" y2="1" stroke="currentColor" strokeWidth="2" />
-              <line y1="8" x2="22" y2="8" stroke="currentColor" strokeWidth="2" />
-              <line y1="15" x2="22" y2="15" stroke="currentColor" strokeWidth="2" />
-            </svg>
-          </button>
+          <HamburgerButton />
           <span className="font-semibold tracking-wide text-[15px] sm:text-base">
             {pageLabel}
           </span>

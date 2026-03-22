@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AccountDropdown } from "@/app/account-dropdown";
+import { HamburgerButton } from "@/app/sidebar-menu";
 
 const NAV_SECTIONS = [
   { label: "News", href: "/section/news" },
@@ -111,49 +112,7 @@ export default async function HomePage() {
         <div className="max-w-[1200px] mx-auto flex items-center justify-between">
           {/* Left nav */}
           <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
-            <button aria-label="Toggle sections menu" className="p-1">
-              <svg
-                width="22"
-                height="16"
-                viewBox="0 0 22 16"
-                fill="none"
-                aria-hidden="true"
-              >
-                <line
-                  y1="1"
-                  x2="22"
-                  y2="1"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  y1="8"
-                  x2="22"
-                  y2="8"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  y1="15"
-                  x2="22"
-                  y2="15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-              </svg>
-            </button>
-            <Link
-              href="/"
-              className="hidden sm:inline underline underline-offset-4 font-semibold tracking-wide"
-            >
-              Sections
-            </Link>
-            <Link
-              href="/"
-              className="hidden sm:inline underline underline-offset-4 font-semibold tracking-wide"
-            >
-              Latest Paper
-            </Link>
+            <HamburgerButton />
           </div>
 
           {/* Center: Masthead */}
