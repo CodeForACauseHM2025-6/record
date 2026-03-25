@@ -13,6 +13,7 @@ const SECTIONS = [
 
 const PAGES = [
   { label: "Home", href: "/" },
+  { label: "Dashboard", href: "/dashboard" },
   { label: "Account", href: "/account" },
 ];
 
