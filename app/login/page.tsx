@@ -78,11 +78,11 @@ export default async function LoginPage({
         <div className="reveal reveal-delay-4 editorial-frame bg-white px-8 sm:px-12 py-10 mx-auto max-w-md">
           {/* Card heading */}
           <p className="font-headline font-bold text-[22px] sm:text-[24px] tracking-wide leading-tight">
-            Editor&rsquo;s Entrance
+            Welcome
           </p>
           <p className="font-body font-semibold text-[13px] text-caption mt-2 tracking-wide leading-relaxed">
-            Sign in with your Horace Mann credentials<br />
-            to access the newsroom.
+            Sign in with your Horace Mann Google Account<br />
+            to access.
           </p>
 
           {/* Error message */}

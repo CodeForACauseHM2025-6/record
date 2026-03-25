@@ -93,10 +93,10 @@ export default async function SearchPage({
       <div className="max-w-[800px] mx-auto px-4 sm:px-8 pt-10 pb-16">
         {/* Search heading */}
         <h2 className="reveal reveal-delay-1 font-headline text-[28px] sm:text-[36px] font-bold leading-tight tracking-wide">
-          Search the Archives
+          Search the Record
         </h2>
         <p className="reveal reveal-delay-1 font-headline text-[14px] text-caption mt-1 tracking-wide">
-          Browse every issue of The Record
+          Browse every digitized issue of The Record
         </p>
 
         {/* Search input */}
@@ -212,7 +212,7 @@ export default async function SearchPage({
               </svg>
             </div>
             <p className="font-headline italic text-[18px] text-caption/40">
-              Enter a query to search the archives
+              Enter a query to search
             </p>
           </div>
         )}
