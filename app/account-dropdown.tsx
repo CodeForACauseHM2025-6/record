@@ -81,7 +81,6 @@ export function AccountDropdown({
               <button
                 type="submit"
                 className="w-full text-left px-5 py-2.5 text-[14px] font-headline tracking-wide text-caption hover:bg-neutral-50 hover:text-maroon transition-colors"
-                onClick={() => setOpen(false)}
               >
                 Sign Out
               </button>
