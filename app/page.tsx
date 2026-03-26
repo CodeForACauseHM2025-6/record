@@ -38,6 +38,7 @@ interface ArticleData {
   excerpt: string | null;
   featuredImage: string | null;
   section: string;
+  isFeatured: boolean;
   publishedAt: Date | null;
   createdBy: { id: string; name: string; role: string };
   credits: { creditRole: string; user: { id: string; name: string } }[];
@@ -107,8 +108,9 @@ export default async function HomePage() {
     },
   })) as unknown as ArticleData[];
 
-  const featured = articles[0] ?? null;
-  const sidebar = articles.slice(1, 6);
+  const featuredArticle = articles.find((a) => a.isFeatured) ?? null;
+  const featured = featuredArticle ?? articles[0] ?? null;
+  const sidebar = articles.filter((a) => a.id !== featured?.id).slice(0, 5);
   const latestDate = featured?.publishedAt ?? new Date();
 
   return (
@@ -318,7 +320,7 @@ export default async function HomePage() {
               {/* View More */}
               <div className="text-right mt-4 pt-2">
                 <Link
-                  href="/section/news"
+                  href="/search"
                   className="font-headline text-[14px] font-semibold tracking-wide hover:text-maroon transition-colors"
                 >
                   view more &gt;

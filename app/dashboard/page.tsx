@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { SavedToast } from "@/app/dashboard/saved-toast";
+import { FeatureStar } from "@/app/dashboard/feature-star";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -90,39 +91,50 @@ export default async function DashboardPage({
           {articles.length > 0 ? (
             <div className="divide-y divide-neutral-200">
               {articles.map((article) => (
-                <Link
+                <div
                   key={article.id}
-                  href={`/dashboard/articles/${article.id}/edit`}
-                  className="block py-5 hover:bg-neutral-50/50 transition-colors -mx-4 px-4"
+                  className="flex items-center gap-3 py-5 -mx-4 px-4 hover:bg-neutral-50/50 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-headline text-[18px] font-bold leading-snug truncate">
-                        {article.title}
-                      </h3>
-                      <div className="mt-1.5 flex items-center gap-3 font-headline text-[13px] text-caption">
-                        <span className="italic">
-                          {SECTION_LABELS[article.section] ?? article.section}
-                        </span>
-                        <span>&middot;</span>
-                        <span>{article.createdBy.name}</span>
-                        <span>&middot;</span>
-                        <span>{formatDate(article.updatedAt)}</span>
+                  {/* Feature star — only for published articles */}
+                  {article.status === "PUBLISHED" ? (
+                    <FeatureStar articleId={article.id} isFeatured={article.isFeatured} />
+                  ) : (
+                    <div className="w-[20px]" />
+                  )}
+
+                  <Link
+                    href={`/dashboard/articles/${article.id}/edit`}
+                    className="flex-1 min-w-0"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-headline text-[18px] font-bold leading-snug truncate">
+                          {article.title}
+                        </h3>
+                        <div className="mt-1.5 flex items-center gap-3 font-headline text-[13px] text-caption">
+                          <span className="italic">
+                            {SECTION_LABELS[article.section] ?? article.section}
+                          </span>
+                          <span>&middot;</span>
+                          <span>{article.createdBy.name}</span>
+                          <span>&middot;</span>
+                          <span>{formatDate(article.updatedAt)}</span>
+                        </div>
                       </div>
+                      <span
+                        className={`shrink-0 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase px-3 py-1 ${
+                          article.status === "PUBLISHED"
+                            ? "bg-green-50 text-green-800"
+                            : article.status === "DRAFT"
+                              ? "bg-amber-50 text-amber-800"
+                              : "bg-neutral-100 text-neutral-500"
+                        }`}
+                      >
+                        {STATUS_LABELS[article.status]}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase px-3 py-1 ${
-                        article.status === "PUBLISHED"
-                          ? "bg-green-50 text-green-800"
-                          : article.status === "DRAFT"
-                            ? "bg-amber-50 text-amber-800"
-                            : "bg-neutral-100 text-neutral-500"
-                      }`}
-                    >
-                      {STATUS_LABELS[article.status]}
-                    </span>
-                  </div>
-                </Link>
+                  </Link>
+                </div>
               ))}
             </div>
           ) : (

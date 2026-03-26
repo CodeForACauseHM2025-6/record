@@ -92,6 +92,35 @@ export async function unpublishArticle(id: string) {
   redirect(`/dashboard/articles/${id}/edit`);
 }
 
+export async function toggleFeatured(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Not authenticated");
+
+  const article = await prisma.article.findUnique({ where: { id } });
+  if (!article) throw new Error("Article not found");
+
+  if (article.isFeatured) {
+    // Unfeature it
+    await prisma.article.update({
+      where: { id },
+      data: { isFeatured: false },
+    });
+  } else {
+    // Unfeature all others, then feature this one
+    await prisma.article.updateMany({
+      where: { isFeatured: true },
+      data: { isFeatured: false },
+    });
+    await prisma.article.update({
+      where: { id },
+      data: { isFeatured: true },
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+}
+
 export async function deleteArticle(id: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
