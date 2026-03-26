@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { generateUniqueSlug } from "@/lib/slugify";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function createArticle(formData: FormData) {
   const session = await auth();
@@ -58,7 +59,9 @@ export async function updateArticle(id: string, formData: FormData) {
     },
   });
 
-  redirect(`/dashboard/articles/${id}/edit`);
+  revalidatePath(`/dashboard/articles/${id}/edit`);
+  revalidatePath("/dashboard");
+  revalidatePath("/");
 }
 
 export async function publishArticle(id: string) {
@@ -70,6 +73,8 @@ export async function publishArticle(id: string) {
     data: { status: "PUBLISHED", publishedAt: new Date() },
   });
 
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   redirect(`/dashboard/articles/${id}/edit`);
 }
 
@@ -82,6 +87,8 @@ export async function unpublishArticle(id: string) {
     data: { status: "DRAFT" },
   });
 
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   redirect(`/dashboard/articles/${id}/edit`);
 }
 
@@ -91,5 +98,7 @@ export async function deleteArticle(id: string) {
 
   await prisma.article.delete({ where: { id } });
 
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   redirect("/dashboard");
 }

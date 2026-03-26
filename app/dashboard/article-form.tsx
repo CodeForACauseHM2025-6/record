@@ -97,7 +97,7 @@ export function ArticleForm({ action, defaultValues, submitLabel }: ArticleFormP
       <div className="pt-2">
         <button
           type="submit"
-          className="font-headline font-bold text-[15px] tracking-[0.04em] bg-ink text-white px-8 py-3 hover:bg-maroon transition-colors"
+          className="cursor-pointer font-headline font-bold text-[15px] tracking-[0.04em] bg-ink text-white px-8 py-3 hover:bg-maroon transition-colors"
         >
           {submitLabel}
         </button>
