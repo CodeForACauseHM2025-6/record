@@ -22,10 +22,17 @@ interface ArticleData {
   featuredImage: string | null;
   section: string;
   publishedAt: Date | null;
-  createdBy: { id: string; name: string };
+  createdBy: { id: string; name: string; role: string };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
 }
+
+const ROLE_DISPLAY: Record<string, string> = {
+  READER: "Reader",
+  WRITER: "Staff Writer",
+  DESIGNER: "Designer",
+  EDITOR: "Editor",
+};
 
 function formatDateLong(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -66,7 +73,7 @@ function getAuthorInfo(article: ArticleData) {
   }
   return {
     name: article.createdBy.name,
-    role: "Staff Writer",
+    role: ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
     id: article.createdBy.id,
   };
 }

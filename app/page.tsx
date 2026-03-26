@@ -39,7 +39,7 @@ interface ArticleData {
   featuredImage: string | null;
   section: string;
   publishedAt: Date | null;
-  createdBy: { id: string; name: string };
+  createdBy: { id: string; name: string; role: string };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
 }
@@ -81,9 +81,15 @@ function getAuthorInfo(article: ArticleData) {
       id: primary.user.id,
     };
   }
+  const ROLE_DISPLAY: Record<string, string> = {
+    READER: "Reader",
+    WRITER: "Staff Writer",
+    DESIGNER: "Designer",
+    EDITOR: "Editor",
+  };
   return {
     name: article.createdBy.name,
-    role: "Staff Writer",
+    role: ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
     id: article.createdBy.id,
   };
 }
