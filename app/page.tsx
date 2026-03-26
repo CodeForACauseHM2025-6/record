@@ -210,33 +210,27 @@ export default async function HomePage({
           <div className="space-y-0">
             {rows.map((row) => (
               <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
-                {row.isFeatured ? (
-                  // Featured row — render first slot as the lead story
-                  <FeaturedRow slots={row.slots} />
-                ) : (
-                  // Regular row — flex based on slot sizes
-                  <div className="flex flex-col lg:flex-row">
-                    {row.slots.map((slot, slotIdx) => (
-                      <div
-                        key={slot.id}
-                        className={`py-7 ${
-                          slot.size === "large" ? "lg:flex-[3]" :
-                          slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
-                        } ${
-                          slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
-                        } ${
-                          slotIdx > 0 ? "lg:pl-8" : ""
-                        }`}
-                      >
-                        {slot.article ? (
-                          <ArticleCard article={slot.article} size={slot.size} />
-                        ) : (
-                          <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col lg:flex-row">
+                  {row.slots.map((slot, slotIdx) => (
+                    <div
+                      key={slot.id}
+                      className={`py-7 ${
+                        slot.size === "large" ? "lg:flex-[3]" :
+                        slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
+                      } ${
+                        slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
+                      } ${
+                        slotIdx > 0 ? "lg:pl-8" : ""
+                      }`}
+                    >
+                      {slot.article ? (
+                        <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
+                      ) : (
+                        <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -294,51 +288,7 @@ export default async function HomePage({
   );
 }
 
-function FeaturedRow({ slots }: { slots: SlotData[] }) {
-  const mainSlot = slots[0];
-  if (!mainSlot?.article) return null;
-  const article = mainSlot.article;
-  const author = getAuthorInfo(article);
-
-  return (
-    <article className="py-8">
-      <div className="flex items-center gap-3">
-        <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-lg">
-          {SECTION_LABELS[article.section] ?? article.section}
-        </Link>
-        <span className="font-headline text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-0.5">
-          Featured
-        </span>
-      </div>
-      <h2 className="font-headline text-[28px] sm:text-[34px] lg:text-[40px] font-bold leading-tight mt-2 mb-4">
-        <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
-          {article.title}
-        </Link>
-      </h2>
-      <div className="lg:flex lg:gap-8">
-        {article.featuredImage && (
-          <figure className="lg:w-[45%] shrink-0 mb-4 lg:mb-0">
-            <img src={article.featuredImage} alt={article.images[0]?.altText ?? article.title} className="w-full aspect-[3/2] object-cover bg-neutral-100" />
-          </figure>
-        )}
-        <div>
-          <p className="text-[17px] leading-[1.7]">{getPreviewText(article.body, 300)}</p>
-          <div className="mt-4">
-            <p className="font-headline text-[15px]">
-              <Link href={`/profile/${author.id}`} className="text-maroon font-bold hover:underline">{author.name}</Link>{" "}
-              <span className="italic">{author.role}</span>
-            </p>
-            {article.publishedAt && (
-              <p className="text-maroon text-[14px] font-headline font-semibold mt-0.5">{formatDateShort(article.publishedAt)}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function ArticleCard({ article, size }: { article: SlotArticle; size: string }) {
+function ArticleCard({ article, size, isFeatured = false }: { article: SlotArticle; size: string; isFeatured?: boolean }) {
   const author = getAuthorInfo(article);
   const previewLen = size === "large" ? 250 : size === "medium" ? 160 : 100;
   const titleSize = size === "large"
@@ -349,9 +299,16 @@ function ArticleCard({ article, size }: { article: SlotArticle; size: string }) 
 
   return (
     <>
-      <Link href={SECTION_HREFS[article.section] ?? "#"} className={`font-headline text-maroon italic ${size === "small" ? "text-[13px]" : "text-[14px]"}`}>
-        {SECTION_LABELS[article.section] ?? article.section}
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link href={SECTION_HREFS[article.section] ?? "#"} className={`font-headline text-maroon italic ${size === "small" ? "text-[13px]" : "text-[14px]"}`}>
+          {SECTION_LABELS[article.section] ?? article.section}
+        </Link>
+        {isFeatured && (
+          <span className="font-headline text-[10px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-1.5 py-0.5">
+            Featured
+          </span>
+        )}
+      </div>
       <h3 className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>
         <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
           {article.title}
