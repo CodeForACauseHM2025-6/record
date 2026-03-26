@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { HamburgerButton } from "@/app/sidebar-menu";
 
-export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
+export function SubpageHeader({ pageLabel, badge }: { pageLabel: string; badge?: string }) {
   return (
     <header className="border-b border-rule px-4 sm:px-8 py-3">
       <div className="max-w-[1200px] mx-auto flex items-center justify-between">
@@ -14,10 +14,15 @@ export function SubpageHeader({ pageLabel }: { pageLabel: string }) {
         </div>
 
         {/* Center: Masthead */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
           <span className="font-masthead text-[28px] sm:text-[34px] leading-none tracking-tight">
             The Record
           </span>
+          {badge && (
+            <span className="font-headline text-[10px] sm:text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-1">
+              {badge}
+            </span>
+          )}
         </Link>
 
         {/* Right: search */}

@@ -109,7 +109,7 @@ export default async function SectionPage({
 
   return (
     <div className="min-h-screen bg-white font-body page-enter">
-      <SubpageHeader pageLabel={sectionInfo.label} />
+      <SubpageHeader pageLabel={sectionInfo.label} badge={sectionInfo.label} />
 
       {/* ============ SECTION TITLE ============ */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8">
