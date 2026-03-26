@@ -12,21 +12,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, profile }) {
       if (!user.email?.endsWith("@horacemann.org")) {
         return false;
+      }
+      // Persist the Google profile image so it survives custom uploads
+      const googleImage = (profile as { picture?: string })?.picture ?? user.image;
+      if (googleImage && user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { googleImage },
+        }).catch(() => {
+          // User may not exist yet on first sign-in (adapter creates after)
+        });
       }
       return true;
     },
     async session({ session, user }) {
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { id: true, role: true, isAdmin: true },
+        select: { id: true, role: true, isAdmin: true, image: true, googleImage: true },
       });
       if (dbUser) {
         session.user.id = dbUser.id;
         session.user.role = dbUser.role;
         session.user.isAdmin = dbUser.isAdmin;
+        // If googleImage not set yet, seed it from the current image
+        if (!dbUser.googleImage && dbUser.image && !(dbUser.image as string).startsWith("data:")) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { googleImage: dbUser.image as string },
+          });
+        }
       }
       return session;
     },

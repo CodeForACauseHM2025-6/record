@@ -6,17 +6,19 @@ import { updateProfilePicture, resetProfilePicture } from "@/app/account/account
 export function ProfilePicture({
   userId,
   currentImage,
+  googleImage,
   firstInitial,
 }: {
   userId: string;
   currentImage: string | null;
+  googleImage: string | null;
   firstInitial: string;
 }) {
   const [image, setImage] = useState(currentImage);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isCustom = image?.startsWith("data:");
+  const isCustom = googleImage && image !== googleImage;
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("image/")) return;
@@ -37,10 +39,11 @@ export function ProfilePicture({
   }
 
   async function handleReset() {
-    if (!confirm("Reset your profile picture to default?")) return;
+    if (!confirm("Reset your profile picture to your Google account photo?")) return;
+    if (!googleImage) return;
     setUploading(true);
-    await resetProfilePicture(userId);
-    setImage(null);
+    await resetProfilePicture(userId, googleImage);
+    setImage(googleImage);
     setUploading(false);
   }
 

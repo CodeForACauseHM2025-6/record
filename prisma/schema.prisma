@@ -35,6 +35,7 @@ model User {
   email         String    @unique
   name          String
   image         String?
+  googleImage   String?
   emailVerified DateTime?
   role          Role      @default(READER)
   displayTitle  String?

@@ -25,10 +25,11 @@ export default async function AccountPage() {
   // Fetch full user data including image
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { image: true, createdAt: true },
+    select: { image: true, googleImage: true, createdAt: true },
   });
 
   const profileImage = (dbUser as { image?: string | null } | null)?.image ?? user.image ?? null;
+  const googleImage = (dbUser as { googleImage?: string | null } | null)?.googleImage ?? null;
   const firstInitial = user.name?.charAt(0)?.toUpperCase() ?? "?";
   const joinDate = (dbUser?.createdAt ?? new Date()).toLocaleDateString("en-US", {
     month: "long",
@@ -51,6 +52,7 @@ export default async function AccountPage() {
           <ProfilePicture
             userId={user.id}
             currentImage={profileImage}
+            googleImage={googleImage}
             firstInitial={firstInitial}
           />
 
