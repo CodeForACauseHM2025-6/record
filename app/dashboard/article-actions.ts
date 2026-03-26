@@ -59,9 +59,9 @@ export async function updateArticle(id: string, formData: FormData) {
     },
   });
 
-  revalidatePath(`/dashboard/articles/${id}/edit`);
   revalidatePath("/dashboard");
   revalidatePath("/");
+  redirect("/dashboard?saved=1");
 }
 
 export async function publishArticle(id: string) {

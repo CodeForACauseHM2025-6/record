@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
+import { SavedToast } from "@/app/dashboard/saved-toast";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -27,9 +28,14 @@ function formatDate(date: Date): string {
   });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  const { saved } = await searchParams;
 
   const articles = await prisma.article.findMany({
     orderBy: { updatedAt: "desc" },
@@ -46,6 +52,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-white font-body">
       <SubpageHeader pageLabel="Dashboard" />
+      {saved && <SavedToast />}
 
       <div className="max-w-[1000px] mx-auto px-4 sm:px-8 pt-8 pb-16">
         {/* Header row */}
