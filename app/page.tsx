@@ -149,6 +149,7 @@ export default async function HomePage() {
               <AccountDropdown
                 userName={session?.user?.name}
                 userEmail={session?.user?.email}
+                userImage={session?.user?.image}
                 userRole={session?.user?.role ?? "READER"}
               />
             </div>

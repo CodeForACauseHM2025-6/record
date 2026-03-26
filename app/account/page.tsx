@@ -1,6 +1,8 @@
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
+import { ProfilePicture } from "@/app/account/profile-picture";
 
 const ROLE_LABELS: Record<string, string> = {
   READER: "Reader",
@@ -19,8 +21,16 @@ export default async function AccountPage() {
   }
 
   const { user } = session;
+
+  // Fetch full user data including image
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { image: true, createdAt: true },
+  });
+
+  const profileImage = (dbUser as { image?: string | null } | null)?.image ?? user.image ?? null;
   const firstInitial = user.name?.charAt(0)?.toUpperCase() ?? "?";
-  const joinDate = new Date().toLocaleDateString("en-US", {
+  const joinDate = (dbUser?.createdAt ?? new Date()).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -38,9 +48,11 @@ export default async function AccountPage() {
 
         {/* Profile card */}
         <div className="mt-10 flex items-start gap-6">
-          <div className="w-16 h-16 bg-maroon text-white flex items-center justify-center font-masthead text-[28px] shrink-0">
-            {firstInitial}
-          </div>
+          <ProfilePicture
+            userId={user.id}
+            currentImage={profileImage}
+            firstInitial={firstInitial}
+          />
           <div className="min-w-0">
             <h3 className="font-headline text-[24px] font-bold leading-tight">
               {user.name}
@@ -52,10 +64,7 @@ export default async function AccountPage() {
         {/* Details */}
         <div className="mt-10 divide-y divide-neutral-200">
           <DetailRow label="Role" value={ROLE_LABELS[user.role] ?? user.role} />
-          {user.isAdmin && (
-            <DetailRow label="Permissions" value="Administrator" />
-          )}
-          <DetailRow label="Email" value={user.email ?? "—"} />
+          <DetailRow label="Email" value={user.email ?? "\u2014"} />
           <DetailRow label="Member Since" value={joinDate} />
         </div>
 
@@ -73,7 +82,7 @@ export default async function AccountPage() {
           >
             <button
               type="submit"
-              className="font-headline text-[15px] tracking-wide text-maroon hover:underline transition-colors"
+              className="cursor-pointer font-headline text-[15px] tracking-wide text-maroon hover:underline transition-colors"
             >
               Sign Out
             </button>
@@ -87,7 +96,7 @@ export default async function AccountPage() {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between py-4">
-      <span className="font-headline text-[14px] font-semibold tracking-wide text-caption uppercase">
+      <span className="font-headline text-[14px] font-semibold tracking-[0.08em] uppercase text-caption">
         {label}
       </span>
       <span className="font-headline text-[16px] tracking-wide">

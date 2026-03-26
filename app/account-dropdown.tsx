@@ -7,12 +7,14 @@ import { signOutAction } from "@/app/sign-out-action";
 interface AccountDropdownProps {
   userName: string | null | undefined;
   userEmail: string | null | undefined;
+  userImage: string | null | undefined;
   userRole: string;
 }
 
 export function AccountDropdown({
   userName,
   userEmail,
+  userImage,
   userRole,
 }: AccountDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -54,9 +56,13 @@ export function AccountDropdown({
           {/* User info */}
           <div className="px-5 py-4 border-b border-ink/10">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-maroon text-white flex items-center justify-center font-headline font-bold text-[15px] shrink-0">
-                {firstInitial}
-              </div>
+              {userImage ? (
+                <img src={userImage} alt="" className="w-9 h-9 object-cover shrink-0" />
+              ) : (
+                <div className="w-9 h-9 bg-maroon text-white flex items-center justify-center font-headline font-bold text-[15px] shrink-0">
+                  {firstInitial}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="font-headline font-semibold text-[15px] truncate">
                   {userName}
