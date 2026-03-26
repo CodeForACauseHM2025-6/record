@@ -108,7 +108,7 @@ export default async function LoginPage({
           >
             <button
               type="submit"
-              className="stamp-press group w-full flex items-center justify-center gap-3 bg-ink text-white px-6 py-4 font-headline font-bold text-[15px] sm:text-[16px] tracking-[0.06em] transition-all duration-300 hover:bg-maroon hover:shadow-[0_4px_20px_rgba(139,26,26,0.25)]"
+              className="cursor-pointer stamp-press group w-full flex items-center justify-center gap-3 bg-ink text-white px-6 py-4 font-headline font-bold text-[15px] sm:text-[16px] tracking-[0.06em] transition-all duration-300 hover:bg-maroon hover:shadow-[0_4px_20px_rgba(139,26,26,0.25)]"
             >
               {/* Google "G" icon */}
               <svg
