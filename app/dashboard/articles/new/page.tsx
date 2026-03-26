@@ -30,7 +30,7 @@ export default async function NewArticlePage() {
   }));
 
   return (
-    <div className="min-h-screen bg-white font-body">
+    <div className="min-h-screen bg-white font-body page-enter">
       <SubpageHeader pageLabel="New Article" />
 
       <div className="max-w-[800px] mx-auto px-4 sm:px-8 pt-8 pb-16">

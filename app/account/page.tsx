@@ -37,7 +37,7 @@ export default async function AccountPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white font-body">
+    <div className="min-h-screen bg-white font-body page-enter">
       <SubpageHeader pageLabel="Account" />
 
       <div className="max-w-[700px] mx-auto px-4 sm:px-8 pt-10 pb-16">

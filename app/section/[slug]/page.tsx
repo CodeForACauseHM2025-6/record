@@ -108,7 +108,7 @@ export default async function SectionPage({
   const today = new Date();
 
   return (
-    <div className="min-h-screen bg-white font-body">
+    <div className="min-h-screen bg-white font-body page-enter">
       <SubpageHeader pageLabel={sectionInfo.label} />
 
       {/* ============ SECTION TITLE ============ */}
