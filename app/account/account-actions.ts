@@ -17,3 +17,17 @@ export async function updateProfilePicture(userId: string, imageDataUrl: string)
 
   revalidatePath("/account");
 }
+
+export async function resetProfilePicture(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    throw new Error("Not authorized");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { image: null },
+  });
+
+  revalidatePath("/account");
+}

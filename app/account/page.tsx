@@ -53,6 +53,7 @@ export default async function AccountPage() {
             currentImage={profileImage}
             firstInitial={firstInitial}
           />
+
           <div className="min-w-0">
             <h3 className="font-headline text-[24px] font-bold leading-tight">
               {user.name}
