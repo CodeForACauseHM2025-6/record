@@ -29,6 +29,15 @@ export function AccountDropdown({
   }, []);
 
   const firstInitial = userName?.charAt(0)?.toUpperCase() ?? "?";
+  const ROLE_DISPLAY: Record<string, string> = {
+    READER: "Reader",
+    WRITER: "Staff Writer",
+    DESIGNER: "Designer",
+    EDITOR: "Editor",
+    WEB_TEAM: "Web Team",
+    WEB_MASTER: "Web Master",
+  };
+  const displayRole = ROLE_DISPLAY[userRole] ?? userRole;
 
   return (
     <div ref={ref} className="relative">
@@ -56,7 +65,7 @@ export function AccountDropdown({
               </div>
             </div>
             <p className="mt-2 text-[11px] tracking-[0.08em] uppercase text-caption font-headline font-semibold">
-              {userRole}
+              {displayRole}
             </p>
           </div>
 
