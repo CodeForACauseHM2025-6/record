@@ -11,6 +11,8 @@ enum Role {
   WRITER
   DESIGNER
   EDITOR
+  WEB_TEAM
+  WEB_MASTER
 }
 
 enum Section {
@@ -35,6 +37,7 @@ model User {
   image         String?
   emailVerified DateTime?
   role          Role      @default(READER)
+  displayTitle  String?
   isAdmin       Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

@@ -84,9 +84,21 @@ export async function updateArticle(id: string, formData: FormData) {
   redirect("/dashboard?saved=1");
 }
 
+function requireWebMaster(session: { user?: { role?: string } } | null) {
+  if (session?.user?.role !== "WEB_MASTER") {
+    throw new Error("Only Web Master can perform this action");
+  }
+}
+
 export async function publishArticle(id: string) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireWebMaster(session);
+
+  // Require at least one author
+  const creditCount = await prisma.articleCredit.count({ where: { articleId: id } });
+  if (creditCount === 0) {
+    throw new Error("Cannot publish without at least one author");
+  }
 
   await prisma.article.update({
     where: { id },
@@ -100,7 +112,7 @@ export async function publishArticle(id: string) {
 
 export async function unpublishArticle(id: string) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireWebMaster(session);
 
   await prisma.article.update({
     where: { id },
@@ -114,7 +126,7 @@ export async function unpublishArticle(id: string) {
 
 export async function toggleFeatured(id: string) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireWebMaster(session);
 
   const article = await prisma.article.findUnique({ where: { id } });
   if (!article) throw new Error("Article not found");
@@ -143,7 +155,7 @@ export async function toggleFeatured(id: string) {
 
 export async function deleteArticle(id: string) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireWebMaster(session);
 
   await prisma.article.delete({ where: { id } });
 

@@ -46,7 +46,7 @@ export const deleteImageSchema = z.object({
 });
 
 export const updateRoleSchema = z.object({
-  role: z.enum(["READER", "WRITER", "DESIGNER", "EDITOR"]),
+  role: z.enum(["READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"]),
 });
 
 export const updateAdminSchema = z.object({

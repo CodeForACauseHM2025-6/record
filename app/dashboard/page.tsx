@@ -46,6 +46,7 @@ export default async function DashboardPage({
     },
   });
 
+  const isWebMaster = session.user.role === "WEB_MASTER";
   const drafts = articles.filter((a) => a.status === "DRAFT");
   const published = articles.filter((a) => a.status === "PUBLISHED");
   const archived = articles.filter((a) => a.status === "ARCHIVED");
@@ -95,12 +96,12 @@ export default async function DashboardPage({
                   key={article.id}
                   className="flex items-center gap-3 py-5 -mx-4 px-4 hover:bg-neutral-50/50 transition-colors"
                 >
-                  {/* Feature star — only for published articles */}
-                  {article.status === "PUBLISHED" ? (
+                  {/* Feature star — only for published articles, WEB_MASTER only */}
+                  {isWebMaster && article.status === "PUBLISHED" ? (
                     <FeatureStar articleId={article.id} isFeatured={article.isFeatured} />
-                  ) : (
+                  ) : isWebMaster ? (
                     <div className="w-[20px]" />
-                  )}
+                  ) : null}
 
                   <Link
                     href={`/dashboard/articles/${article.id}/edit`}

@@ -7,6 +7,8 @@ const ROLE_LABELS: Record<string, string> = {
   WRITER: "Staff Writer",
   DESIGNER: "Designer",
   EDITOR: "Editor",
+  WEB_TEAM: "Web Team",
+  WEB_MASTER: "Web Master",
 };
 
 export default async function AccountPage() {

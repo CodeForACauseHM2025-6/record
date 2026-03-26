@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const SECTIONS = [
   { value: "NEWS", label: "News" },
@@ -9,15 +9,6 @@ const SECTIONS = [
   { value: "A_AND_E", label: "A&E" },
   { value: "LIONS_DEN", label: "Lion\u2019s Den" },
   { value: "THE_ROUNDTABLE", label: "The Roundtable" },
-];
-
-const CREDIT_ROLES = [
-  "Staff Writer",
-  "Contributing Writer",
-  "Editor",
-  "Photographer",
-  "Illustrator",
-  "Designer",
 ];
 
 export interface AuthorCredit {
@@ -29,6 +20,7 @@ export interface AuthorCredit {
 export interface AvailableUser {
   id: string;
   name: string;
+  defaultRole: string;
 }
 
 interface ArticleFormProps {
@@ -53,15 +45,12 @@ export function ArticleForm({
 }: ArticleFormProps) {
   const [credits, setCredits] = useState<AuthorCredit[]>(defaultCredits);
 
-  function addCredit() {
-    if (availableUsers.length === 0) return;
-    const firstAvailable = availableUsers.find(
-      (u) => !credits.some((c) => c.userId === u.id)
-    ) ?? availableUsers[0];
+  function addAuthor(user: AvailableUser) {
+    if (credits.some((c) => c.userId === user.id)) return;
     setCredits([...credits, {
-      userId: firstAvailable.id,
-      userName: firstAvailable.name,
-      creditRole: "Staff Writer",
+      userId: user.id,
+      userName: user.name,
+      creditRole: user.defaultRole,
     }]);
   }
 
@@ -69,15 +58,8 @@ export function ArticleForm({
     setCredits(credits.filter((_, i) => i !== index));
   }
 
-  function updateCredit(index: number, field: "userId" | "creditRole", value: string) {
-    setCredits(credits.map((c, i) => {
-      if (i !== index) return c;
-      if (field === "userId") {
-        const user = availableUsers.find((u) => u.id === value);
-        return { ...c, userId: value, userName: user?.name ?? "" };
-      }
-      return { ...c, [field]: value };
-    }));
+  function updateCreditRole(index: number, value: string) {
+    setCredits(credits.map((c, i) => i === index ? { ...c, creditRole: value } : c));
   }
 
   return (
@@ -124,52 +106,44 @@ export function ArticleForm({
         <label className="block font-headline text-[13px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
           Authors
         </label>
-        <div className="space-y-3">
-          {credits.map((credit, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <select
-                name={`credit_user_${i}`}
-                value={credit.userId}
-                onChange={(e) => updateCredit(i, "userId", e.target.value)}
-                className="flex-1 border border-ink/20 px-3 py-2.5 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors bg-white"
-              >
-                {availableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                name={`credit_role_${i}`}
-                value={credit.creditRole}
-                onChange={(e) => updateCredit(i, "creditRole", e.target.value)}
-                className="w-44 border border-ink/20 px-3 py-2.5 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors bg-white"
-              >
-                {CREDIT_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => removeCredit(i)}
-                className="cursor-pointer text-caption/40 hover:text-maroon transition-colors text-[18px] px-1"
-                title="Remove author"
-              >
-                &times;
-              </button>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={addCredit}
-          className="cursor-pointer mt-3 font-headline text-[14px] tracking-wide text-maroon hover:underline"
-        >
-          + Add author
-        </button>
-        {/* Hidden field to pass credit count */}
+
+        {/* Listed authors */}
+        {credits.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {credits.map((credit, i) => (
+              <div key={credit.userId} className="flex items-center gap-3 bg-neutral-50 px-4 py-2.5">
+                <span className="font-headline font-semibold text-[15px] tracking-wide">
+                  {credit.userName}
+                </span>
+                <span className="text-caption text-[13px]">&mdash;</span>
+                <input
+                  type="text"
+                  name={`credit_role_${i}`}
+                  value={credit.creditRole}
+                  onChange={(e) => updateCreditRole(i, e.target.value)}
+                  className="flex-1 bg-transparent font-headline text-[14px] tracking-wide outline-none text-caption placeholder:text-caption/30"
+                  placeholder="Role..."
+                />
+                <input type="hidden" name={`credit_user_${i}`} value={credit.userId} />
+                <button
+                  type="button"
+                  onClick={() => removeCredit(i)}
+                  className="cursor-pointer text-caption/30 hover:text-maroon transition-colors text-[18px] px-1"
+                  title="Remove author"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Author search */}
+        <AuthorSearch
+          users={availableUsers.filter((u) => !credits.some((c) => c.userId === u.id))}
+          onSelect={addAuthor}
+        />
+
         <input type="hidden" name="credit_count" value={credits.length} />
       </div>
 
@@ -212,5 +186,58 @@ export function ArticleForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function AuthorSearch({
+  users,
+  onSelect,
+}: {
+  users: AvailableUser[];
+  onSelect: (user: AvailableUser) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = query.length > 0
+    ? users.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()))
+    : users;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Search for an author to add..."
+        className="w-full border border-ink/20 px-4 py-2.5 font-headline text-[15px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-ink/15 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-20 max-h-48 overflow-y-auto">
+          {filtered.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onSelect(u);
+                setQuery("");
+                setOpen(false);
+              }}
+              className="cursor-pointer w-full text-left px-4 py-2.5 font-headline text-[15px] tracking-wide hover:bg-neutral-50 hover:text-maroon transition-colors flex items-baseline justify-between"
+            >
+              <span>{u.name}</span>
+              <span className="text-[12px] text-caption/50">{u.defaultRole}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

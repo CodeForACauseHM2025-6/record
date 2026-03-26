@@ -22,7 +22,7 @@ interface ArticleData {
   featuredImage: string | null;
   section: string;
   publishedAt: Date | null;
-  createdBy: { id: string; name: string; role: string };
+  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
 }
@@ -32,6 +32,8 @@ const ROLE_DISPLAY: Record<string, string> = {
   WRITER: "Staff Writer",
   DESIGNER: "Designer",
   EDITOR: "Editor",
+  WEB_TEAM: "Web Team",
+  WEB_MASTER: "Web Master",
 };
 
 function formatDateLong(date: Date): string {
@@ -73,7 +75,7 @@ function getAuthorInfo(article: ArticleData) {
   }
   return {
     name: article.createdBy.name,
-    role: ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
+    role: article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
     id: article.createdBy.id,
   };
 }

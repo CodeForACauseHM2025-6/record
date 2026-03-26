@@ -40,7 +40,7 @@ interface ArticleData {
   section: string;
   isFeatured: boolean;
   publishedAt: Date | null;
-  createdBy: { id: string; name: string; role: string };
+  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
 }
@@ -87,10 +87,12 @@ function getAuthorInfo(article: ArticleData) {
     WRITER: "Staff Writer",
     DESIGNER: "Designer",
     EDITOR: "Editor",
+    WEB_TEAM: "Web Team",
+    WEB_MASTER: "Web Master",
   };
   return {
     name: article.createdBy.name,
-    role: ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
+    role: article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
     id: article.createdBy.id,
   };
 }
@@ -148,8 +150,6 @@ export default async function HomePage() {
                 userName={session?.user?.name}
                 userEmail={session?.user?.email}
                 userRole={session?.user?.role ?? "READER"}
-                isAdmin={session?.user?.isAdmin ?? false}
-                isEditor={session?.user?.role === "EDITOR"}
               />
             </div>
             <Link href="/search" aria-label="Search" className="p-1">

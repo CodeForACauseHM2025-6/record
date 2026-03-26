@@ -8,16 +8,12 @@ interface AccountDropdownProps {
   userName: string | null | undefined;
   userEmail: string | null | undefined;
   userRole: string;
-  isAdmin: boolean;
-  isEditor: boolean;
 }
 
 export function AccountDropdown({
   userName,
   userEmail,
   userRole,
-  isAdmin,
-  isEditor,
 }: AccountDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,10 +63,10 @@ export function AccountDropdown({
           {/* Links */}
           <nav className="py-1">
             <DropdownLink href="/account" label="Account Settings" onClick={() => setOpen(false)} />
-            {(isEditor || isAdmin) && (
+            {(userRole === "WEB_TEAM" || userRole === "WEB_MASTER") && (
               <DropdownLink href="/dashboard" label="Dashboard" onClick={() => setOpen(false)} />
             )}
-            {isAdmin && (
+            {userRole === "WEB_MASTER" && (
               <DropdownLink href="/admin" label="Admin Panel" onClick={() => setOpen(false)} />
             )}
           </nav>

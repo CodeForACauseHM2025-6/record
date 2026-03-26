@@ -27,16 +27,17 @@ export default auth((req) => {
     }
   }
 
-  // Dashboard routes require EDITOR role or isAdmin
+  // Dashboard routes require WEB_TEAM or WEB_MASTER
   if (pathname.startsWith("/dashboard")) {
-    if (req.auth?.user && req.auth.user.role !== "EDITOR" && !req.auth.user.isAdmin) {
+    const role = req.auth?.user?.role;
+    if (role !== "WEB_TEAM" && role !== "WEB_MASTER") {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  // Admin routes require isAdmin
+  // Admin routes require WEB_MASTER
   if (pathname.startsWith("/admin")) {
-    if (req.auth?.user && !req.auth.user.isAdmin) {
+    if (req.auth?.user?.role !== "WEB_MASTER") {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }

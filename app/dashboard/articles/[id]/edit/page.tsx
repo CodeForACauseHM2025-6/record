@@ -36,17 +36,18 @@ export default async function EditArticlePage({
   if (!session?.user) redirect("/login");
 
   const { id } = await params;
+  const isWebMaster = session.user.role === "WEB_MASTER";
 
   const [article, allUsers] = await Promise.all([
     prisma.article.findUnique({
       where: { id },
       include: {
         createdBy: { select: { name: true } },
-        credits: { include: { user: { select: { id: true, name: true } } } },
+        credits: { include: { user: { select: { id: true, name: true, role: true, displayTitle: true } } } },
       },
     }),
     prisma.user.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, role: true, displayTitle: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -59,10 +60,19 @@ export default async function EditArticlePage({
     creditRole: c.creditRole,
   }));
 
+  const hasAuthors = article.credits.length > 0;
+
   const boundUpdate = updateArticle.bind(null, id);
   const boundPublish = publishArticle.bind(null, id);
   const boundUnpublish = unpublishArticle.bind(null, id);
   const boundDelete = deleteArticle.bind(null, id);
+
+  // Build user list with default display titles for the form
+  const usersWithDefaults = allUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    defaultRole: (u as { displayTitle?: string | null }).displayTitle ?? defaultRoleDisplay(u.role),
+  }));
 
   return (
     <div className="min-h-screen bg-white font-body">
@@ -89,44 +99,52 @@ export default async function EditArticlePage({
         </div>
         <div className="mt-4 h-[2px] bg-rule" />
 
-        {/* Action bar */}
+        {/* Action bar — publish/delete only for WEB_MASTER */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {article.status === "DRAFT" && (
-            <form action={boundPublish}>
+          {isWebMaster && article.status === "DRAFT" && (
+            hasAuthors ? (
+              <form action={boundPublish}>
+                <button
+                  type="submit"
+                  className="cursor-pointer font-headline font-bold text-[14px] tracking-wide bg-green-800 text-white px-5 py-2 hover:bg-green-900 transition-colors"
+                >
+                  Publish
+                </button>
+              </form>
+            ) : (
+              <span className="font-headline text-[13px] text-caption/50 italic">
+                Add at least one author to publish
+              </span>
+            )
+          )}
+          {article.status === "PUBLISHED" && (
+            <Link
+              href={`/article/${article.slug}`}
+              className="font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 hover:border-maroon hover:text-maroon transition-colors"
+            >
+              View Live
+            </Link>
+          )}
+          {isWebMaster && article.status === "PUBLISHED" && (
+            <form action={boundUnpublish}>
               <button
                 type="submit"
-                className="font-headline font-bold text-[14px] tracking-wide bg-green-800 text-white px-5 py-2 hover:bg-green-900 transition-colors"
+                className="cursor-pointer font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 text-caption hover:border-maroon hover:text-maroon transition-colors"
               >
-                Publish
+                Unpublish
               </button>
             </form>
           )}
-          {article.status === "PUBLISHED" && (
-            <>
-              <Link
-                href={`/article/${article.slug}`}
-                className="font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 hover:border-maroon hover:text-maroon transition-colors"
+          {isWebMaster && (
+            <form action={boundDelete} className="ml-auto">
+              <button
+                type="submit"
+                className="cursor-pointer font-headline text-[13px] tracking-wide text-caption/50 hover:text-maroon transition-colors"
               >
-                View Live
-              </Link>
-              <form action={boundUnpublish}>
-                <button
-                  type="submit"
-                  className="font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 text-caption hover:border-maroon hover:text-maroon transition-colors"
-                >
-                  Unpublish
-                </button>
-              </form>
-            </>
+                Delete
+              </button>
+            </form>
           )}
-          <form action={boundDelete} className="ml-auto">
-            <button
-              type="submit"
-              className="font-headline text-[13px] tracking-wide text-caption/50 hover:text-maroon transition-colors"
-            >
-              Delete
-            </button>
-          </form>
         </div>
 
         {/* Form */}
@@ -140,11 +158,23 @@ export default async function EditArticlePage({
               section: article.section,
             }}
             defaultCredits={existingCredits}
-            availableUsers={allUsers as { id: string; name: string }[]}
+            availableUsers={usersWithDefaults}
             submitLabel="Save Changes"
           />
         </div>
       </div>
     </div>
   );
+}
+
+function defaultRoleDisplay(role: string): string {
+  const map: Record<string, string> = {
+    READER: "Reader",
+    WRITER: "Staff Writer",
+    DESIGNER: "Designer",
+    EDITOR: "Editor",
+    WEB_TEAM: "Web Team",
+    WEB_MASTER: "Web Master",
+  };
+  return map[role] ?? role;
 }

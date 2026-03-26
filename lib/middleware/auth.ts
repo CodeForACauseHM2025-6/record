@@ -11,7 +11,9 @@ const ROLE_LEVEL: Record<Role, number> = {
   READER: 0,
   WRITER: 0,
   DESIGNER: 0,
-  EDITOR: 1,
+  EDITOR: 0,
+  WEB_TEAM: 1,
+  WEB_MASTER: 2,
 };
 
 export async function checkRole(requiredRole: Role): Promise<AuthResult> {

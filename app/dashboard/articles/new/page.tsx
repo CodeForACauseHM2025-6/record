@@ -9,10 +9,25 @@ export default async function NewArticlePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const allUsers = await prisma.user.findMany({
-    select: { id: true, name: true },
+  const rawUsers = await prisma.user.findMany({
+    select: { id: true, name: true, role: true, displayTitle: true },
     orderBy: { name: "asc" },
   });
+
+  const ROLE_DISPLAY: Record<string, string> = {
+    READER: "Reader",
+    WRITER: "Staff Writer",
+    DESIGNER: "Designer",
+    EDITOR: "Editor",
+    WEB_TEAM: "Web Team",
+    WEB_MASTER: "Web Master",
+  };
+
+  const allUsers = rawUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    defaultRole: (u as { displayTitle?: string | null }).displayTitle ?? ROLE_DISPLAY[u.role] ?? u.role,
+  }));
 
   return (
     <div className="min-h-screen bg-white font-body">
@@ -30,7 +45,7 @@ export default async function NewArticlePage() {
         <div className="mt-8">
           <ArticleForm
             action={createArticle}
-            availableUsers={allUsers as { id: string; name: string }[]}
+            availableUsers={allUsers}
             submitLabel="Save Draft"
           />
         </div>
