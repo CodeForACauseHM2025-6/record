@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { HamburgerButton } from "@/app/sidebar-menu";
+import { AccountDropdown } from "@/app/account-dropdown";
+import { auth } from "@/lib/auth";
 
-export function SubpageHeader({ pageLabel, badge }: { pageLabel: string; badge?: string }) {
+export async function SubpageHeader({ pageLabel, badge }: { pageLabel: string; badge?: string }) {
+  const session = await auth();
+
   return (
     <header className="border-b border-rule px-4 sm:px-8 py-3">
       <div className="max-w-[1200px] mx-auto flex items-center justify-between">
@@ -19,14 +23,24 @@ export function SubpageHeader({ pageLabel, badge }: { pageLabel: string; badge?:
             The Record
           </span>
           {badge && (
-            <span className="font-headline text-[10px] sm:text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-1">
+            <span className="font-headline text-[12px] sm:text-[13px] font-bold tracking-[0.08em] uppercase bg-maroon text-white px-2.5 py-1 -translate-y-0.5">
               {badge}
             </span>
           )}
         </Link>
 
-        {/* Right: search */}
-        <div className="flex items-center">
+        {/* Right: account + search */}
+        <div className="flex items-center gap-4 font-headline text-base">
+          {session?.user && (
+            <div className="hidden md:block">
+              <AccountDropdown
+                userName={session.user.name}
+                userEmail={session.user.email}
+                userImage={session.user.image}
+                userRole={session.user.role ?? "READER"}
+              />
+            </div>
+          )}
           <Link href="/search" aria-label="Search" className="p-1">
             <svg
               width="18"
