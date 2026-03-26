@@ -80,31 +80,44 @@ function getAuthorInfo(article: ArticleData) {
   };
 }
 
+const PER_PAGE = 10;
+
 export default async function SectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { slug } = await params;
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const sectionInfo = SLUG_TO_SECTION[slug];
 
   if (!sectionInfo) {
     notFound();
   }
 
-  const articles = (await prisma.article.findMany({
-    where: { status: "PUBLISHED", section: sectionInfo.dbKey as Section },
-    orderBy: { publishedAt: "desc" },
-    take: 20,
-    include: {
-      createdBy: true,
-      credits: { include: { user: true } },
-      images: { orderBy: { order: "asc" } },
+  const [articles, totalCount] = await Promise.all([
+    prisma.article.findMany({
+      where: { status: "PUBLISHED", section: sectionInfo.dbKey as Section },
+      orderBy: { publishedAt: "desc" },
+      skip: (currentPage - 1) * PER_PAGE,
+      take: PER_PAGE,
+      include: {
+        createdBy: true,
+        credits: { include: { user: true } },
+        images: { orderBy: { order: "asc" } },
     },
-  })) as unknown as ArticleData[];
+    }) as Promise<unknown>,
+    prisma.article.count({ where: { status: "PUBLISHED", section: sectionInfo.dbKey as Section } }),
+  ]);
 
-  const featured = articles[0] ?? null;
-  const rest = articles.slice(1);
+  const allArticles = articles as unknown as ArticleData[];
+  const totalPages = Math.ceil(totalCount / PER_PAGE);
+
+  const featured = allArticles[0] ?? null;
+  const rest = allArticles.slice(1);
   const today = new Date();
 
   return (
@@ -283,6 +296,48 @@ export default async function SectionPage({
             <p className="font-headline text-2xl text-neutral-400">
               No articles published in {sectionInfo.fullLabel ?? sectionInfo.label} yet.
             </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-2 font-headline text-[15px] tracking-wide">
+            {currentPage > 1 && (
+              <Link
+                href={currentPage === 2 ? `/section/${slug}` : `/section/${slug}?page=${currentPage - 1}`}
+                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+              >
+                &larr; Newer
+              </Link>
+            )}
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 7) pageNum = i + 1;
+              else if (currentPage <= 4) pageNum = i + 1;
+              else if (currentPage >= totalPages - 3) pageNum = totalPages - 6 + i;
+              else pageNum = currentPage - 3 + i;
+              return (
+                <Link
+                  key={pageNum}
+                  href={pageNum === 1 ? `/section/${slug}` : `/section/${slug}?page=${pageNum}`}
+                  className={`w-10 h-10 flex items-center justify-center transition-colors ${
+                    pageNum === currentPage
+                      ? "bg-ink text-white"
+                      : "border border-ink/10 hover:border-maroon hover:text-maroon"
+                  }`}
+                >
+                  {pageNum}
+                </Link>
+              );
+            })}
+            {currentPage < totalPages && (
+              <Link
+                href={`/section/${slug}?page=${currentPage + 1}`}
+                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+              >
+                Older &rarr;
+              </Link>
+            )}
           </div>
         )}
       </main>

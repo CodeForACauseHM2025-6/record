@@ -210,11 +210,11 @@ export default async function HomePage({
           <div className="space-y-0">
             {rows.map((row) => (
               <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
-                <div className="flex flex-col lg:flex-row">
+                <div className="flex flex-col lg:flex-row lg:items-stretch">
                   {row.slots.map((slot, slotIdx) => (
                     <div
                       key={slot.id}
-                      className={`py-7 ${
+                      className={`py-7 flex flex-col ${
                         slot.size === "large" ? "lg:flex-[3]" :
                         slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
                       } ${
