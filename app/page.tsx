@@ -30,19 +30,31 @@ const SECTION_HREFS: Record<string, string> = {
   THE_ROUNDTABLE: "/section/the-roundtable",
 };
 
-interface ArticleData {
+interface SlotArticle {
   id: string;
   title: string;
   slug: string;
   body: string;
-  excerpt: string | null;
-  featuredImage: string | null;
   section: string;
-  isFeatured: boolean;
+  featuredImage: string | null;
   publishedAt: Date | null;
   createdBy: { id: string; name: string; role: string; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
+}
+
+interface SlotData {
+  id: string;
+  size: string;
+  order: number;
+  article: SlotArticle | null;
+}
+
+interface RowData {
+  id: string;
+  order: number;
+  isFeatured: boolean;
+  slots: SlotData[];
 }
 
 function formatDateLong(date: Date): string {
@@ -66,29 +78,20 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
-function getExcerptText(article: ArticleData): string {
-  if (article.excerpt) return article.excerpt;
-  const plain = stripHtml(article.body);
-  if (plain.length <= 280) return plain;
-  return plain.slice(0, 280).replace(/\s+\S*$/, "") + "\u2026";
+function getPreviewText(body: string, maxLen = 200): string {
+  const plain = stripHtml(body);
+  if (plain.length <= maxLen) return plain;
+  return plain.slice(0, maxLen).replace(/\s+\S*$/, "") + "...";
 }
 
-function getAuthorInfo(article: ArticleData) {
+function getAuthorInfo(article: SlotArticle) {
   if (article.credits.length > 0) {
     const primary = article.credits[0];
-    return {
-      name: primary.user.name,
-      role: primary.creditRole,
-      id: primary.user.id,
-    };
+    return { name: primary.user.name, role: primary.creditRole, id: primary.user.id };
   }
   const ROLE_DISPLAY: Record<string, string> = {
-    READER: "Reader",
-    WRITER: "Staff Writer",
-    DESIGNER: "Designer",
-    EDITOR: "Editor",
-    WEB_TEAM: "Web Team",
-    WEB_MASTER: "Web Master",
+    READER: "Reader", WRITER: "Staff Writer", DESIGNER: "Designer",
+    EDITOR: "Editor", WEB_TEAM: "Web Team", WEB_MASTER: "Web Master",
   };
   return {
     name: article.createdBy.name,
@@ -97,38 +100,65 @@ function getAuthorInfo(article: ArticleData) {
   };
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const session = await auth();
-  const articles = (await prisma.article.findMany({
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+
+  // Fetch published groups ordered by publishedAt desc
+  const groups = await prisma.articleGroup.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { publishedAt: "desc" },
-    take: 6,
-    include: {
-      createdBy: true,
-      credits: { include: { user: true } },
-      images: { orderBy: { order: "asc" } },
-    },
-  })) as unknown as ArticleData[];
+  });
 
-  const featuredArticle = articles.find((a) => a.isFeatured) ?? null;
-  const featured = featuredArticle ?? articles[0] ?? null;
-  const sidebar = articles.filter((a) => a.id !== featured?.id).slice(0, 5);
-  const latestDate = featured?.publishedAt ?? new Date();
+  const totalPages = groups.length;
+  const currentGroup = groups[currentPage - 1] ?? null;
+
+  let rows: RowData[] = [];
+  let groupDate = new Date();
+
+  if (currentGroup) {
+    const fullGroup = await prisma.articleGroup.findUnique({
+      where: { id: currentGroup.id },
+      include: {
+        rows: {
+          orderBy: { order: "asc" },
+          include: {
+            slots: {
+              orderBy: { order: "asc" },
+              include: {
+                article: {
+                  include: {
+                    createdBy: true,
+                    credits: { include: { user: true } },
+                    images: { orderBy: { order: "asc" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    rows = (fullGroup?.rows ?? []) as unknown as RowData[];
+    groupDate = currentGroup.publishedAt ?? currentGroup.createdAt;
+  }
 
   return (
     <div className="min-h-screen bg-white font-body page-enter">
       {/* ============ HEADER ============ */}
       <header className="px-4 sm:px-8 pt-4 pb-2">
         <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
-          {/* Left nav */}
           <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
             <HamburgerButton />
           </div>
-
-          {/* Center: Masthead */}
           <div className="text-center">
             <Link href="/">
-              <h1 className="font-masthead text-[36px] sm:text-[48px] lg:text-[54px] leading-none tracking-tight">
+              <h1 className="font-masthead text-[44px] sm:text-[60px] lg:text-[72px] leading-none tracking-tight">
                 The Record
               </h1>
             </Link>
@@ -136,15 +166,8 @@ export default async function HomePage() {
               Horace Mann&rsquo;s Weekly Newspaper Since 1903
             </p>
           </div>
-
-          {/* Right nav */}
           <div className="flex items-center justify-end gap-4 sm:gap-5 font-headline text-base">
-            <Link
-              href="/about"
-              className="hidden sm:inline font-bold tracking-wide"
-            >
-              About
-            </Link>
+            <Link href="/about" className="hidden sm:inline font-bold tracking-wide">About</Link>
             <div className="hidden md:block">
               <AccountDropdown
                 userName={session?.user?.name}
@@ -154,29 +177,9 @@ export default async function HomePage() {
               />
             </div>
             <Link href="/search" aria-label="Search" className="p-1">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="16.5"
-                  y1="16.5"
-                  x2="22"
-                  y2="22"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <line x1="16.5" y1="16.5" x2="22" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </Link>
           </div>
@@ -186,7 +189,7 @@ export default async function HomePage() {
       {/* ============ DATE BAR ============ */}
       <div className="border-t border-rule">
         <p className="text-center font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] py-1.5">
-          {formatDateLong(latestDate)}
+          {formatDateLong(groupDate)}
         </p>
       </div>
 
@@ -194,11 +197,7 @@ export default async function HomePage() {
       <nav className="border-t border-b border-rule overflow-x-auto">
         <div className="max-w-[1200px] mx-auto flex justify-between gap-6 px-4 sm:px-16 py-3 min-w-max sm:min-w-0">
           {NAV_SECTIONS.map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="font-headline text-lg sm:text-xl tracking-wide whitespace-nowrap hover:text-maroon transition-colors"
-            >
+            <Link key={s.href} href={s.href} className="font-headline text-lg sm:text-xl tracking-wide whitespace-nowrap hover:text-maroon transition-colors">
               {s.label}
             </Link>
           ))}
@@ -207,144 +206,167 @@ export default async function HomePage() {
 
       {/* ============ MAIN CONTENT ============ */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8 pb-16">
-        {featured ? (
-          <div className="flex flex-col lg:flex-row">
-            {/* ---------- FEATURED ARTICLE ---------- */}
-            <article className="lg:flex-[3] lg:pr-10 pb-8 lg:pb-0">
-              {/* Section label + Featured badge */}
-              <div className="flex items-center gap-3">
-                <Link
-                  href={SECTION_HREFS[featured.section] ?? "#"}
-                  className="font-headline text-maroon italic text-lg"
-                >
-                  {SECTION_LABELS[featured.section] ?? featured.section}
-                </Link>
-                {featured.isFeatured && (
-                  <span className="font-headline text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-0.5">
-                    Featured
-                  </span>
-                )}
-              </div>
-
-              {/* Headline */}
-              <h2 className="font-headline text-[26px] sm:text-[30px] lg:text-[34px] font-bold leading-tight mt-2 mb-5">
-                <Link
-                  href={`/article/${featured.slug}`}
-                  className="hover:text-maroon transition-colors"
-                >
-                  {featured.title}
-                </Link>
-              </h2>
-
-              {/* Excerpt with floated image */}
-              <div className="featured-excerpt text-[17px] leading-[1.7]">
-                {featured.featuredImage && (
-                  <figure className="sm:float-right sm:ml-6 mb-5 sm:w-[55%] sm:max-w-[420px]">
-                    <img
-                      src={featured.featuredImage}
-                      alt={
-                        featured.images[0]?.altText ?? featured.title
-                      }
-                      className="w-full aspect-[4/3] object-cover bg-neutral-100"
-                    />
-                    {featured.images[0]?.caption && (
-                      <figcaption className="mt-1.5 text-[11px] tracking-[0.06em] flex justify-between text-caption">
-                        <span className="uppercase font-semibold">
-                          {featured.images[0].caption}
-                        </span>
-                        {featured.images[0].altText && (
-                          <span>{featured.images[0].altText}</span>
+        {rows.length > 0 ? (
+          <div className="space-y-0">
+            {rows.map((row) => (
+              <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
+                {row.isFeatured ? (
+                  // Featured row — render first slot as the lead story
+                  <FeaturedRow slots={row.slots} />
+                ) : (
+                  // Regular row — flex based on slot sizes
+                  <div className="flex flex-col lg:flex-row">
+                    {row.slots.map((slot, slotIdx) => (
+                      <div
+                        key={slot.id}
+                        className={`py-7 ${
+                          slot.size === "large" ? "lg:flex-[3]" :
+                          slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
+                        } ${
+                          slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
+                        } ${
+                          slotIdx > 0 ? "lg:pl-8" : ""
+                        }`}
+                      >
+                        {slot.article ? (
+                          <ArticleCard article={slot.article} size={slot.size} />
+                        ) : (
+                          <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
                         )}
-                      </figcaption>
-                    )}
-                  </figure>
-                )}
-
-                <p>{getExcerptText(featured)}</p>
-              </div>
-
-              {/* Author + Date */}
-              <div className="mt-6 clear-both">
-                <p className="font-headline text-[15px]">
-                  <Link
-                    href={`/profile/${getAuthorInfo(featured).id}`}
-                    className="text-maroon font-bold hover:underline"
-                  >
-                    {getAuthorInfo(featured).name}
-                  </Link>{" "}
-                  <span className="italic">
-                    {getAuthorInfo(featured).role}
-                  </span>
-                </p>
-                {featured.publishedAt && (
-                  <p className="text-maroon text-[15px] font-headline font-semibold mt-0.5">
-                    {formatDateShort(featured.publishedAt)}
-                  </p>
-                )}
-              </div>
-            </article>
-
-            {/* Vertical Divider */}
-            <div className="hidden lg:block w-px bg-rule shrink-0" />
-
-            {/* ---------- SIDEBAR ---------- */}
-            <aside className="lg:flex-[2] lg:pl-8 border-t border-neutral-300 lg:border-t-0 pt-6 lg:pt-0">
-              <div className="divide-y divide-neutral-300">
-                {sidebar.map((article) => {
-                  const author = getAuthorInfo(article);
-                  return (
-                    <div key={article.id} className="py-4 first:pt-0">
-                      <h3 className="font-headline text-[17px] font-bold leading-snug">
-                        <Link
-                          href={`/article/${article.slug}`}
-                          className="hover:text-maroon transition-colors"
-                        >
-                          {article.title}
-                        </Link>
-                      </h3>
-                      <div className="mt-2 flex items-baseline justify-between gap-3 font-headline text-[14px]">
-                        <span>
-                          <Link
-                            href={`/profile/${author.id}`}
-                            className="text-maroon hover:underline"
-                          >
-                            {author.name}
-                          </Link>{" "}
-                          <span className="italic">{author.role}</span>
-                        </span>
-                        <Link
-                          href={SECTION_HREFS[article.section] ?? "#"}
-                          className="text-maroon italic shrink-0"
-                        >
-                          {SECTION_LABELS[article.section] ??
-                            article.section}
-                        </Link>
                       </div>
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* View More */}
-              <div className="text-right mt-4 pt-2">
-                <Link
-                  href="/search"
-                  className="font-headline text-[14px] font-semibold tracking-wide hover:text-maroon transition-colors"
-                >
-                  view more &gt;
-                </Link>
-              </div>
-            </aside>
+            ))}
           </div>
         ) : (
-          /* Empty state */
           <div className="text-center py-24">
             <p className="font-headline text-2xl text-neutral-400">
-              No articles published yet.
+              {currentGroup ? "This edition has no articles yet." : "No editions published yet."}
             </p>
+          </div>
+        )}
+
+        {/* ---- PAGINATION ---- */}
+        {totalPages > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-2 font-headline text-[15px] tracking-wide">
+            {currentPage > 1 && (
+              <Link
+                href={currentPage === 2 ? "/" : `/?page=${currentPage - 1}`}
+                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+              >
+                &larr; Newer
+              </Link>
+            )}
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 7) pageNum = i + 1;
+              else if (currentPage <= 4) pageNum = i + 1;
+              else if (currentPage >= totalPages - 3) pageNum = totalPages - 6 + i;
+              else pageNum = currentPage - 3 + i;
+              return (
+                <Link
+                  key={pageNum}
+                  href={pageNum === 1 ? "/" : `/?page=${pageNum}`}
+                  className={`w-10 h-10 flex items-center justify-center transition-colors ${
+                    pageNum === currentPage
+                      ? "bg-ink text-white"
+                      : "border border-ink/10 hover:border-maroon hover:text-maroon"
+                  }`}
+                >
+                  {pageNum}
+                </Link>
+              );
+            })}
+            {currentPage < totalPages && (
+              <Link
+                href={`/?page=${currentPage + 1}`}
+                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+              >
+                Older &rarr;
+              </Link>
+            )}
           </div>
         )}
       </main>
     </div>
+  );
+}
+
+function FeaturedRow({ slots }: { slots: SlotData[] }) {
+  const mainSlot = slots[0];
+  if (!mainSlot?.article) return null;
+  const article = mainSlot.article;
+  const author = getAuthorInfo(article);
+
+  return (
+    <article className="py-8">
+      <div className="flex items-center gap-3">
+        <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-lg">
+          {SECTION_LABELS[article.section] ?? article.section}
+        </Link>
+        <span className="font-headline text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-0.5">
+          Featured
+        </span>
+      </div>
+      <h2 className="font-headline text-[28px] sm:text-[34px] lg:text-[40px] font-bold leading-tight mt-2 mb-4">
+        <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
+          {article.title}
+        </Link>
+      </h2>
+      <div className="lg:flex lg:gap-8">
+        {article.featuredImage && (
+          <figure className="lg:w-[45%] shrink-0 mb-4 lg:mb-0">
+            <img src={article.featuredImage} alt={article.images[0]?.altText ?? article.title} className="w-full aspect-[3/2] object-cover bg-neutral-100" />
+          </figure>
+        )}
+        <div>
+          <p className="text-[17px] leading-[1.7]">{getPreviewText(article.body, 300)}</p>
+          <div className="mt-4">
+            <p className="font-headline text-[15px]">
+              <Link href={`/profile/${author.id}`} className="text-maroon font-bold hover:underline">{author.name}</Link>{" "}
+              <span className="italic">{author.role}</span>
+            </p>
+            {article.publishedAt && (
+              <p className="text-maroon text-[14px] font-headline font-semibold mt-0.5">{formatDateShort(article.publishedAt)}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ArticleCard({ article, size }: { article: SlotArticle; size: string }) {
+  const author = getAuthorInfo(article);
+  const previewLen = size === "large" ? 250 : size === "medium" ? 160 : 100;
+  const titleSize = size === "large"
+    ? "text-[24px] sm:text-[28px]"
+    : size === "medium"
+      ? "text-[20px] sm:text-[22px]"
+      : "text-[17px]";
+
+  return (
+    <>
+      <Link href={SECTION_HREFS[article.section] ?? "#"} className={`font-headline text-maroon italic ${size === "small" ? "text-[13px]" : "text-[14px]"}`}>
+        {SECTION_LABELS[article.section] ?? article.section}
+      </Link>
+      <h3 className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>
+        <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
+          {article.title}
+        </Link>
+      </h3>
+      <p className={`mt-2 ${size === "small" ? "text-[14px] leading-[1.5]" : "text-[16px] leading-[1.65]"} text-caption`}>
+        {getPreviewText(article.body, previewLen)}
+      </p>
+      <div className={`mt-3 font-headline ${size === "small" ? "text-[12px]" : "text-[14px]"}`}>
+        <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
+        <span className="italic">{author.role}</span>
+        {article.publishedAt && (
+          <span className="text-caption ml-2">&middot; {formatDateShort(article.publishedAt)}</span>
+        )}
+      </div>
+    </>
   );
 }

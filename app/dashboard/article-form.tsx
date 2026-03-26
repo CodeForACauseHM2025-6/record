@@ -28,7 +28,6 @@ interface ArticleFormProps {
   defaultValues?: {
     title?: string;
     body?: string;
-    excerpt?: string;
     section?: string;
   };
   defaultCredits?: AuthorCredit[];
@@ -145,20 +144,6 @@ export function ArticleForm({
         />
 
         <input type="hidden" name="credit_count" value={credits.length} />
-      </div>
-
-      {/* Excerpt */}
-      <div>
-        <label className="block font-headline text-[13px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
-          Excerpt <span className="normal-case text-caption/50">(optional)</span>
-        </label>
-        <textarea
-          name="excerpt"
-          rows={2}
-          defaultValue={defaultValues?.excerpt ?? ""}
-          placeholder="Short summary for previews..."
-          className="w-full border border-ink/20 px-4 py-3 font-body text-[15px] leading-relaxed placeholder:text-caption/30 outline-none focus:border-ink transition-colors resize-none"
-        />
       </div>
 
       {/* Body */}

@@ -154,7 +154,6 @@ export default async function EditArticlePage({
             defaultValues={{
               title: article.title,
               body: article.body,
-              excerpt: article.excerpt ?? "",
               section: article.section,
             }}
             defaultCredits={existingCredits}
@@ -162,6 +161,7 @@ export default async function EditArticlePage({
             submitLabel="Save Changes"
           />
         </div>
+
       </div>
     </div>
   );

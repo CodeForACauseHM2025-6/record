@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { Section } from "@prisma/client";
 import { SubpageHeader } from "@/app/subpage-header";
 
-const SLUG_TO_SECTION: Record<string, { label: string; dbKey: string }> = {
+const SLUG_TO_SECTION: Record<string, { label: string; fullLabel?: string; dbKey: string }> = {
   news: { label: "News", dbKey: "NEWS" },
   features: { label: "Features", dbKey: "FEATURES" },
   opinions: { label: "Opinions", dbKey: "OPINIONS" },
-  "a-and-e": { label: "A&E", dbKey: "A_AND_E" },
+  "a-and-e": { label: "A&E", fullLabel: "Arts & Entertainment", dbKey: "A_AND_E" },
   "lions-den": { label: "Lion\u2019s Den", dbKey: "LIONS_DEN" },
   "the-roundtable": { label: "The Roundtable", dbKey: "THE_ROUNDTABLE" },
 };
@@ -114,7 +114,7 @@ export default async function SectionPage({
       {/* ============ SECTION TITLE ============ */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8">
         <h2 className="font-headline text-[32px] sm:text-[40px] font-bold leading-tight tracking-wide">
-          {sectionInfo.label}
+          {sectionInfo.fullLabel ?? sectionInfo.label}
         </h2>
         <p className="font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] text-caption mt-1">
           {formatDateLong(today)}
@@ -281,7 +281,7 @@ export default async function SectionPage({
           /* Empty state */
           <div className="text-center py-24">
             <p className="font-headline text-2xl text-neutral-400">
-              No articles published in {sectionInfo.label} yet.
+              No articles published in {sectionInfo.fullLabel ?? sectionInfo.label} yet.
             </p>
           </div>
         )}
