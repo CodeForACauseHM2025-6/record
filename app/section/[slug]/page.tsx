@@ -7,7 +7,7 @@ import { SubpageHeader } from "@/app/subpage-header";
 const SLUG_TO_SECTION: Record<string, { label: string; dbKey: string }> = {
   news: { label: "News", dbKey: "NEWS" },
   features: { label: "Features", dbKey: "FEATURES" },
-  opinions: { label: "Opinion", dbKey: "OPINIONS" },
+  opinions: { label: "Opinions", dbKey: "OPINIONS" },
   "a-and-e": { label: "A&E", dbKey: "A_AND_E" },
   "lions-den": { label: "Lion\u2019s Den", dbKey: "LIONS_DEN" },
   "the-roundtable": { label: "The Roundtable", dbKey: "THE_ROUNDTABLE" },

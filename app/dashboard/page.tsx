@@ -14,7 +14,7 @@ const STATUS_LABELS: Record<string, string> = {
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News",
   FEATURES: "Features",
-  OPINIONS: "Opinion",
+  OPINIONS: "Opinions",
   A_AND_E: "A&E",
   LIONS_DEN: "Lion\u2019s Den",
   THE_ROUNDTABLE: "The Roundtable",

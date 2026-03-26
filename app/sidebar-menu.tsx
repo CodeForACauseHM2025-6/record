@@ -6,7 +6,7 @@ import Link from "next/link";
 const SECTIONS = [
   { label: "News", href: "/section/news" },
   { label: "Features", href: "/section/features" },
-  { label: "Opinion", href: "/section/opinions" },
+  { label: "Opinions", href: "/section/opinions" },
   { label: "A&E", href: "/section/a-and-e" },
   { label: "Lion\u2019s Den", href: "/section/lions-den" },
 ];
