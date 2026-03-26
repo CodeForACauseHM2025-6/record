@@ -1,6 +1,7 @@
 import { auth, signIn } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "Access is restricted to @horacemann.org accounts.",
@@ -27,6 +28,9 @@ export default async function LoginPage({
     ? ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default
     : null;
 
+  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
+  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "CXXIII";
+
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -45,7 +49,7 @@ export default async function LoginPage({
       <div className="w-full max-w-lg text-center">
         {/* Volume / Date line — classic broadsheet element */}
         <p className="reveal reveal-delay-1 font-headline font-semibold text-[11px] sm:text-[12px] tracking-[0.15em] uppercase text-caption mb-6">
-          Vol. CXXIII &middot; {today}
+          Vol. {volumeNumber} &middot; {today}
         </p>
 
         {/* Top double rule */}

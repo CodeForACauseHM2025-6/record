@@ -120,6 +120,11 @@ model ArticleImage {
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }
 
+model SiteSetting {
+  key   String @id
+  value String
+}
+
 model ArticleGroup {
   id          String    @id @default(uuid())
   name        String    @db.VarChar(200)
