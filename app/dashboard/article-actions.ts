@@ -7,6 +7,19 @@ import { generateUniqueSlug } from "@/lib/slugify";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+function parseCredits(formData: FormData) {
+  const count = parseInt(formData.get("credit_count") as string, 10) || 0;
+  const credits: { userId: string; creditRole: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    const userId = formData.get(`credit_user_${i}`) as string;
+    const creditRole = formData.get(`credit_role_${i}`) as string;
+    if (userId && creditRole) {
+      credits.push({ userId, creditRole });
+    }
+  }
+  return credits;
+}
+
 export async function createArticle(formData: FormData) {
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
@@ -15,6 +28,7 @@ export async function createArticle(formData: FormData) {
   const body = formData.get("body") as string;
   const excerpt = (formData.get("excerpt") as string) || undefined;
   const section = formData.get("section") as string;
+  const credits = parseCredits(formData);
 
   if (!title || !body || !section) {
     throw new Error("Title, body, and section are required");
@@ -30,6 +44,7 @@ export async function createArticle(formData: FormData) {
       excerpt,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
       createdById: session.user.id,
+      credits: credits.length > 0 ? { create: credits } : undefined,
     },
   });
 
@@ -44,10 +59,14 @@ export async function updateArticle(id: string, formData: FormData) {
   const body = formData.get("body") as string;
   const excerpt = (formData.get("excerpt") as string) || null;
   const section = formData.get("section") as string;
+  const credits = parseCredits(formData);
 
   if (!title || !body || !section) {
     throw new Error("Title, body, and section are required");
   }
+
+  // Replace credits: delete existing, create new
+  await prisma.articleCredit.deleteMany({ where: { articleId: id } });
 
   await prisma.article.update({
     where: { id },
@@ -56,6 +75,7 @@ export async function updateArticle(id: string, formData: FormData) {
       body: sanitizeHtml(body),
       excerpt,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
+      credits: credits.length > 0 ? { create: credits } : undefined,
     },
   });
 

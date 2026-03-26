@@ -210,13 +210,20 @@ export default async function HomePage() {
           <div className="flex flex-col lg:flex-row">
             {/* ---------- FEATURED ARTICLE ---------- */}
             <article className="lg:flex-[3] lg:pr-10 pb-8 lg:pb-0">
-              {/* Section label */}
-              <Link
-                href={SECTION_HREFS[featured.section] ?? "#"}
-                className="font-headline text-maroon italic text-lg"
-              >
-                {SECTION_LABELS[featured.section] ?? featured.section}
-              </Link>
+              {/* Section label + Featured badge */}
+              <div className="flex items-center gap-3">
+                <Link
+                  href={SECTION_HREFS[featured.section] ?? "#"}
+                  className="font-headline text-maroon italic text-lg"
+                >
+                  {SECTION_LABELS[featured.section] ?? featured.section}
+                </Link>
+                {featured.isFeatured && (
+                  <span className="font-headline text-[11px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-2 py-0.5">
+                    Featured
+                  </span>
+                )}
+              </div>
 
               {/* Headline */}
               <h2 className="font-headline text-[26px] sm:text-[30px] lg:text-[34px] font-bold leading-tight mt-2 mb-5">

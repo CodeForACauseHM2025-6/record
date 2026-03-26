@@ -37,14 +37,27 @@ export default async function EditArticlePage({
 
   const { id } = await params;
 
-  const article = await prisma.article.findUnique({
-    where: { id },
-    include: {
-      createdBy: { select: { name: true } },
-    },
-  });
+  const [article, allUsers] = await Promise.all([
+    prisma.article.findUnique({
+      where: { id },
+      include: {
+        createdBy: { select: { name: true } },
+        credits: { include: { user: { select: { id: true, name: true } } } },
+      },
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   if (!article) notFound();
+
+  const existingCredits = article.credits.map((c) => ({
+    userId: c.user.id,
+    userName: c.user.name,
+    creditRole: c.creditRole,
+  }));
 
   const boundUpdate = updateArticle.bind(null, id);
   const boundPublish = publishArticle.bind(null, id);
@@ -126,6 +139,8 @@ export default async function EditArticlePage({
               excerpt: article.excerpt ?? "",
               section: article.section,
             }}
+            defaultCredits={existingCredits}
+            availableUsers={allUsers as { id: string; name: string }[]}
             submitLabel="Save Changes"
           />
         </div>

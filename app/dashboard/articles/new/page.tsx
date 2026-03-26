@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import { createArticle } from "@/app/dashboard/article-actions";
@@ -7,6 +8,11 @@ import { createArticle } from "@/app/dashboard/article-actions";
 export default async function NewArticlePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="min-h-screen bg-white font-body">
@@ -22,7 +28,11 @@ export default async function NewArticlePage() {
         <div className="mt-4 h-[2px] bg-rule" />
 
         <div className="mt-8">
-          <ArticleForm action={createArticle} submitLabel="Save Draft" />
+          <ArticleForm
+            action={createArticle}
+            availableUsers={allUsers as { id: string; name: string }[]}
+            submitLabel="Save Draft"
+          />
         </div>
       </div>
     </div>
