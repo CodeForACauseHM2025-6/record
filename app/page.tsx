@@ -258,8 +258,30 @@ export default async function HomePage({
             {groupRowsIntoSections(rows).map((section, sIdx) => (
               <div key={sIdx}>
                 {sIdx > 0 && <div className="h-px bg-rule my-2" />}
-                {section.hasBleed && section.rows.length > 1 && hasUniformColumns(section.rows) ? (
-                  <BleedSection rows={section.rows} />
+                {section.hasBleed && section.rows.length > 1 ? (
+                  <>
+                    <BleedSection rows={section.rows} />
+                    {/* Mobile fallback — stacked rows */}
+                    <div className="lg:hidden">
+                      {section.rows.map((row) => (
+                        <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
+                          <div className="flex flex-col">
+                            {row.slots.map((slot) => (
+                              <div key={slot.id} className="py-7">
+                                {slot.mediaUrl ? (
+                                  <MediaElement slot={slot} />
+                                ) : slot.article ? (
+                                  <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
+                                ) : (
+                                  <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   section.rows.map((row) => (
                     <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
@@ -306,7 +328,7 @@ export default async function HomePage({
             {currentPage > 1 && (
               <Link
                 href={currentPage === 2 ? "/" : `/?page=${currentPage - 1}`}
-                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+                className="h-10 px-3 flex items-center border border-ink/20 hover:border-maroon hover:text-maroon transition-colors text-[15px]"
               >
                 &larr; Newer
               </Link>
@@ -334,7 +356,7 @@ export default async function HomePage({
             {currentPage < totalPages && (
               <Link
                 href={`/?page=${currentPage + 1}`}
-                className="px-4 py-2 border border-ink/20 hover:border-maroon hover:text-maroon transition-colors"
+                className="h-10 px-3 flex items-center border border-ink/20 hover:border-maroon hover:text-maroon transition-colors text-[15px]"
               >
                 Older &rarr;
               </Link>
@@ -347,10 +369,10 @@ export default async function HomePage({
   );
 }
 
-function ArticleCard({ article, size, isFeatured = false }: { article: SlotArticle; size: string; isFeatured?: boolean }) {
+function ArticleCard({ article, size, isFeatured = false, expanded = false }: { article: SlotArticle; size: string; isFeatured?: boolean; expanded?: boolean }) {
   const author = getAuthorInfo(article);
   const isLarge = size === "large";
-  const previewLen = isLarge ? 250 : 160;
+  const previewLen = expanded ? 800 : isLarge ? 250 : 160;
   const titleSize = isLarge ? "text-[24px] sm:text-[28px]" : "text-[20px] sm:text-[22px]";
 
   return (
@@ -432,42 +454,46 @@ function MediaElement({ slot }: { slot: SlotData }) {
 }
 
 function BleedSection({ rows }: { rows: RowData[] }) {
-  const colStructure = rows[0]?.slots.map((s) => s.size) ?? [];
-  const columns: { slot: SlotData; isFeatured: boolean }[][] = colStructure.map(() => []);
+  // Map slot sizes to grid column spans: large=3, medium=2, small=1
+  const sizeToSpan: Record<string, number> = { large: 3, medium: 2, small: 1 };
+
+  // Flatten all slots with their row span info for the grid
+  const gridItems: { slot: SlotData; isFeatured: boolean; colSpan: number; rowSpan: number; isLast: boolean }[] = [];
 
   for (const row of rows) {
-    row.slots.forEach((slot, colIdx) => {
-      if (colIdx < columns.length) {
-        columns[colIdx].push({ slot, isFeatured: row.isFeatured });
+    const slots = row.slots;
+    for (let si = 0; si < slots.length; si++) {
+      const slot = slots[si];
+      const colSpan = sizeToSpan[slot.size] ?? 1;
+      let rSpan = 1;
+      if (slot.mediaUrl && !slot.lockToRow) {
+        rSpan = slot.rowSpan ?? 2;
       }
-    });
+      gridItems.push({ slot, isFeatured: row.isFeatured, colSpan, rowSpan: rSpan, isLast: si === slots.length - 1 });
+    }
   }
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-start">
-      {columns.map((colItems, colIdx) => (
+    <div
+      className="hidden lg:grid gap-0"
+      style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+    >
+      {gridItems.map(({ slot, isFeatured, colSpan, rowSpan, isLast }) => (
         <div
-          key={colIdx}
-          className={`flex flex-col ${
-            colStructure[colIdx] === "large" ? "lg:flex-[3]" :
-            colStructure[colIdx] === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
-          } ${
-            colIdx < columns.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
-          } ${
-            colIdx > 0 ? "lg:pl-8" : ""
-          }`}
+          key={slot.id}
+          className={`py-7 px-4 border-b border-neutral-200 ${isLast ? "" : "border-r"}`}
+          style={{
+            gridColumn: `span ${colSpan}`,
+            gridRow: `span ${rowSpan}`,
+          }}
         >
-          {colItems.map(({ slot, isFeatured }) => (
-            <div key={slot.id} className="py-7 border-b border-neutral-200 last:border-b-0">
-              {slot.mediaUrl ? (
-                <MediaElement slot={slot} />
-              ) : slot.article ? (
-                <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} />
-              ) : (
-                <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
-              )}
-            </div>
-          ))}
+          {slot.mediaUrl ? (
+            <MediaElement slot={slot} />
+          ) : slot.article ? (
+            <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} expanded />
+          ) : (
+            <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+          )}
         </div>
       ))}
     </div>
