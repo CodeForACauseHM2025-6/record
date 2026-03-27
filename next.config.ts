@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   experimental: {
     viewTransition: true,
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+    middlewareClientMaxBodySize: "50mb",
   },
   async headers() {
     return [

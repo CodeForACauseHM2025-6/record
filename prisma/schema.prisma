@@ -158,8 +158,9 @@ model GroupSlot {
   // Media fields — a slot holds either an article OR media, never both
   mediaUrl  String?
   mediaType String?  // "image" | "video" | "gif"
-  mediaAlt  String?
-  lockToRow Boolean  @default(true)
+  mediaAlt    String?
+  mediaCredit String?
+  lockToRow   Boolean  @default(true)
   rowSpan   Int?
   autoplay  Boolean  @default(true)
 

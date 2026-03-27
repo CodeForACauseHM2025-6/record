@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AccountDropdown } from "@/app/account-dropdown";
 import { HamburgerButton } from "@/app/sidebar-menu";
+import { VideoPlayer } from "@/app/video-player";
 import { Footer } from "@/app/footer";
 
 const NAV_SECTIONS = [
@@ -52,6 +53,7 @@ interface SlotData {
   mediaUrl: string | null;
   mediaType: string | null;
   mediaAlt: string | null;
+  mediaCredit: string | null;
   lockToRow: boolean;
   rowSpan: number | null;
   autoplay: boolean;
@@ -266,14 +268,12 @@ export default async function HomePage({
                       {section.rows.map((row) => (
                         <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
                           <div className="flex flex-col">
-                            {row.slots.map((slot) => (
+                            {row.slots.filter((s) => s.mediaUrl || s.article).map((slot) => (
                               <div key={slot.id} className="py-7">
                                 {slot.mediaUrl ? (
                                   <MediaElement slot={slot} />
-                                ) : slot.article ? (
-                                  <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
                                 ) : (
-                                  <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+                                  <ArticleCard article={slot.article!} size={slot.size} isFeatured={row.isFeatured} />
                                 )}
                               </div>
                             ))}
@@ -283,33 +283,34 @@ export default async function HomePage({
                     </div>
                   </>
                 ) : (
-                  section.rows.map((row) => (
+                  section.rows.filter((r) => r.slots.some((s) => s.mediaUrl || s.article)).map((row) => {
+                    const filled = row.slots.filter((s) => s.mediaUrl || s.article);
+                    return (
                     <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
                       <div className="flex flex-col lg:flex-row lg:items-stretch">
-                        {row.slots.map((slot, slotIdx) => (
+                        {filled.map((slot, slotIdx) => (
                           <div
                             key={slot.id}
                             className={`py-7 flex flex-col ${
                               slot.size === "large" ? "lg:flex-[3]" :
                               slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
                             } ${
-                              slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
+                              slotIdx < filled.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
                             } ${
                               slotIdx > 0 ? "lg:pl-8" : ""
                             }`}
                           >
                             {slot.mediaUrl ? (
                               <MediaElement slot={slot} />
-                            ) : slot.article ? (
-                              <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
                             ) : (
-                              <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+                              <ArticleCard article={slot.article!} size={slot.size} isFeatured={row.isFeatured} />
                             )}
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             ))}
@@ -369,10 +370,10 @@ export default async function HomePage({
   );
 }
 
-function ArticleCard({ article, size, isFeatured = false, expanded = false }: { article: SlotArticle; size: string; isFeatured?: boolean; expanded?: boolean }) {
+function ArticleCard({ article, size, isFeatured = false }: { article: SlotArticle; size: string; isFeatured?: boolean }) {
   const author = getAuthorInfo(article);
   const isLarge = size === "large";
-  const previewLen = expanded ? 800 : isLarge ? 250 : 160;
+  const previewLen = isLarge ? 180 : 120;
   const titleSize = isLarge ? "text-[24px] sm:text-[28px]" : "text-[20px] sm:text-[22px]";
 
   return (
@@ -429,71 +430,101 @@ function MediaElement({ slot }: { slot: SlotData }) {
     heightStyle = { maxHeight: `${slot.rowSpan * 250}px` };
   }
 
+  const creditLabel = slot.mediaCredit
+    ? `${slot.mediaType === "video" ? "Video" : "Image"} by ${slot.mediaCredit}`
+    : null;
+
   if (slot.mediaType === "video") {
     return (
-      <video
-        src={slot.mediaUrl}
-        className={`w-full ${fit}`}
-        style={heightStyle}
-        {...(slot.autoplay
-          ? { autoPlay: true, muted: true, loop: true, playsInline: true }
-          : { controls: true }
+      <div className="relative">
+        <VideoPlayer
+          src={slot.mediaUrl}
+          autoplay={slot.autoplay}
+          className={`w-full ${fit}`}
+          style={heightStyle}
+        />
+        {creditLabel && (
+          <p className="absolute bottom-8 right-2 font-headline text-[10px] tracking-wide text-white/70 bg-black/30 px-1.5 py-0.5">
+            {creditLabel}
+          </p>
         )}
-      />
+      </div>
     );
   }
 
   return (
-    <img
-      src={slot.mediaUrl}
-      alt={slot.mediaAlt ?? ""}
-      className={`w-full ${fit}`}
-      style={heightStyle}
-    />
+    <figure>
+      <img
+        src={slot.mediaUrl}
+        alt={slot.mediaAlt ?? ""}
+        className={`w-full ${fit}`}
+        style={heightStyle}
+      />
+      {creditLabel && (
+        <figcaption className="text-right font-headline text-[10px] tracking-wide text-caption/60 mt-1 italic">
+          {creditLabel}
+        </figcaption>
+      )}
+    </figure>
   );
 }
 
 function BleedSection({ rows }: { rows: RowData[] }) {
-  // Map slot sizes to grid column spans: large=3, medium=2, small=1
   const sizeToSpan: Record<string, number> = { large: 3, medium: 2, small: 1 };
 
-  // Flatten all slots with their row span info for the grid
-  const gridItems: { slot: SlotData; isFeatured: boolean; colSpan: number; rowSpan: number; isLast: boolean }[] = [];
+  // Build grid items with explicit column positions
+  const gridItems: {
+    slot: SlotData;
+    isFeatured: boolean;
+    colStart: number;
+    colSpan: number;
+    rowSpan: number;
+    isLast: boolean;
+  }[] = [];
 
   for (const row of rows) {
     const slots = row.slots;
+    let col = 1; // CSS grid columns are 1-indexed
     for (let si = 0; si < slots.length; si++) {
       const slot = slots[si];
       const colSpan = sizeToSpan[slot.size] ?? 1;
+      // Skip empty slots
+      if (!slot.mediaUrl && !slot.article) { col += colSpan; continue; }
       let rSpan = 1;
       if (slot.mediaUrl && !slot.lockToRow) {
         rSpan = slot.rowSpan ?? 2;
       }
-      gridItems.push({ slot, isFeatured: row.isFeatured, colSpan, rowSpan: rSpan, isLast: si === slots.length - 1 });
+      gridItems.push({
+        slot,
+        isFeatured: row.isFeatured,
+        colStart: col,
+        colSpan,
+        rowSpan: rSpan,
+        isLast: si === slots.length - 1,
+      });
+      col += colSpan;
     }
   }
 
   return (
     <div
       className="hidden lg:grid gap-0"
-      style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+      style={{ gridTemplateColumns: "repeat(3, 1fr)", gridAutoFlow: "dense" }}
     >
-      {gridItems.map(({ slot, isFeatured, colSpan, rowSpan, isLast }) => (
+      {gridItems.map(({ slot, isFeatured, colStart, colSpan, rowSpan, isLast }) => (
         <div
           key={slot.id}
           className={`py-7 px-4 border-b border-neutral-200 ${isLast ? "" : "border-r"}`}
           style={{
-            gridColumn: `span ${colSpan}`,
+            gridColumn: `${colStart} / span ${colSpan}`,
             gridRow: `span ${rowSpan}`,
           }}
         >
           {slot.mediaUrl ? (
             <MediaElement slot={slot} />
           ) : slot.article ? (
-            <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} expanded />
-          ) : (
-            <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
-          )}
+            <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} />
+          ) : null}
         </div>
       ))}
     </div>

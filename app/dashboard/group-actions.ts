@@ -134,7 +134,7 @@ export async function deleteRow(rowId: string, groupId: string) {
   const session = await auth();
   requireWebMaster(session);
 
-  await prisma.groupRow.delete({ where: { id: rowId } });
+  await prisma.groupRow.deleteMany({ where: { id: rowId } });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
 }
@@ -150,6 +150,7 @@ export async function assignArticleToSlot(slotId: string, articleId: string | nu
       mediaUrl: null,
       mediaType: null,
       mediaAlt: null,
+      mediaCredit: null,
       lockToRow: true,
       rowSpan: null,
       autoplay: true,
@@ -165,6 +166,7 @@ export async function assignMediaToSlot(
   mediaUrl: string,
   mediaType: string,
   mediaAlt: string,
+  mediaCredit: string,
   lockToRow: boolean,
   rowSpan: number | null,
   autoplay: boolean,
@@ -175,7 +177,7 @@ export async function assignMediaToSlot(
 
   await prisma.groupSlot.update({
     where: { id: slotId },
-    data: { articleId: null, mediaUrl, mediaType, mediaAlt, lockToRow, rowSpan, autoplay },
+    data: { articleId: null, mediaUrl, mediaType, mediaAlt, mediaCredit, lockToRow, rowSpan, autoplay },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
@@ -188,8 +190,56 @@ export async function clearSlot(slotId: string, groupId: string) {
 
   await prisma.groupSlot.update({
     where: { id: slotId },
-    data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, lockToRow: true, rowSpan: null, autoplay: true },
+    data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, mediaCredit: null, lockToRow: true, rowSpan: null, autoplay: true },
   });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
+export async function updateRow(rowId: string, groupId: string, formData: FormData) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  const layout = formData.get("layout") as string;
+  const isFeatured = formData.get("isFeatured") === "true";
+
+  const sizeMap: Record<string, number> = { large: 3, medium: 2, small: 1 };
+  const newSizes = layout.split(",").map((s) => s.trim());
+  const total = newSizes.reduce((sum, s) => sum + (sizeMap[s] ?? 0), 0);
+  if (total !== 3) throw new Error("Row slots must total 3");
+
+  // Update featured flag
+  await prisma.groupRow.update({ where: { id: rowId }, data: { isFeatured } });
+
+  // Get current slots
+  const currentSlots = await prisma.groupSlot.findMany({
+    where: { rowId },
+    orderBy: { order: "asc" },
+  });
+
+  const currentLayout = currentSlots.map((s) => s.size).join(",");
+  if (currentLayout !== layout) {
+    // Layout changed — delete old slots and create new ones
+    await prisma.groupSlot.deleteMany({ where: { rowId } });
+    await prisma.groupSlot.createMany({
+      data: newSizes.map((size, i) => ({ rowId, size, order: i })),
+    });
+  }
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
+export async function reorderRows(groupId: string, rowIds: string[]) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  await Promise.all(
+    rowIds.map((id, i) =>
+      prisma.groupRow.update({ where: { id }, data: { order: i } })
+    )
+  );
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");

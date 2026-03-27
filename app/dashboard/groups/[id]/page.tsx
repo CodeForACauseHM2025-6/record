@@ -11,8 +11,11 @@ import {
   deleteGroup,
   addRow,
   deleteRow,
+  updateRow,
 } from "@/app/dashboard/group-actions";
 import { SlotAssigner } from "@/app/dashboard/slot-assigner";
+import { DraggableRowList } from "@/app/dashboard/row-list";
+import { RowEditor } from "@/app/dashboard/row-editor";
 
 const SIZE_LABELS: Record<string, string> = {
   large: "Large (full width)",
@@ -150,7 +153,7 @@ export default async function GroupEditorPage({
             </p>
           )}
 
-          <div className="space-y-4">
+          <DraggableRowList groupId={id} rowIds={group.rows.map((r) => r.id)}>
             {group.rows.map((row, rowIdx) => {
               if (row.isSeparator) {
                 const boundDeleteSep = deleteRow.bind(null, row.id, id);
@@ -175,7 +178,7 @@ export default async function GroupEditorPage({
                         const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
                         await addSeparatorRow(id, row.order);
                       }}>
-                        <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/30 tracking-wide hover:text-maroon transition-colors">
+                        <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/60 tracking-wide hover:text-maroon transition-colors">
                           + Separator
                         </button>
                       </form>
@@ -185,18 +188,23 @@ export default async function GroupEditorPage({
               }
 
               const boundDeleteRow = deleteRow.bind(null, row.id, id);
+              const currentLayout = row.slots.map((s: any) => s.size).join(",");
               return (
                 <Fragment key={row.id}>
                 <div className="border border-ink/10 px-5 py-4">
+                  {/* Row header with edit controls */}
                   <div className="flex items-center justify-between mb-3">
-                    <p className="font-headline text-[14px] font-semibold tracking-wide">
-                      Row {rowIdx + 1}
-                      {row.isFeatured && (
-                        <span className="ml-2 text-[11px] bg-maroon text-white px-2 py-0.5 tracking-[0.08em] uppercase">
-                          Featured
-                        </span>
-                      )}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className="font-headline text-[14px] font-semibold tracking-wide">
+                        Row {rowIdx + 1}
+                      </p>
+                      <RowEditor
+                        rowId={row.id}
+                        groupId={id}
+                        currentLayout={currentLayout}
+                        isFeatured={row.isFeatured}
+                      />
+                    </div>
                     <form action={boundDeleteRow}>
                       <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
                         Remove
@@ -205,7 +213,7 @@ export default async function GroupEditorPage({
                   </div>
 
                   <div className="flex gap-3">
-                    {row.slots.map((slot) => (
+                    {row.slots.map((slot: any) => (
                       <div
                         key={slot.id}
                         className={`border border-dashed border-ink/15 p-3 ${
@@ -221,12 +229,13 @@ export default async function GroupEditorPage({
                           groupId={id}
                           currentArticleId={slot.articleId}
                           currentArticleTitle={slot.article?.title ?? null}
-                          currentMediaUrl={(slot as any).mediaUrl ?? null}
-                          currentMediaType={(slot as any).mediaType ?? null}
-                          currentMediaAlt={(slot as any).mediaAlt ?? null}
-                          currentLockToRow={(slot as any).lockToRow ?? true}
-                          currentRowSpan={(slot as any).rowSpan ?? null}
-                          currentAutoplay={(slot as any).autoplay ?? true}
+                          currentMediaUrl={slot.mediaUrl ?? null}
+                          currentMediaType={slot.mediaType ?? null}
+                          currentMediaAlt={slot.mediaAlt ?? null}
+                          currentMediaCredit={slot.mediaCredit ?? null}
+                          currentLockToRow={slot.lockToRow ?? true}
+                          currentRowSpan={slot.rowSpan ?? null}
+                          currentAutoplay={slot.autoplay ?? true}
                           availableArticles={publishedArticles as { id: string; title: string; section: string }[]}
                         />
                       </div>
@@ -242,7 +251,7 @@ export default async function GroupEditorPage({
                     const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
                     await addSeparatorRow(id, row.order);
                   }}>
-                    <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/30 tracking-wide hover:text-maroon transition-colors">
+                    <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/60 tracking-wide hover:text-maroon transition-colors">
                       + Separator
                     </button>
                   </form>
@@ -250,7 +259,7 @@ export default async function GroupEditorPage({
                 </Fragment>
               );
             })}
-          </div>
+          </DraggableRowList>
 
           {/* Add row */}
           <div className="mt-6 border border-ink/10 px-5 py-4">

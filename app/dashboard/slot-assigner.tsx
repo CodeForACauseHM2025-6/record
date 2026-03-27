@@ -16,6 +16,7 @@ interface SlotAssignerProps {
   currentMediaUrl: string | null;
   currentMediaType: string | null;
   currentMediaAlt: string | null;
+  currentMediaCredit: string | null;
   currentLockToRow: boolean;
   currentRowSpan: number | null;
   currentAutoplay: boolean;
@@ -30,6 +31,7 @@ export function SlotAssigner({
   currentMediaUrl,
   currentMediaType,
   currentMediaAlt,
+  currentMediaCredit,
   currentLockToRow,
   currentRowSpan,
   currentAutoplay,
@@ -54,7 +56,7 @@ export function SlotAssigner({
           type="button"
           onClick={() => setMode("media")}
           className={`cursor-pointer font-headline text-[11px] tracking-wide px-2.5 py-1 transition-colors ${
-            mode === "media" ? "bg-maroon text-white font-semibold" : "border border-ink/15 text-caption"
+            mode === "media" ? "bg-ink text-white font-semibold" : "border border-ink/15 text-caption"
           }`}
         >
           Media
@@ -75,6 +77,7 @@ export function SlotAssigner({
           currentMediaUrl={currentMediaUrl}
           currentMediaType={currentMediaType}
           currentMediaAlt={currentMediaAlt}
+          currentMediaCredit={currentMediaCredit}
           currentLockToRow={currentLockToRow}
           currentRowSpan={currentRowSpan}
           currentAutoplay={currentAutoplay}
@@ -170,6 +173,7 @@ function MediaAssigner({
   currentMediaUrl,
   currentMediaType,
   currentMediaAlt,
+  currentMediaCredit,
   currentLockToRow,
   currentRowSpan,
   currentAutoplay,
@@ -179,6 +183,7 @@ function MediaAssigner({
   currentMediaUrl: string | null;
   currentMediaType: string | null;
   currentMediaAlt: string | null;
+  currentMediaCredit: string | null;
   currentLockToRow: boolean;
   currentRowSpan: number | null;
   currentAutoplay: boolean;
@@ -186,19 +191,30 @@ function MediaAssigner({
   const [mediaUrl, setMediaUrl] = useState(currentMediaUrl ?? "");
   const [mediaType, setMediaType] = useState(currentMediaType ?? "");
   const [alt, setAlt] = useState(currentMediaAlt ?? "");
+  const [credit, setCredit] = useState(currentMediaCredit ?? "");
   const [lockToRow, setLockToRow] = useState(currentLockToRow);
   const [rowSpan, setRowSpan] = useState<string>(currentRowSpan?.toString() ?? "");
   const [autoplay, setAutoplay] = useState(currentAutoplay);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function save(url: string, type: string, altVal: string, lock: boolean, span: string, auto: boolean) {
+  async function save(url: string, type: string, altVal: string, creditVal: string, lock: boolean, span: string, auto: boolean) {
     if (!url || !type) return;
-    await assignMediaToSlot(slotId, url, type, altVal, lock, span ? parseInt(span, 10) : null, auto, groupId);
+    await assignMediaToSlot(slotId, url, type, altVal, creditVal, lock, span ? parseInt(span, 10) : null, auto, groupId);
   }
+
+  const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+  const [sizeError, setSizeError] = useState("");
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSizeError("");
+    if (file.size > MAX_FILE_SIZE) {
+      setSizeError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 30MB.`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     let type = "image";
     if (file.type.startsWith("video/")) type = "video";
     else if (file.type === "image/gif") type = "gif";
@@ -207,19 +223,15 @@ function MediaAssigner({
       if (typeof reader.result === "string") {
         setMediaUrl(reader.result);
         setMediaType(type);
-        save(reader.result, type, alt, lockToRow, rowSpan, autoplay);
+        save(reader.result, type, alt, credit, lockToRow, rowSpan, autoplay);
       }
     };
     reader.readAsDataURL(file);
   }
 
   async function handleClear() {
-    setMediaUrl("");
-    setMediaType("");
-    setAlt("");
-    setLockToRow(true);
-    setRowSpan("");
-    setAutoplay(true);
+    setMediaUrl(""); setMediaType(""); setAlt(""); setCredit("");
+    setLockToRow(true); setRowSpan(""); setAutoplay(true); setSettingsOpen(false);
     if (fileRef.current) fileRef.current.value = "";
     await clearSlot(slotId, groupId);
   }
@@ -233,6 +245,19 @@ function MediaAssigner({
           ) : (
             <img src={mediaUrl} alt={alt || "Preview"} className="w-full max-h-[100px] object-contain bg-neutral-100" />
           )}
+          {/* Settings icon */}
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className="cursor-pointer absolute bottom-1 right-1 bg-white/90 border border-ink/10 w-6 h-6 flex items-center justify-center text-caption hover:text-ink transition-colors"
+            title="Media settings"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          {/* Remove */}
           <button
             type="button"
             onClick={handleClear}
@@ -245,52 +270,69 @@ function MediaAssigner({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="cursor-pointer w-full border border-dashed border-ink/20 py-4 text-center hover:border-maroon/40 transition-colors"
+          className="cursor-pointer w-full border border-dashed border-ink/20 py-4 text-center hover:border-ink/40 transition-colors"
         >
-          <span className="block font-headline text-[12px] text-caption/60">Upload media</span>
-          <span className="block font-headline text-[10px] text-caption/30 mt-0.5">JPG, PNG, WebP, GIF, MP4, WebM</span>
+          <span className="block font-headline text-[12px] text-caption">Upload media</span>
+          <span className="block font-headline text-[10px] text-caption/50 mt-0.5">JPG, PNG, WebP, GIF, MP4, WebM</span>
         </button>
       )}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
-        onChange={handleFile}
-        className="hidden"
-      />
-      <input
-        type="text"
-        value={alt}
-        onChange={(e) => { setAlt(e.target.value); }}
-        onBlur={() => { if (mediaUrl) save(mediaUrl, mediaType, alt, lockToRow, rowSpan, autoplay); }}
-        placeholder="Alt text..."
-        className="w-full border border-ink/15 px-2 py-1 font-headline text-[11px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
-      />
-      <div className="space-y-1.5">
-        <label className="flex items-center gap-2 font-headline text-[11px] tracking-wide cursor-pointer">
-          <input type="checkbox" checked={lockToRow} onChange={(e) => { setLockToRow(e.target.checked); if (mediaUrl) save(mediaUrl, mediaType, alt, e.target.checked, rowSpan, autoplay); }} />
-          Lock to row
-        </label>
-        {!lockToRow && (
-          <div className="flex items-center gap-2">
-            <span className="font-headline text-[11px] text-caption tracking-wide">Row span:</span>
-            <input
-              type="number"
-              min="1"
-              value={rowSpan}
-              onChange={(e) => { setRowSpan(e.target.value); }}
-              onBlur={() => { if (mediaUrl) save(mediaUrl, mediaType, alt, lockToRow, rowSpan, autoplay); }}
-              placeholder="Auto"
-              className="w-16 border border-ink/15 px-2 py-0.5 font-headline text-[11px] outline-none focus:border-ink transition-colors"
-            />
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={handleFile} className="hidden" />
+      {sizeError && (
+        <p className="font-headline text-[11px] text-maroon font-semibold">{sizeError}</p>
+      )}
+
+      {/* Lock to row — always visible */}
+      <label className="flex items-center gap-2 font-headline text-[12px] tracking-wide cursor-pointer">
+        <input type="checkbox" checked={lockToRow} onChange={(e) => { setLockToRow(e.target.checked); if (mediaUrl) save(mediaUrl, mediaType, alt, credit, e.target.checked, rowSpan, autoplay); }} />
+        Lock to row
+      </label>
+      {!lockToRow && (
+        <div className="flex items-center gap-2">
+          <span className="font-headline text-[12px] text-caption tracking-wide">Row span:</span>
+          <input
+            type="number" min="1" value={rowSpan}
+            onChange={(e) => setRowSpan(e.target.value)}
+            onBlur={() => { if (mediaUrl) save(mediaUrl, mediaType, alt, credit, lockToRow, rowSpan, autoplay); }}
+            placeholder="Auto"
+            className="w-16 border border-ink/15 px-2 py-0.5 font-headline text-[11px] outline-none focus:border-ink transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Settings floating popover */}
+      <div className="relative">
+        <div className={`absolute left-0 right-0 top-0 z-30 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] origin-top ${
+          settingsOpen
+            ? "opacity-100 scale-100 pointer-events-auto"
+            : "opacity-0 scale-95 pointer-events-none"
+        }`}>
+        <div className="border border-ink/15 bg-white p-3 space-y-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-between">
+            <p className="font-headline text-[12px] font-semibold tracking-[0.06em] uppercase text-ink">Settings</p>
+            <button type="button" onClick={() => setSettingsOpen(false)} className="cursor-pointer text-caption hover:text-ink text-[14px]">&times;</button>
           </div>
-        )}
-        {mediaType === "video" && (
-          <label className="flex items-center gap-2 font-headline text-[11px] tracking-wide cursor-pointer">
-            <input type="checkbox" checked={autoplay} onChange={(e) => { setAutoplay(e.target.checked); if (mediaUrl) save(mediaUrl, mediaType, alt, lockToRow, rowSpan, e.target.checked); }} />
-            Autoplay (muted)
-          </label>
-        )}
+          <div>
+            <label className="block font-headline text-[10px] font-semibold tracking-[0.06em] uppercase text-caption mb-1">Alt Text</label>
+            <input type="text" value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe the image..."
+              className="w-full border border-ink/20 px-2.5 py-1.5 font-body text-[13px] placeholder:text-caption/40 outline-none focus:border-ink transition-colors" />
+          </div>
+          <div>
+            <label className="block font-headline text-[10px] font-semibold tracking-[0.06em] uppercase text-caption mb-1">Credit</label>
+            <input type="text" value={credit} onChange={(e) => setCredit(e.target.value)} placeholder="Photo by..."
+              className="w-full border border-ink/20 px-2.5 py-1.5 font-body text-[13px] placeholder:text-caption/40 outline-none focus:border-ink transition-colors" />
+          </div>
+          {mediaType === "video" && (
+            <label className="flex items-center gap-2 font-headline text-[12px] tracking-wide cursor-pointer">
+              <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
+              Autoplay (muted)
+            </label>
+          )}
+          <button type="button" onClick={() => { save(mediaUrl, mediaType, alt, credit, lockToRow, rowSpan, autoplay); setSettingsOpen(false); }}
+            className="cursor-pointer w-full font-headline font-bold text-[12px] tracking-wide bg-ink text-white px-3 py-1.5 hover:bg-maroon transition-colors">
+            Save
+          </button>
+        </div>
+        </div>
       </div>
     </div>
   );
