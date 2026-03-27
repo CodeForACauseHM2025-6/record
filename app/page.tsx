@@ -158,11 +158,15 @@ export default async function HomePage({
   const { page: pageParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
-  // Fetch published groups ordered by publishedAt desc
-  const groups = await prisma.articleGroup.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-  });
+  // Fetch published groups and volume number
+  const [groups, volSetting] = await Promise.all([
+    prisma.articleGroup.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+    }),
+    prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } }),
+  ]);
+  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "";
 
   const totalPages = groups.length;
   const currentGroup = groups[currentPage - 1] ?? null;
@@ -196,6 +200,8 @@ export default async function HomePage({
     rows = (fullGroup?.rows ?? []) as unknown as RowData[];
     groupDate = currentGroup.publishedAt ?? currentGroup.createdAt;
   }
+
+  const issueNumber = (currentGroup as any)?.issueNumber ?? null;
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -238,6 +244,10 @@ export default async function HomePage({
       {/* ============ DATE BAR ============ */}
       <div className="border-t border-rule">
         <p className="text-center font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] py-1.5">
+          {volumeNumber && <>Vol. {volumeNumber}</>}
+          {volumeNumber && issueNumber && <> &middot; </>}
+          {issueNumber && <>No. {issueNumber}</>}
+          {(volumeNumber || issueNumber) && <> &middot; </>}
           {formatDateLong(groupDate)}
         </p>
       </div>

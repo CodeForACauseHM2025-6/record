@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 
 export function SavedToast() {
   const [visible, setVisible] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    // Clean up the URL param without a navigation
-    window.history.replaceState(null, "", "/dashboard");
+    // Clean up the ?saved param without a navigation
+    const url = new URL(window.location.href);
+    url.searchParams.delete("saved");
+    window.history.replaceState(null, "", url.pathname + url.search);
 
     const timer = setTimeout(() => setVisible(false), 3000);
     return () => clearTimeout(timer);
-  }, [router]);
+  }, []);
 
   if (!visible) return null;
 

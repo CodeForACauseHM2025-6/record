@@ -16,6 +16,7 @@ import {
 import { SlotAssigner } from "@/app/dashboard/slot-assigner";
 import { DraggableRowList } from "@/app/dashboard/row-list";
 import { RowEditor } from "@/app/dashboard/row-editor";
+import { SavedToast } from "@/app/dashboard/saved-toast";
 
 const SIZE_LABELS: Record<string, string> = {
   large: "Large (full width)",
@@ -25,13 +26,16 @@ const SIZE_LABELS: Record<string, string> = {
 
 export default async function GroupEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "WEB_MASTER") redirect("/dashboard");
 
   const { id } = await params;
+  const { saved } = await searchParams;
 
   const [group, publishedArticles] = await Promise.all([
     prisma.articleGroup.findUnique({
@@ -71,6 +75,7 @@ export default async function GroupEditorPage({
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Edit Group" />
+      {saved && <SavedToast />}
 
       <div className="max-w-[900px] mx-auto px-4 sm:px-8 pt-8 pb-16">
         {/* Header */}
@@ -95,15 +100,22 @@ export default async function GroupEditorPage({
         </div>
         <div className="mt-4 h-[2px] bg-rule" />
 
-        {/* Name edit */}
+        {/* Name + Issue # */}
         <form action={boundUpdate} className="mt-6 flex gap-3">
           <input
             name="name"
             defaultValue={group.name}
+            placeholder="Group name..."
             className="flex-1 border border-ink/20 px-4 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors"
           />
+          <input
+            name="issueNumber"
+            defaultValue={(group as any).issueNumber ?? ""}
+            placeholder="Issue #"
+            className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
+          />
           <button type="submit" className="cursor-pointer font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-5 py-2 hover:bg-maroon transition-colors">
-            Rename
+            Save
           </button>
         </form>
 

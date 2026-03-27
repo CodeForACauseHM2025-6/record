@@ -30,14 +30,17 @@ export async function updateGroup(id: string, formData: FormData) {
   requireWebMaster(session);
 
   const name = formData.get("name") as string;
+  const issueNumber = (formData.get("issueNumber") as string) || null;
   if (!name) throw new Error("Name is required");
 
   await prisma.articleGroup.update({
     where: { id },
-    data: { name },
+    data: { name, issueNumber },
   });
 
   revalidatePath(`/dashboard/groups/${id}`);
+  revalidatePath("/");
+  redirect(`/dashboard/groups/${id}?saved=1`);
 }
 
 export async function publishGroup(id: string) {

@@ -126,13 +126,14 @@ model SiteSetting {
 }
 
 model ArticleGroup {
-  id          String    @id @default(uuid())
-  name        String    @db.VarChar(200)
-  status      ArticleStatus @default(DRAFT)
-  scheduledAt DateTime?
-  publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  name         String    @db.VarChar(200)
+  issueNumber  String?   @db.VarChar(20)
+  status       ArticleStatus @default(DRAFT)
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   rows GroupRow[]
 }
