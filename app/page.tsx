@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AccountDropdown } from "@/app/account-dropdown";
 import { HamburgerButton } from "@/app/sidebar-menu";
+import { Footer } from "@/app/footer";
 
 const NAV_SECTIONS = [
   { label: "News", href: "/section/news" },
@@ -243,8 +244,8 @@ export default async function HomePage({
         )}
 
         {/* ---- PAGINATION ---- */}
-        {totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-2 font-headline text-[15px] tracking-wide">
+        {totalPages >= 1 && (
+          <div className="mt-12 flex items-center justify-center gap-3 font-headline text-[22px] tracking-wide">
             {currentPage > 1 && (
               <Link
                 href={currentPage === 2 ? "/" : `/?page=${currentPage - 1}`}
@@ -263,10 +264,10 @@ export default async function HomePage({
                 <Link
                   key={pageNum}
                   href={pageNum === 1 ? "/" : `/?page=${pageNum}`}
-                  className={`w-10 h-10 flex items-center justify-center transition-colors ${
+                  className={`w-10 h-10 flex items-center justify-center border transition-colors -indent-[1px] leading-none pb-1 ${
                     pageNum === currentPage
-                      ? "bg-ink text-white"
-                      : "border border-ink/10 hover:border-maroon hover:text-maroon"
+                      ? "border-ink font-bold"
+                      : "border-ink/20 hover:border-maroon hover:text-maroon"
                   }`}
                 >
                   {pageNum}
@@ -284,23 +285,21 @@ export default async function HomePage({
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
 
 function ArticleCard({ article, size, isFeatured = false }: { article: SlotArticle; size: string; isFeatured?: boolean }) {
   const author = getAuthorInfo(article);
-  const previewLen = size === "large" ? 250 : size === "medium" ? 160 : 100;
-  const titleSize = size === "large"
-    ? "text-[24px] sm:text-[28px]"
-    : size === "medium"
-      ? "text-[20px] sm:text-[22px]"
-      : "text-[17px]";
+  const isLarge = size === "large";
+  const previewLen = isLarge ? 250 : 160;
+  const titleSize = isLarge ? "text-[24px] sm:text-[28px]" : "text-[20px] sm:text-[22px]";
 
   return (
     <>
       <div className="flex items-center gap-2">
-        <Link href={SECTION_HREFS[article.section] ?? "#"} className={`font-headline text-maroon italic ${size === "small" ? "text-[13px]" : "text-[14px]"}`}>
+        <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-[14px]">
           {SECTION_LABELS[article.section] ?? article.section}
         </Link>
         {isFeatured && (
@@ -314,10 +313,10 @@ function ArticleCard({ article, size, isFeatured = false }: { article: SlotArtic
           {article.title}
         </Link>
       </h3>
-      <p className={`mt-2 ${size === "small" ? "text-[14px] leading-[1.5]" : "text-[16px] leading-[1.65]"} text-caption`}>
+      <p className="mt-2 text-[16px] leading-[1.65] text-caption">
         {getPreviewText(article.body, previewLen)}
       </p>
-      <div className={`mt-3 font-headline ${size === "small" ? "text-[12px]" : "text-[14px]"}`}>
+      <div className="mt-3 font-headline text-[14px]">
         <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
         <span className="italic">{author.role}</span>
         {article.publishedAt && (

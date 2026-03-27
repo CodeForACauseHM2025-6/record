@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@prisma/client";
 import { SubpageHeader } from "@/app/subpage-header";
+import { Footer } from "@/app/footer";
 
 const SLUG_TO_SECTION: Record<string, { label: string; fullLabel?: string; dbKey: string }> = {
   news: { label: "News", dbKey: "NEWS" },
@@ -341,6 +342,7 @@ export default async function SectionPage({
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

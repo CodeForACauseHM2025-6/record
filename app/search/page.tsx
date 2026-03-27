@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
+import { Footer } from "@/app/footer";
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News",
@@ -217,6 +218,7 @@ export default async function SearchPage({
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
