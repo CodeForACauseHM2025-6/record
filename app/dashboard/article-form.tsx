@@ -29,6 +29,7 @@ interface ArticleFormProps {
     title?: string;
     body?: string;
     section?: string;
+    featuredImage?: string | null;
   };
   defaultCredits?: AuthorCredit[];
   availableUsers: AvailableUser[];
@@ -99,6 +100,9 @@ export function ArticleForm({
           ))}
         </select>
       </div>
+
+      {/* Featured Image */}
+      <ImageField defaultUrl={defaultValues?.featuredImage ?? ""} />
 
       {/* Authors */}
       <div>
@@ -171,6 +175,66 @@ export function ArticleForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function ImageField({ defaultUrl }: { defaultUrl: string }) {
+  const [url, setUrl] = useState(defaultUrl);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div>
+      <label className="block font-headline text-[13px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
+        Main Image
+      </label>
+      {url ? (
+        <div className="relative inline-block">
+          <img
+            src={url}
+            alt="Preview"
+            className="max-w-[300px] max-h-[250px] object-contain border border-ink/10"
+          />
+          <button
+            type="button"
+            onClick={() => { setUrl(""); if (fileRef.current) fileRef.current.value = ""; }}
+            className="cursor-pointer absolute top-2 right-2 bg-white/90 border border-ink/10 w-6 h-6 flex items-center justify-center text-caption hover:text-maroon transition-colors text-[14px]"
+          >
+            &times;
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="cursor-pointer w-full border-2 border-dashed border-ink/20 px-4 py-8 text-center hover:border-maroon/40 transition-colors"
+        >
+          <span className="block font-headline text-[15px] tracking-wide text-caption/60">
+            Click to upload an image
+          </span>
+          <span className="block font-headline text-[12px] text-caption/30 mt-1">
+            JPG, PNG, or WebP
+          </span>
+        </button>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleFile}
+        className="hidden"
+      />
+      <input type="hidden" name="featuredImage" value={url} />
+    </div>
   );
 }
 

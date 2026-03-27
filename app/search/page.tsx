@@ -46,7 +46,6 @@ function stripHtml(html: string): string {
 }
 
 function getExcerpt(article: ArticleResult): string {
-  if (article.excerpt) return article.excerpt;
   const plain = stripHtml(article.body);
   if (plain.length <= 200) return plain;
   return plain.slice(0, 200).replace(/\s+\S*$/, "") + "\u2026";
@@ -88,7 +87,7 @@ export default async function SearchPage({
   }
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Search" />
 
       <div className="max-w-[800px] mx-auto px-4 sm:px-8 pt-10 pb-16">

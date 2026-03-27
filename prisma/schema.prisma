@@ -138,10 +138,11 @@ model ArticleGroup {
 }
 
 model GroupRow {
-  id         String  @id @default(uuid())
-  groupId    String
-  order      Int
-  isFeatured Boolean @default(false)
+  id          String  @id @default(uuid())
+  groupId     String
+  order       Int
+  isFeatured  Boolean @default(false)
+  isSeparator Boolean @default(false)
 
   group ArticleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   slots GroupSlot[]
@@ -153,6 +154,14 @@ model GroupSlot {
   size      String  // "large" (3 slots), "medium" (2 slots), "small" (1 slot)
   order     Int
   articleId String?
+
+  // Media fields — a slot holds either an article OR media, never both
+  mediaUrl  String?
+  mediaType String?  // "image" | "video" | "gif"
+  mediaAlt  String?
+  lockToRow Boolean  @default(true)
+  rowSpan   Int?
+  autoplay  Boolean  @default(true)
 
   row     GroupRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
   article Article? @relation(fields: [articleId], references: [id])

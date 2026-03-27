@@ -27,10 +27,15 @@ export async function createArticle(formData: FormData) {
   const title = formData.get("title") as string;
   const body = formData.get("body") as string;
   const section = formData.get("section") as string;
+  const featuredImage = (formData.get("featuredImage") as string) || null;
   const credits = parseCredits(formData);
 
   if (!title || !body || !section) {
     throw new Error("Title, body, and section are required");
+  }
+
+  if (title.trim().toLowerCase() === "media") {
+    throw new Error("Articles cannot be titled 'Media'");
   }
 
   const slug = await generateUniqueSlug(title);
@@ -40,6 +45,7 @@ export async function createArticle(formData: FormData) {
       title,
       slug,
       body: sanitizeHtml(body),
+      featuredImage,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
       createdById: session.user.id,
       credits: credits.length > 0 ? { create: credits } : undefined,
@@ -56,10 +62,15 @@ export async function updateArticle(id: string, formData: FormData) {
   const title = formData.get("title") as string;
   const body = formData.get("body") as string;
   const section = formData.get("section") as string;
+  const featuredImage = (formData.get("featuredImage") as string) || null;
   const credits = parseCredits(formData);
 
   if (!title || !body || !section) {
     throw new Error("Title, body, and section are required");
+  }
+
+  if (title.trim().toLowerCase() === "media") {
+    throw new Error("Articles cannot be titled 'Media'");
   }
 
   await prisma.articleCredit.deleteMany({ where: { articleId: id } });
@@ -69,6 +80,7 @@ export async function updateArticle(id: string, formData: FormData) {
     data: {
       title,
       body: sanitizeHtml(body),
+      featuredImage,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
       credits: credits.length > 0 ? { create: credits } : undefined,
     },

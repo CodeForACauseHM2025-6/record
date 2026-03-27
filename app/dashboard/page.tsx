@@ -68,7 +68,7 @@ export default async function DashboardPage({
   const archived = articles.filter((a) => a.status === "ARCHIVED");
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Dashboard" />
       {saved && <SavedToast />}
 

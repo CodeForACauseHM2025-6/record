@@ -40,17 +40,17 @@ export function HamburgerButton() {
         </svg>
       </button>
 
-      {/* Backdrop */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/20 z-40"
-          onClick={() => setOpen(false)}
-        />
-      )}
+      {/* Backdrop — fades in/out */}
+      <div
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setOpen(false)}
+      />
 
       {/* Slide-out panel */}
       <nav
-        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-[4px_0_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-[4px_0_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -61,7 +61,7 @@ export function HamburgerButton() {
           </span>
           <button
             aria-label="Close menu"
-            className="p-1 hover:text-maroon transition-colors"
+            className="cursor-pointer p-1 hover:text-maroon transition-colors"
             onClick={() => setOpen(false)}
           >
             <svg
@@ -79,31 +79,47 @@ export function HamburgerButton() {
 
         {/* Sections */}
         <div className="px-6 pt-6">
-          <p className="text-[11px] tracking-[0.12em] uppercase text-caption font-headline font-semibold mb-3">
+          <p
+            className={`text-[11px] tracking-[0.12em] uppercase text-caption font-headline font-semibold mb-3 transition-all duration-300 ${
+              open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"
+            }`}
+            style={{ transitionDelay: open ? "150ms" : "0ms" }}
+          >
             Sections
           </p>
-          {SECTIONS.map((s) => (
+          {SECTIONS.map((s, i) => (
             <Link
               key={s.href}
               href={s.href}
               onClick={() => setOpen(false)}
-              className="block py-2.5 font-headline text-[18px] tracking-wide hover:text-maroon transition-colors"
+              className={`block py-2.5 font-headline text-[18px] tracking-wide hover:text-maroon transition-all duration-300 ${
+                open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"
+              }`}
+              style={{ transitionDelay: open ? `${180 + i * 40}ms` : "0ms" }}
             >
               {s.label}
             </Link>
           ))}
         </div>
 
-        <div className="mx-6 my-5 h-px bg-ink/10" />
+        <div
+          className={`mx-6 my-5 h-px bg-ink/10 transition-all duration-300 origin-left ${
+            open ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
+          }`}
+          style={{ transitionDelay: open ? "400ms" : "0ms" }}
+        />
 
         {/* Pages */}
         <div className="px-6">
-          {PAGES.map((p) => (
+          {PAGES.map((p, i) => (
             <Link
               key={p.href}
               href={p.href}
               onClick={() => setOpen(false)}
-              className="block py-2.5 font-headline text-[16px] tracking-wide text-caption hover:text-maroon transition-colors"
+              className={`block py-2.5 font-headline text-[16px] tracking-wide text-caption hover:text-maroon transition-all duration-300 ${
+                open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"
+              }`}
+              style={{ transitionDelay: open ? `${440 + i * 40}ms` : "0ms" }}
             >
               {p.label}
             </Link>

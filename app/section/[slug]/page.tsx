@@ -122,7 +122,7 @@ export default async function SectionPage({
   const today = new Date();
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel={sectionInfo.label} badge={sectionInfo.label} />
 
       {/* ============ SECTION TITLE ============ */}
@@ -208,29 +208,42 @@ export default async function SectionPage({
                         const author = getAuthorInfo(article);
                         return (
                           <div key={article.id} className="py-4 first:pt-0">
-                            <h3 className="font-headline text-[17px] font-bold leading-snug">
-                              <Link
-                                href={`/article/${article.slug}`}
-                                className="hover:text-maroon transition-colors"
-                              >
-                                {article.title}
-                              </Link>
-                            </h3>
-                            <div className="mt-2 flex items-baseline justify-between gap-3 font-headline text-[14px]">
-                              <span>
-                                <Link
-                                  href={`/profile/${author.id}`}
-                                  className="text-maroon hover:underline"
-                                >
-                                  {author.name}
-                                </Link>{" "}
-                                <span className="italic">{author.role}</span>
-                              </span>
-                              {article.publishedAt && (
-                                <span className="text-caption text-[13px] shrink-0">
-                                  {formatDateShort(article.publishedAt)}
-                                </span>
+                            <div className={article.featuredImage ? "flex gap-4" : ""}>
+                              {article.featuredImage && (
+                                <Link href={`/article/${article.slug}`} className="shrink-0">
+                                  <img
+                                    src={article.featuredImage}
+                                    alt={article.title}
+                                    className="w-[90px] max-h-[80px] object-contain"
+                                  />
+                                </Link>
                               )}
+                              <div className="min-w-0">
+                                <h3 className="font-headline text-[17px] font-bold leading-snug">
+                                  <Link
+                                    href={`/article/${article.slug}`}
+                                    className="hover:text-maroon transition-colors"
+                                  >
+                                    {article.title}
+                                  </Link>
+                                </h3>
+                                <div className="mt-2 flex items-baseline justify-between gap-3 font-headline text-[14px]">
+                                  <span>
+                                    <Link
+                                      href={`/profile/${author.id}`}
+                                      className="text-maroon hover:underline"
+                                    >
+                                      {author.name}
+                                    </Link>{" "}
+                                    <span className="italic">{author.role}</span>
+                                  </span>
+                                  {article.publishedAt && (
+                                    <span className="text-caption text-[13px] shrink-0">
+                                      {formatDateShort(article.publishedAt)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );

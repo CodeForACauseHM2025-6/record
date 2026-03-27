@@ -49,12 +49,19 @@ interface SlotData {
   size: string;
   order: number;
   article: SlotArticle | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  mediaAlt: string | null;
+  lockToRow: boolean;
+  rowSpan: number | null;
+  autoplay: boolean;
 }
 
 interface RowData {
   id: string;
   order: number;
   isFeatured: boolean;
+  isSeparator: boolean;
   slots: SlotData[];
 }
 
@@ -99,6 +106,45 @@ function getAuthorInfo(article: SlotArticle) {
     role: article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
     id: article.createdBy.id,
   };
+}
+
+interface SectionGroup {
+  rows: RowData[];
+  hasBleed: boolean;
+}
+
+function hasUniformColumns(rows: RowData[]): boolean {
+  if (rows.length <= 1) return true;
+  const first = rows[0].slots.map((s) => s.size).join(",");
+  return rows.every((r) => r.slots.map((s) => s.size).join(",") === first);
+}
+
+function groupRowsIntoSections(rows: RowData[]): SectionGroup[] {
+  const sections: SectionGroup[] = [];
+  let current: RowData[] = [];
+
+  for (const row of rows) {
+    if (row.isSeparator) {
+      if (current.length > 0) {
+        const hasBleed = current.some((r) =>
+          r.slots.some((s) => s.mediaUrl && !s.lockToRow)
+        );
+        sections.push({ rows: current, hasBleed });
+      }
+      current = [];
+    } else {
+      current.push(row);
+    }
+  }
+
+  if (current.length > 0) {
+    const hasBleed = current.some((r) =>
+      r.slots.some((s) => s.mediaUrl && !s.lockToRow)
+    );
+    sections.push({ rows: current, hasBleed });
+  }
+
+  return sections;
 }
 
 export default async function HomePage({
@@ -150,7 +196,7 @@ export default async function HomePage({
   }
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       {/* ============ HEADER ============ */}
       <header className="px-4 sm:px-8 pt-4 pb-2">
         <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
@@ -209,29 +255,40 @@ export default async function HomePage({
       <main className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8 pb-16">
         {rows.length > 0 ? (
           <div className="space-y-0">
-            {rows.map((row) => (
-              <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
-                <div className="flex flex-col lg:flex-row lg:items-stretch">
-                  {row.slots.map((slot, slotIdx) => (
-                    <div
-                      key={slot.id}
-                      className={`py-7 flex flex-col ${
-                        slot.size === "large" ? "lg:flex-[3]" :
-                        slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
-                      } ${
-                        slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
-                      } ${
-                        slotIdx > 0 ? "lg:pl-8" : ""
-                      }`}
-                    >
-                      {slot.article ? (
-                        <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
-                      ) : (
-                        <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
-                      )}
+            {groupRowsIntoSections(rows).map((section, sIdx) => (
+              <div key={sIdx}>
+                {sIdx > 0 && <div className="h-px bg-rule my-2" />}
+                {section.hasBleed && section.rows.length > 1 && hasUniformColumns(section.rows) ? (
+                  <BleedSection rows={section.rows} />
+                ) : (
+                  section.rows.map((row) => (
+                    <div key={row.id} className="border-b border-neutral-200 last:border-b-0">
+                      <div className="flex flex-col lg:flex-row lg:items-stretch">
+                        {row.slots.map((slot, slotIdx) => (
+                          <div
+                            key={slot.id}
+                            className={`py-7 flex flex-col ${
+                              slot.size === "large" ? "lg:flex-[3]" :
+                              slot.size === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
+                            } ${
+                              slotIdx < row.slots.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
+                            } ${
+                              slotIdx > 0 ? "lg:pl-8" : ""
+                            }`}
+                          >
+                            {slot.mediaUrl ? (
+                              <MediaElement slot={slot} />
+                            ) : slot.article ? (
+                              <ArticleCard article={slot.article} size={slot.size} isFeatured={row.isFeatured} />
+                            ) : (
+                              <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
             ))}
           </div>
@@ -297,32 +354,122 @@ function ArticleCard({ article, size, isFeatured = false }: { article: SlotArtic
   const titleSize = isLarge ? "text-[24px] sm:text-[28px]" : "text-[20px] sm:text-[22px]";
 
   return (
-    <>
-      <div className="flex items-center gap-2">
-        <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-[14px]">
-          {SECTION_LABELS[article.section] ?? article.section}
+    <div className={article.featuredImage ? "flex gap-5" : ""}>
+      {article.featuredImage && (
+        <Link href={`/article/${article.slug}`} className="shrink-0">
+          <img
+            src={article.featuredImage}
+            alt={article.title}
+            className={`object-contain ${isLarge ? "w-[180px] sm:w-[220px] max-h-[180px]" : "w-[120px] sm:w-[150px] max-h-[130px]"}`}
+          />
         </Link>
-        {isFeatured && (
-          <span className="font-headline text-[10px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-1.5 py-0.5">
-            Featured
-          </span>
-        )}
+      )}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-[14px]">
+            {SECTION_LABELS[article.section] ?? article.section}
+          </Link>
+          {isFeatured && (
+            <span className="font-headline text-[10px] font-semibold tracking-[0.08em] uppercase bg-maroon text-white px-1.5 py-0.5">
+              Featured
+            </span>
+          )}
+        </div>
+        <h3 className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>
+          <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
+            {article.title}
+          </Link>
+        </h3>
+        <p className="mt-2 text-[16px] leading-[1.65] text-caption">
+          {getPreviewText(article.body, previewLen)}
+        </p>
+        <div className="mt-3 font-headline text-[14px]">
+          <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
+          <span className="italic">{author.role}</span>
+          {article.publishedAt && (
+            <span className="text-caption ml-2">&middot; {formatDateShort(article.publishedAt)}</span>
+          )}
+        </div>
       </div>
-      <h3 className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>
-        <Link href={`/article/${article.slug}`} className="hover:text-maroon transition-colors">
-          {article.title}
-        </Link>
-      </h3>
-      <p className="mt-2 text-[16px] leading-[1.65] text-caption">
-        {getPreviewText(article.body, previewLen)}
-      </p>
-      <div className="mt-3 font-headline text-[14px]">
-        <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
-        <span className="italic">{author.role}</span>
-        {article.publishedAt && (
-          <span className="text-caption ml-2">&middot; {formatDateShort(article.publishedAt)}</span>
+    </div>
+  );
+}
+
+function MediaElement({ slot }: { slot: SlotData }) {
+  if (!slot.mediaUrl) return null;
+
+  let heightStyle: React.CSSProperties | undefined;
+  let fit = "object-contain";
+  if (slot.lockToRow) {
+    heightStyle = { maxHeight: "250px" };
+  } else if (slot.rowSpan) {
+    // Each row is roughly 250px; rowSpan limits how many rows the media can bleed into
+    heightStyle = { maxHeight: `${slot.rowSpan * 250}px` };
+  }
+
+  if (slot.mediaType === "video") {
+    return (
+      <video
+        src={slot.mediaUrl}
+        className={`w-full ${fit}`}
+        style={heightStyle}
+        {...(slot.autoplay
+          ? { autoPlay: true, muted: true, loop: true, playsInline: true }
+          : { controls: true }
         )}
-      </div>
-    </>
+      />
+    );
+  }
+
+  return (
+    <img
+      src={slot.mediaUrl}
+      alt={slot.mediaAlt ?? ""}
+      className={`w-full ${fit}`}
+      style={heightStyle}
+    />
+  );
+}
+
+function BleedSection({ rows }: { rows: RowData[] }) {
+  const colStructure = rows[0]?.slots.map((s) => s.size) ?? [];
+  const columns: { slot: SlotData; isFeatured: boolean }[][] = colStructure.map(() => []);
+
+  for (const row of rows) {
+    row.slots.forEach((slot, colIdx) => {
+      if (colIdx < columns.length) {
+        columns[colIdx].push({ slot, isFeatured: row.isFeatured });
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col lg:flex-row lg:items-start">
+      {columns.map((colItems, colIdx) => (
+        <div
+          key={colIdx}
+          className={`flex flex-col ${
+            colStructure[colIdx] === "large" ? "lg:flex-[3]" :
+            colStructure[colIdx] === "medium" ? "lg:flex-[2]" : "lg:flex-[1]"
+          } ${
+            colIdx < columns.length - 1 ? "lg:pr-8 lg:border-r lg:border-neutral-200" : ""
+          } ${
+            colIdx > 0 ? "lg:pl-8" : ""
+          }`}
+        >
+          {colItems.map(({ slot, isFeatured }) => (
+            <div key={slot.id} className="py-7 border-b border-neutral-200 last:border-b-0">
+              {slot.mediaUrl ? (
+                <MediaElement slot={slot} />
+              ) : slot.article ? (
+                <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} />
+              ) : (
+                <div className="text-caption/30 font-headline italic text-[14px]">Empty slot</div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }

@@ -122,3 +122,62 @@ body {
 .page-enter {
   animation: fadeInUp 0.4s ease-out forwards;
 }
+
+/* ── Footer scroll-triggered reveal ── */
+.footer-reveal {
+  opacity: 0;
+  transform: translateY(36px) scale(0.98);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Stagger child sections inside the footer */
+@keyframes footerPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ruleDrawAcross {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.footer-stagger-1,
+.footer-stagger-2,
+.footer-stagger-3 {
+  opacity: 0;
+}
+
+.footer-visible .footer-stagger-1 {
+  animation: footerPopIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+.footer-visible .footer-stagger-2 {
+  animation: footerPopIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.26s both;
+}
+.footer-visible .footer-stagger-3 {
+  animation: footerPopIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+.footer-rule-draw {
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.footer-visible .footer-rule-draw {
+  animation: ruleDrawAcross 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}

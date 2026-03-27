@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -65,7 +66,7 @@ export default async function GroupEditorPage({
   const boundAddRow = addRow.bind(null, id);
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Edit Group" />
 
       <div className="max-w-[900px] mx-auto px-4 sm:px-8 pt-8 pb-16">
@@ -151,9 +152,42 @@ export default async function GroupEditorPage({
 
           <div className="space-y-4">
             {group.rows.map((row, rowIdx) => {
+              if (row.isSeparator) {
+                const boundDeleteSep = deleteRow.bind(null, row.id, id);
+                return (
+                  <Fragment key={row.id}>
+                    <div className="border border-dashed border-ink/10 px-5 py-2 flex items-center justify-between">
+                      <p className="font-headline text-[12px] text-caption/50 tracking-wide">
+                        &mdash;&mdash; Separator &mdash;&mdash;
+                      </p>
+                      <form action={boundDeleteSep}>
+                        <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
+                          Remove
+                        </button>
+                      </form>
+                    </div>
+                    <div className="flex justify-center py-1">
+                      <form action={async () => {
+                        "use server";
+                        const { auth } = await import("@/lib/auth");
+                        const s = await auth();
+                        if (s?.user?.role !== "WEB_MASTER") return;
+                        const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
+                        await addSeparatorRow(id, row.order);
+                      }}>
+                        <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/30 tracking-wide hover:text-maroon transition-colors">
+                          + Separator
+                        </button>
+                      </form>
+                    </div>
+                  </Fragment>
+                );
+              }
+
               const boundDeleteRow = deleteRow.bind(null, row.id, id);
               return (
-                <div key={row.id} className="border border-ink/10 px-5 py-4">
+                <Fragment key={row.id}>
+                <div className="border border-ink/10 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="font-headline text-[14px] font-semibold tracking-wide">
                       Row {rowIdx + 1}
@@ -187,12 +221,33 @@ export default async function GroupEditorPage({
                           groupId={id}
                           currentArticleId={slot.articleId}
                           currentArticleTitle={slot.article?.title ?? null}
+                          currentMediaUrl={(slot as any).mediaUrl ?? null}
+                          currentMediaType={(slot as any).mediaType ?? null}
+                          currentMediaAlt={(slot as any).mediaAlt ?? null}
+                          currentLockToRow={(slot as any).lockToRow ?? true}
+                          currentRowSpan={(slot as any).rowSpan ?? null}
+                          currentAutoplay={(slot as any).autoplay ?? true}
                           availableArticles={publishedArticles as { id: string; title: string; section: string }[]}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
+                <div className="flex justify-center py-1">
+                  <form action={async () => {
+                    "use server";
+                    const { auth } = await import("@/lib/auth");
+                    const s = await auth();
+                    if (s?.user?.role !== "WEB_MASTER") return;
+                    const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
+                    await addSeparatorRow(id, row.order);
+                  }}>
+                    <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/30 tracking-wide hover:text-maroon transition-colors">
+                      + Separator
+                    </button>
+                  </form>
+                </div>
+                </Fragment>
               );
             })}
           </div>

@@ -145,9 +145,68 @@ export async function assignArticleToSlot(slotId: string, articleId: string | nu
 
   await prisma.groupSlot.update({
     where: { id: slotId },
-    data: { articleId: articleId || null },
+    data: {
+      articleId: articleId || null,
+      mediaUrl: null,
+      mediaType: null,
+      mediaAlt: null,
+      lockToRow: true,
+      rowSpan: null,
+      autoplay: true,
+    },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+}
+
+export async function assignMediaToSlot(
+  slotId: string,
+  mediaUrl: string,
+  mediaType: string,
+  mediaAlt: string,
+  lockToRow: boolean,
+  rowSpan: number | null,
+  autoplay: boolean,
+  groupId: string,
+) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  await prisma.groupSlot.update({
+    where: { id: slotId },
+    data: { articleId: null, mediaUrl, mediaType, mediaAlt, lockToRow, rowSpan, autoplay },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
+export async function clearSlot(slotId: string, groupId: string) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  await prisma.groupSlot.update({
+    where: { id: slotId },
+    data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, lockToRow: true, rowSpan: null, autoplay: true },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
+export async function addSeparatorRow(groupId: string, afterOrder: number) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  await prisma.groupRow.updateMany({
+    where: { groupId, order: { gt: afterOrder } },
+    data: { order: { increment: 1 } },
+  });
+
+  await prisma.groupRow.create({
+    data: { groupId, order: afterOrder + 1, isSeparator: true },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
 }

@@ -75,7 +75,7 @@ export default async function EditArticlePage({
   }));
 
   return (
-    <div className="min-h-screen bg-white font-body page-enter">
+    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Edit Article" />
 
       <div className="max-w-[800px] mx-auto px-4 sm:px-8 pt-8 pb-16">
@@ -155,6 +155,7 @@ export default async function EditArticlePage({
               title: article.title,
               body: article.body,
               section: article.section,
+              featuredImage: article.featuredImage,
             }}
             defaultCredits={existingCredits}
             availableUsers={usersWithDefaults}
