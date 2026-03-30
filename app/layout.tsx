@@ -1,9 +1,9 @@
-import { UnifrakturMaguntia, Cormorant_Garamond, Crimson_Pro } from "next/font/google";
+import localFont from "next/font/local";
+import { Cormorant_Garamond, Crimson_Pro } from "next/font/google";
 import "./globals.css";
 
-const mastheadFont = UnifrakturMaguntia({
-  weight: "400",
-  subsets: ["latin"],
+const mastheadFont = localFont({
+  src: "../public/fonts/OldLondonAlternate.ttf",
   variable: "--font-unifraktur",
   display: "swap",
 });
