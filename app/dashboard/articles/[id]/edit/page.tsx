@@ -54,7 +54,7 @@ export default async function EditArticlePage({
 
   if (!article) notFound();
 
-  const existingCredits = article.credits.map((c) => ({
+  const existingCredits = article.credits.map((c: (typeof article.credits)[number]) => ({
     userId: c.user.id,
     userName: c.user.name,
     creditRole: c.creditRole,
