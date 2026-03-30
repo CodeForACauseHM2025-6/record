@@ -165,7 +165,7 @@ export default async function GroupEditorPage({
             </p>
           )}
 
-          <DraggableRowList groupId={id} rowIds={group.rows.map((r) => r.id)}>
+          <DraggableRowList groupId={id} rowIds={group.rows.map((r: (typeof group.rows)[number]) => r.id)}>
             {group.rows.map((row, rowIdx) => {
               if (row.isSeparator) {
                 const boundDeleteSep = deleteRow.bind(null, row.id, id);
