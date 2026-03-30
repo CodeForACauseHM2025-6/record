@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.release.target_commitish == 'main'
+    steps:
+      - name: Deploy to Linode
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.LINODE_HOST }}
+          username: ${{ secrets.LINODE_USER }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
+          script: |
+            cd /path/to/record-app
+            git fetch --tags
+            git checkout ${{ github.event.release.tag_name }}
+            npm install
+            npm run build
+            pm2 restart record
