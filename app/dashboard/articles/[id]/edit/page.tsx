@@ -68,7 +68,7 @@ export default async function EditArticlePage({
   const boundDelete = deleteArticle.bind(null, id);
 
   // Build user list with default display titles for the form
-  const usersWithDefaults = allUsers.map((u) => ({
+  const usersWithDefaults = allUsers.map((u: (typeof allUsers)[number]) => ({
     id: u.id,
     name: u.name,
     defaultRole: (u as { displayTitle?: string | null }).displayTitle ?? defaultRoleDisplay(u.role),
