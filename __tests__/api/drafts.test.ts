@@ -50,7 +50,7 @@ describe("GET /api/drafts/[id]", () => {
     mockFindFirst.mockResolvedValue({ id: "1", status: "DRAFT", title: "Test" });
 
     const req = new NextRequest("http://localhost/api/drafts/1");
-    const res = await getDraft(req, { params: { id: "1" } });
+    const res = await getDraft(req, { params: Promise.resolve({ id: "1" }) });
 
     expect(res.status).toBe(200);
   });

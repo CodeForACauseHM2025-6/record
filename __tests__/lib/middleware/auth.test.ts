@@ -22,7 +22,7 @@ describe("checkRole", () => {
     mockAuth.mockResolvedValue({
       user: { id: "1", role: "READER", isAdmin: false },
     });
-    const result = await checkRole("EDITOR");
+    const result = await checkRole("WEB_TEAM");
     expect(result.error).toBeDefined();
   });
 

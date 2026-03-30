@@ -53,7 +53,7 @@ describe("decryptResult", () => {
   it("decrypts encrypted string fields in result", () => {
     const encrypted = encrypt("Test User", "random");
     const result = { id: "1", name: encrypted, role: "READER" };
-    const decrypted = decryptResult(result);
+    const decrypted = decryptResult(result) as Record<string, unknown>;
     expect(decrypted.name).toBe("Test User");
     expect(decrypted.role).toBe("READER");
   });
@@ -61,7 +61,7 @@ describe("decryptResult", () => {
   it("handles arrays", () => {
     const encrypted = encrypt("Test", "random");
     const result = [{ name: encrypted }, { name: encrypt("Other", "random") }];
-    const decrypted = decryptResult(result);
+    const decrypted = decryptResult(result) as Record<string, unknown>[];
     expect(decrypted[0].name).toBe("Test");
     expect(decrypted[1].name).toBe("Other");
   });
@@ -71,7 +71,7 @@ describe("decryptResult", () => {
       id: "1",
       credits: [{ user: { name: encrypt("Alice", "random") } }],
     };
-    const decrypted = decryptResult(result);
+    const decrypted = decryptResult(result) as { credits: { user: { name: string } }[] };
     expect(decrypted.credits[0].user.name).toBe("Alice");
   });
 

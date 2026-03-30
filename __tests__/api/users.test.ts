@@ -82,7 +82,7 @@ describe("GET /api/users/[id]", () => {
     });
 
     const req = new NextRequest("http://localhost/api/users/user-1");
-    const res = await getUser(req, { params: { id: "user-1" } });
+    const res = await getUser(req, { params: Promise.resolve({ id: "user-1" }) });
 
     expect(res.status).toBe(200);
   });

@@ -37,7 +37,7 @@ describe("PATCH /api/users/[id]/role", () => {
       body: JSON.stringify({ role: "EDITOR" }),
       headers: { "Content-Type": "application/json" },
     });
-    const res = await updateRole(req, { params: { id: "user-1" } });
+    const res = await updateRole(req, { params: Promise.resolve({ id: "user-1" }) });
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -58,7 +58,7 @@ describe("PATCH /api/users/[id]/admin", () => {
       body: JSON.stringify({ isAdmin: true }),
       headers: { "Content-Type": "application/json" },
     });
-    const res = await updateAdmin(req, { params: { id: "user-1" } });
+    const res = await updateAdmin(req, { params: Promise.resolve({ id: "user-1" }) });
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -73,7 +73,7 @@ describe("PATCH /api/users/[id]/admin", () => {
       body: JSON.stringify({ isAdmin: false }),
       headers: { "Content-Type": "application/json" },
     });
-    const res = await updateAdmin(req, { params: { id: "admin-1" } });
+    const res = await updateAdmin(req, { params: Promise.resolve({ id: "admin-1" }) });
 
     expect(res.status).toBe(400);
     const body = await res.json();
