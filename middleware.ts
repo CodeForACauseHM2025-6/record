@@ -27,11 +27,19 @@ export default auth((req) => {
     }
   }
 
-  // Dashboard routes require WEB_TEAM or WEB_MASTER
+  // Dashboard routes require WRITER or above
   if (pathname.startsWith("/dashboard")) {
     const role = req.auth?.user?.role;
-    if (role !== "WEB_TEAM" && role !== "WEB_MASTER") {
+    const dashboardRoles = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
+    if (!role || !dashboardRoles.includes(role)) {
       return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  // Group creation and settings require WEB_MASTER
+  if (pathname.match(/^\/dashboard\/groups\/new/) || pathname.match(/^\/dashboard\/groups\/[^/]+\/settings/)) {
+    if (req.auth?.user?.role !== "WEB_MASTER") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
 

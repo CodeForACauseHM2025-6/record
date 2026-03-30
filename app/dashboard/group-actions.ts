@@ -11,6 +11,21 @@ function requireWebMaster(session: { user?: { role?: string } } | null) {
   }
 }
 
+const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
+const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
+
+function requireDashboardRole(session: { user?: { role?: string } } | null) {
+  if (!session?.user?.role || !DASHBOARD_ROLES.includes(session.user.role)) {
+    throw new Error("Dashboard access required");
+  }
+}
+
+function requireEditor(session: { user?: { role?: string } } | null) {
+  if (!session?.user?.role || !EDITOR_ROLES.includes(session.user.role)) {
+    throw new Error("Editor access required");
+  }
+}
+
 export async function createGroup(formData: FormData) {
   const session = await auth();
   requireWebMaster(session);
@@ -45,7 +60,7 @@ export async function updateGroup(id: string, formData: FormData) {
 
 export async function publishGroup(id: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   await prisma.articleGroup.update({
     where: { id },
@@ -59,7 +74,7 @@ export async function publishGroup(id: string) {
 
 export async function unpublishGroup(id: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   await prisma.articleGroup.update({
     where: { id },
@@ -73,7 +88,7 @@ export async function unpublishGroup(id: string) {
 
 export async function scheduleGroup(id: string, formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   const scheduledAt = formData.get("scheduledAt") as string;
   const date = new Date(scheduledAt);
@@ -99,7 +114,7 @@ export async function deleteGroup(id: string) {
 
 export async function addRow(groupId: string, formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   const isFeatured = formData.get("isFeatured") === "true";
 
@@ -135,16 +150,54 @@ export async function addRow(groupId: string, formData: FormData) {
 
 export async function deleteRow(rowId: string, groupId: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupRow.deleteMany({ where: { id: rowId } });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
 }
 
+export async function addArticleToPool(groupId: string, articleId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.articleGroup.update({
+    where: { id: groupId },
+    data: { articles: { connect: { id: articleId } } },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+}
+
+export async function removeArticleFromPool(groupId: string, articleId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  // Also clear any slots that reference this article
+  const rows = await prisma.groupRow.findMany({
+    where: { groupId },
+    select: { slots: { where: { articleId }, select: { id: true } } },
+  });
+  const slotIds = rows.flatMap((r: { slots: { id: string }[] }) => r.slots.map((s: { id: string }) => s.id));
+  if (slotIds.length > 0) {
+    await prisma.groupSlot.updateMany({
+      where: { id: { in: slotIds } },
+      data: { articleId: null },
+    });
+  }
+
+  await prisma.articleGroup.update({
+    where: { id: groupId },
+    data: { articles: { disconnect: { id: articleId } } },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
 export async function assignArticleToSlot(slotId: string, articleId: string | null, groupId: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupSlot.update({
     where: { id: slotId },
@@ -174,7 +227,7 @@ export async function assignMediaToSlot(
   groupId: string,
 ) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupSlot.update({
     where: { id: slotId },
@@ -187,7 +240,7 @@ export async function assignMediaToSlot(
 
 export async function clearSlot(slotId: string, groupId: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupSlot.update({
     where: { id: slotId },
@@ -200,7 +253,7 @@ export async function clearSlot(slotId: string, groupId: string) {
 
 export async function updateSlotSpan(slotId: string, lockToRow: boolean, rowSpan: number | null, groupId: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupSlot.update({
     where: { id: slotId },
@@ -213,7 +266,7 @@ export async function updateSlotSpan(slotId: string, lockToRow: boolean, rowSpan
 
 export async function updateRow(rowId: string, groupId: string, formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   const layout = formData.get("layout") as string;
   const isFeatured = formData.get("isFeatured") === "true";
@@ -247,7 +300,7 @@ export async function updateRow(rowId: string, groupId: string, formData: FormDa
 
 export async function reorderRows(groupId: string, rowIds: string[]) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await Promise.all(
     rowIds.map((id, i) =>
@@ -261,7 +314,7 @@ export async function reorderRows(groupId: string, rowIds: string[]) {
 
 export async function addSeparatorRow(groupId: string, afterOrder: number) {
   const session = await auth();
-  requireWebMaster(session);
+  requireDashboardRole(session);
 
   await prisma.groupRow.updateMany({
     where: { groupId, order: { gt: afterOrder } },
@@ -273,4 +326,54 @@ export async function addSeparatorRow(groupId: string, afterOrder: number) {
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
+}
+
+export async function approveGroup(groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.approval.create({
+    data: { userId: session!.user!.id, groupId },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+}
+
+export async function removeGroupApproval(approvalId: string, groupId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Not authenticated");
+
+  const approval = await prisma.approval.findUnique({ where: { id: approvalId } });
+  if (!approval) throw new Error("Approval not found");
+
+  if (approval.userId !== session.user.id && session.user.role !== "WEB_MASTER") {
+    throw new Error("You can only remove your own approval");
+  }
+
+  await prisma.approval.delete({ where: { id: approvalId } });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+}
+
+export async function createGroupWithArticles(formData: FormData) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  const name = formData.get("name") as string;
+  const issueNumber = (formData.get("issueNumber") as string) || null;
+  const articleIds = formData.getAll("articleIds") as string[];
+
+  if (!name) throw new Error("Name is required");
+
+  const group = await prisma.articleGroup.create({
+    data: {
+      name,
+      issueNumber,
+      articles: articleIds.length > 0
+        ? { connect: articleIds.map((id) => ({ id })) }
+        : undefined,
+    },
+  });
+
+  redirect(`/dashboard/groups/${group.id}`);
 }

@@ -47,6 +47,7 @@ model User {
   articleCredits ArticleCredit[]
   accounts       Account[]
   sessions       Session[]
+  approvals      Approval[]
 }
 
 model Account {
@@ -95,6 +96,8 @@ model Article {
   credits    ArticleCredit[]
   images     ArticleImage[]
   groupSlots GroupSlot[]
+  groups     ArticleGroup[]
+  approvals  Approval[]
 }
 
 model ArticleCredit {
@@ -135,7 +138,9 @@ model ArticleGroup {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  rows GroupRow[]
+  rows      GroupRow[]
+  articles  Article[]
+  approvals Approval[]
 }
 
 model GroupRow {
@@ -167,4 +172,20 @@ model GroupSlot {
 
   row     GroupRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
   article Article? @relation(fields: [articleId], references: [id])
+}
+
+model Approval {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  articleId String?
+  groupId   String?
+
+  user    User          @relation(fields: [userId], references: [id])
+  article Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  group   ArticleGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@unique([userId, groupId])
 }

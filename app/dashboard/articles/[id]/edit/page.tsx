@@ -6,10 +6,10 @@ import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import {
   updateArticle,
-  publishArticle,
-  unpublishArticle,
   deleteArticle,
 } from "@/app/dashboard/article-actions";
+import { ApprovalDisplay } from "@/app/dashboard/approval-display";
+import { approveArticle, removeArticleApproval } from "@/app/dashboard/article-actions";
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: "bg-amber-50 text-amber-800",
@@ -36,7 +36,6 @@ export default async function EditArticlePage({
   if (!session?.user) redirect("/login");
 
   const { id } = await params;
-  const isWebMaster = session.user.role === "WEB_MASTER";
 
   const [article, allUsers] = await Promise.all([
     prisma.article.findUnique({
@@ -44,6 +43,10 @@ export default async function EditArticlePage({
       include: {
         createdBy: { select: { name: true } },
         credits: { include: { user: { select: { id: true, name: true, role: true, displayTitle: true } } } },
+        approvals: {
+          include: { user: { select: { id: true, name: true, image: true } } },
+          orderBy: { createdAt: "asc" as const },
+        },
       },
     }),
     prisma.user.findMany({
@@ -54,17 +57,22 @@ export default async function EditArticlePage({
 
   if (!article) notFound();
 
+  const approvers = (article.approvals ?? []).map((a: any) => ({
+    id: a.user.id,
+    approvalId: a.id,
+    name: a.user.name,
+    image: a.user.image,
+  }));
+  const hasApproved = approvers.some((a: any) => a.id === session.user.id);
+  const isWebMaster = session.user.role === "WEB_MASTER";
+
   const existingCredits = article.credits.map((c: (typeof article.credits)[number]) => ({
     userId: c.user.id,
     userName: c.user.name,
     creditRole: c.creditRole,
   }));
 
-  const hasAuthors = article.credits.length > 0;
-
   const boundUpdate = updateArticle.bind(null, id);
-  const boundPublish = publishArticle.bind(null, id);
-  const boundUnpublish = unpublishArticle.bind(null, id);
   const boundDelete = deleteArticle.bind(null, id);
 
   // Build user list with default display titles for the form
@@ -97,26 +105,20 @@ export default async function EditArticlePage({
             {article.status}
           </span>
         </div>
+        <div className="mt-4">
+          <ApprovalDisplay
+            approvers={approvers}
+            currentUserId={session.user.id}
+            hasApproved={hasApproved}
+            onApprove={async () => { "use server"; const { approveArticle } = await import("@/app/dashboard/article-actions"); await approveArticle(id); }}
+            onRemoveApproval={async (approvalId: string) => { "use server"; const { removeArticleApproval } = await import("@/app/dashboard/article-actions"); await removeArticleApproval(approvalId, id); }}
+            isWebMaster={isWebMaster}
+          />
+        </div>
         <div className="mt-4 h-[2px] bg-rule" />
 
-        {/* Action bar — publish/delete only for WEB_MASTER */}
+        {/* Action bar */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {isWebMaster && article.status === "DRAFT" && (
-            hasAuthors ? (
-              <form action={boundPublish}>
-                <button
-                  type="submit"
-                  className="cursor-pointer font-headline font-bold text-[14px] tracking-wide bg-green-800 text-white px-5 py-2 hover:bg-green-900 transition-colors"
-                >
-                  Publish
-                </button>
-              </form>
-            ) : (
-              <span className="font-headline text-[13px] text-caption/50 italic">
-                Add at least one author to publish
-              </span>
-            )
-          )}
           {article.status === "PUBLISHED" && (
             <Link
               href={`/article/${article.slug}`}
@@ -124,16 +126,6 @@ export default async function EditArticlePage({
             >
               View Live
             </Link>
-          )}
-          {isWebMaster && article.status === "PUBLISHED" && (
-            <form action={boundUnpublish}>
-              <button
-                type="submit"
-                className="cursor-pointer font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 text-caption hover:border-maroon hover:text-maroon transition-colors"
-              >
-                Unpublish
-              </button>
-            </form>
           )}
           {isWebMaster && (
             <form action={boundDelete} className="ml-auto">
