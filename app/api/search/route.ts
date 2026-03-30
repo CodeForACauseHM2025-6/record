@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const results = articles.map((a) => {
+  const results = articles.map((a: (typeof articles)[number]) => {
     const author = a.credits.length > 0
       ? { name: a.credits[0].user.name, id: a.credits[0].user.id }
       : { name: a.createdBy.name, id: a.createdBy.id };
