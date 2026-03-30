@@ -154,8 +154,6 @@ export async function assignArticleToSlot(slotId: string, articleId: string | nu
       mediaType: null,
       mediaAlt: null,
       mediaCredit: null,
-      lockToRow: true,
-      rowSpan: null,
       autoplay: true,
     },
   });
@@ -194,6 +192,19 @@ export async function clearSlot(slotId: string, groupId: string) {
   await prisma.groupSlot.update({
     where: { id: slotId },
     data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, mediaCredit: null, lockToRow: true, rowSpan: null, autoplay: true },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath("/");
+}
+
+export async function updateSlotSpan(slotId: string, lockToRow: boolean, rowSpan: number | null, groupId: string) {
+  const session = await auth();
+  requireWebMaster(session);
+
+  await prisma.groupSlot.update({
+    where: { id: slotId },
+    data: { lockToRow, rowSpan },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);

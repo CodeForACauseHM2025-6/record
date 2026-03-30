@@ -129,7 +129,7 @@ function groupRowsIntoSections(rows: RowData[]): SectionGroup[] {
     if (row.isSeparator) {
       if (current.length > 0) {
         const hasBleed = current.some((r) =>
-          r.slots.some((s) => s.mediaUrl && !s.lockToRow)
+          r.slots.some((s) => !s.lockToRow)
         );
         sections.push({ rows: current, hasBleed });
       }
@@ -141,7 +141,7 @@ function groupRowsIntoSections(rows: RowData[]): SectionGroup[] {
 
   if (current.length > 0) {
     const hasBleed = current.some((r) =>
-      r.slots.some((s) => s.mediaUrl && !s.lockToRow)
+      r.slots.some((s) => !s.lockToRow)
     );
     sections.push({ rows: current, hasBleed });
   }
@@ -380,24 +380,28 @@ export default async function HomePage({
   );
 }
 
-function ArticleCard({ article, size, isFeatured = false }: { article: SlotArticle; size: string; isFeatured?: boolean }) {
+function ArticleCard({ article, size, isFeatured = false, rowSpan = 1 }: { article: SlotArticle; size: string; isFeatured?: boolean; rowSpan?: number }) {
   const author = getAuthorInfo(article);
   const isLarge = size === "large";
-  const previewLen = isLarge ? 180 : 120;
-  const titleSize = isLarge ? "text-[24px] sm:text-[28px]" : "text-[20px] sm:text-[22px]";
+  const isMedium = size === "medium";
+  const spansRows = rowSpan > 1;
+  const previewLen = spansRows ? 800 : isLarge ? 220 : isMedium ? 160 : 120;
+  const titleSize = spansRows
+    ? "text-[24px] sm:text-[28px]"
+    : isLarge ? "text-[24px] sm:text-[28px]" : isMedium ? "text-[22px] sm:text-[24px]" : "text-[20px] sm:text-[22px]";
 
   return (
-    <div className={article.featuredImage ? "flex gap-5" : ""}>
+    <div className={`${spansRows ? "flex flex-col flex-1" : ""} ${article.featuredImage && !spansRows ? "flex gap-5" : ""}`}>
       {article.featuredImage && (
-        <Link href={`/article/${article.slug}`} className="shrink-0">
+        <Link href={`/article/${article.slug}`} className={spansRows ? "block mb-4" : "shrink-0"}>
           <img
             src={article.featuredImage}
             alt={article.title}
-            className={`object-contain ${isLarge ? "w-[180px] sm:w-[220px] max-h-[180px]" : "w-[120px] sm:w-[150px] max-h-[130px]"}`}
+            className={`object-contain ${spansRows ? "w-full max-h-[300px]" : isLarge ? "w-[180px] sm:w-[220px] max-h-[180px]" : isMedium ? "w-[150px] sm:w-[180px] max-h-[160px]" : "w-[120px] sm:w-[150px] max-h-[130px]"}`}
           />
         </Link>
       )}
-      <div className="min-w-0">
+      <div className={`min-w-0 ${spansRows ? "flex flex-col flex-1" : ""}`}>
         <div className="flex items-center gap-2">
           <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-[14px]">
             {SECTION_LABELS[article.section] ?? article.section}
@@ -413,10 +417,10 @@ function ArticleCard({ article, size, isFeatured = false }: { article: SlotArtic
             {article.title}
           </Link>
         </h3>
-        <p className="mt-2 text-[16px] leading-[1.65] text-caption">
+        <p className={`mt-2 text-[16px] leading-[1.65] text-caption ${spansRows ? "flex-1 overflow-hidden" : ""}`}>
           {getPreviewText(article.body, previewLen)}
         </p>
-        <div className="mt-3 font-headline text-[14px]">
+        <div className={`font-headline text-[14px] ${spansRows ? "mt-auto pt-3" : "mt-3"}`}>
           <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
           <span className="italic">{author.role}</span>
           {article.publishedAt && (
@@ -501,7 +505,7 @@ function BleedSection({ rows }: { rows: RowData[] }) {
       // Skip empty slots
       if (!slot.mediaUrl && !slot.article) { col += colSpan; continue; }
       let rSpan = 1;
-      if (slot.mediaUrl && !slot.lockToRow) {
+      if (!slot.lockToRow) {
         rSpan = slot.rowSpan ?? 2;
       }
       gridItems.push({
@@ -524,7 +528,7 @@ function BleedSection({ rows }: { rows: RowData[] }) {
       {gridItems.map(({ slot, isFeatured, colStart, colSpan, rowSpan, isLast }) => (
         <div
           key={slot.id}
-          className={`py-7 px-4 border-b border-neutral-200 ${isLast ? "" : "border-r"}`}
+          className={`py-7 px-4 border-b border-neutral-200 flex flex-col ${isLast ? "" : "border-r"}`}
           style={{
             gridColumn: `${colStart} / span ${colSpan}`,
             gridRow: `span ${rowSpan}`,
@@ -533,7 +537,7 @@ function BleedSection({ rows }: { rows: RowData[] }) {
           {slot.mediaUrl ? (
             <MediaElement slot={slot} />
           ) : slot.article ? (
-            <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} />
+            <ArticleCard article={slot.article} size={slot.size} isFeatured={isFeatured} rowSpan={rowSpan} />
           ) : null}
         </div>
       ))}

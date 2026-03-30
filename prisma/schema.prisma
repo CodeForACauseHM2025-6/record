@@ -162,7 +162,7 @@ model GroupSlot {
   mediaAlt    String?
   mediaCredit String?
   lockToRow   Boolean  @default(true)
-  rowSpan   Int?
+  rowSpan   Float?
   autoplay  Boolean  @default(true)
 
   row     GroupRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
