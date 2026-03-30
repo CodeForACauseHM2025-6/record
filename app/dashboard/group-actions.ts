@@ -221,7 +221,7 @@ export async function updateRow(rowId: string, groupId: string, formData: FormDa
     orderBy: { order: "asc" },
   });
 
-  const currentLayout = currentSlots.map((s) => s.size).join(",");
+  const currentLayout = currentSlots.map((s: (typeof currentSlots)[number]) => s.size).join(",");
   if (currentLayout !== layout) {
     // Layout changed — delete old slots and create new ones
     await prisma.groupSlot.deleteMany({ where: { rowId } });
