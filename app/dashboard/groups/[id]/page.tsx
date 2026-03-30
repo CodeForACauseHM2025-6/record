@@ -85,7 +85,7 @@ export default async function GroupEditorPage({
               {group.name}
             </h2>
             <p className="font-headline text-[13px] text-caption mt-1">
-              {group.rows.length} rows &middot; {group.rows.reduce((sum, r) => sum + r.slots.length, 0)} slots
+              {group.rows.length} rows &middot; {group.rows.reduce((sum: number, r: (typeof group.rows)[number]) => sum + r.slots.length, 0)} slots
             </p>
           </div>
           <span
