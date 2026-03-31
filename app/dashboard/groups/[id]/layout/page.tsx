@@ -1,18 +1,17 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
-import { LayoutBuilder } from "@/app/dashboard/layout-builder";
 import { Footer } from "@/app/footer";
+import { LayoutEditorWrapper } from "@/app/dashboard/layout-editor-wrapper";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
 const NAV_SECTIONS = [
-  { label: "News", href: "#" },
-  { label: "Features", href: "#" },
-  { label: "Opinions", href: "#" },
-  { label: "A&E", href: "#" },
-  { label: "Lion\u2019s Den", href: "#" },
+  { label: "News" },
+  { label: "Features" },
+  { label: "Opinions" },
+  { label: "A&E" },
+  { label: "Lion\u2019s Den" },
 ];
 
 function formatDateLong(date: Date): string {
@@ -78,39 +77,10 @@ export default async function LayoutEditorPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
-      {/* ============ FLOATING EDITOR TOOLBAR ============ */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-ink text-white px-4 py-2">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/dashboard/groups/${id}`}
-              className="font-headline text-[13px] tracking-wide text-white/70 hover:text-white transition-colors"
-            >
-              &larr; Back to Group
-            </Link>
-            <span className="font-headline text-[13px] tracking-wide text-white/50">|</span>
-            <span className="font-headline text-[14px] font-semibold tracking-wide">
-              Editing: {group.name}
-            </span>
-          </div>
-          <Link
-            href="/"
-            target="_blank"
-            className="font-headline text-[13px] tracking-wide text-white/70 hover:text-white transition-colors"
-          >
-            Preview Live &rarr;
-          </Link>
-        </div>
-      </div>
-
-      {/* Spacer for fixed toolbar */}
-      <div className="h-[40px]" />
-
-      {/* ============ HEADER (mirrors homepage) ============ */}
-      <header className="px-4 sm:px-8 pt-4 pb-2">
+      {/* ============ HEADER (mirrors homepage, non-interactive) ============ */}
+      <header className="px-4 sm:px-8 pt-12 pb-2">
         <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
-            {/* Hamburger placeholder */}
             <div className="w-6 h-6" />
           </div>
           <div className="text-center">
@@ -154,10 +124,11 @@ export default async function LayoutEditorPage({
         </div>
       </nav>
 
-      {/* ============ LAYOUT BUILDER (replaces content area) ============ */}
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8 pb-16 flex-1">
-        <LayoutBuilder
+      {/* ============ LAYOUT BUILDER ============ */}
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8 pb-16 flex-1 w-full">
+        <LayoutEditorWrapper
           groupId={id}
+          groupName={group.name}
           mainBlocks={mainBlocks as any}
           sidebarBlocks={sidebarBlocks as any}
           availableArticles={availableArticles as { id: string; title: string; section: string }[]}

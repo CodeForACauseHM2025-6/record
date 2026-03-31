@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, createContext, useContext } from "react";
+
+const OpacityContext = createContext(0.6);
 import {
   addBlock,
   deleteBlock,
@@ -41,6 +43,7 @@ interface LayoutBuilderProps {
   mainBlocks: BlockWithSlots[];
   sidebarBlocks: BlockWithSlots[];
   availableArticles: { id: string; title: string; section: string }[];
+  placeholderOpacity?: number;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -61,6 +64,7 @@ export function LayoutBuilder({
   mainBlocks,
   sidebarBlocks,
   availableArticles,
+  placeholderOpacity = 0.6,
 }: LayoutBuilderProps) {
   // Which column is currently picking a pattern? null = none
   const [pickingColumn, setPickingColumn] = useState<"main" | "sidebar" | null>(null);
@@ -81,6 +85,7 @@ export function LayoutBuilder({
   }
 
   return (
+    <OpacityContext.Provider value={placeholderOpacity}>
     <div className="flex flex-col lg:flex-row">
       {/* Main column */}
       <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
@@ -128,6 +133,7 @@ export function LayoutBuilder({
         )}
       </div>
     </div>
+    </OpacityContext.Provider>
   );
 }
 
@@ -473,15 +479,29 @@ function SlotView({
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
+  const opacity = useContext(OpacityContext);
 
-  // Filled: article — show real content with clear button on hover
+  // Filled: article — show rich content matching the placeholder style
   if (slot.article) {
     return (
       <div className="relative group/slot">
-        <div className="py-1">
-          <p className="font-headline text-[14px] font-bold leading-snug">{slot.article.title}</p>
-          <p className="font-headline text-[10px] text-caption italic mt-0.5">{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
-        </div>
+        {slot.slotRole === "headline" ? (
+          <div className="py-1">
+            <p className="font-headline text-[20px] font-bold leading-snug">{slot.article.title}</p>
+          </div>
+        ) : (
+          <div className="py-1">
+            <p className="font-headline text-maroon italic text-[14px]">{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
+            <p className="font-headline text-[22px] font-bold leading-snug mt-1">{slot.article.title}</p>
+            <p className="text-[16px] leading-[1.65] text-caption mt-2">
+              {slot.article.title}...
+            </p>
+            <p className="font-headline text-[14px] mt-3">
+              <span className="text-maroon font-semibold">By Author</span>{" "}
+              <span className="italic text-caption">Staff Writer</span>
+            </p>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => clearBlockSlot(slot.id, groupId)}
@@ -522,11 +542,11 @@ function SlotView({
             <span className="font-headline text-[11px] text-neutral-400">{slotLabel}</span>
           </div>
         ) : slot.slotRole === "headline" ? (
-          <div className="py-1 opacity-60">
+          <div className="py-1" style={{ opacity }}>
             <p className="font-headline text-[20px] font-bold leading-snug">Lorem Ipsum Dolor Sit Amet Consectetur</p>
           </div>
         ) : (
-          <div className="py-1 opacity-60">
+          <div className="py-1" style={{ opacity }}>
             <p className="font-headline text-maroon italic text-[14px]">News</p>
             <p className="font-headline text-[22px] font-bold leading-snug mt-1">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
             <p className="text-[16px] leading-[1.65] text-caption mt-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
