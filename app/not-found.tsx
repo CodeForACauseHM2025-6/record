@@ -3,13 +3,9 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col bg-white font-body">
-      <div className="flex-1 flex items-center justify-center px-4">
+      <div className="flex-1 flex flex-col items-center justify-start pt-[20vh] px-4">
         <div className="text-center max-w-md">
-          <h1 className="font-masthead text-[48px] sm:text-[56px] leading-none tracking-tight">
-            The Record
-          </h1>
-          <div className="mt-8 h-[2px] bg-rule" />
-          <p className="mt-8 font-headline text-[72px] font-bold tracking-wide leading-none">
+          <p className="font-headline text-[72px] font-bold tracking-wide leading-none">
             404
           </p>
           <h2 className="mt-4 font-headline text-[24px] font-bold tracking-wide">

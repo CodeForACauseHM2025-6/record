@@ -29,13 +29,9 @@ export default async function AuthErrorPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body">
-      <div className="flex-1 flex items-center justify-center px-4">
+      <div className="flex-1 flex flex-col items-center justify-start pt-[20vh] px-4">
         <div className="text-center max-w-md">
-          <h1 className="font-masthead text-[48px] sm:text-[56px] leading-none tracking-tight">
-            The Record
-          </h1>
-          <div className="mt-8 h-[2px] bg-rule" />
-          <h2 className="mt-8 font-headline text-[28px] font-bold tracking-wide">
+          <h2 className="font-headline text-[28px] font-bold tracking-wide">
             {title}
           </h2>
           <p className="mt-3 font-headline text-[16px] text-caption leading-relaxed">
