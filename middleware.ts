@@ -21,7 +21,7 @@ export default auth((req) => {
   }
 
   // All non-API, non-login pages require authentication
-  if (!pathname.startsWith("/api") && pathname !== "/login") {
+  if (!pathname.startsWith("/api") && pathname !== "/login" && pathname !== "/auth-error") {
     if (!req.auth?.user) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
