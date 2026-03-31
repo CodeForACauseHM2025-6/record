@@ -523,13 +523,13 @@ function SlotView({
           </div>
         ) : slot.slotRole === "headline" ? (
           <div className="py-1">
-            <p className="font-headline text-[13px] font-semibold text-neutral-300">Lorem Ipsum Dolor Sit Amet Consectetur</p>
+            <p className="font-headline text-[13px] font-semibold text-neutral-400">Lorem Ipsum Dolor Sit Amet Consectetur</p>
           </div>
         ) : (
           <div className="py-1">
-            <p className="font-headline text-[14px] font-bold leading-snug text-neutral-300">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
-            <p className="font-body text-[11px] text-neutral-200 leading-relaxed mt-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
-            <p className="font-headline text-[10px] text-neutral-200 mt-1">By Author Name</p>
+            <p className="font-headline text-[14px] font-bold leading-snug text-neutral-400">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
+            <p className="font-body text-[11px] text-neutral-400 leading-relaxed mt-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+            <p className="font-headline text-[10px] text-neutral-400 mt-1">By Author Name</p>
           </div>
         )}
       </button>
