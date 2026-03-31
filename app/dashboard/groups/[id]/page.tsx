@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
@@ -10,20 +9,14 @@ import {
   unpublishGroup,
   scheduleGroup,
   deleteGroup,
-  addRow,
-  deleteRow,
+  deleteBlock,
+  updateDividerStyle,
 } from "@/app/dashboard/group-actions";
-import { SlotAssigner } from "@/app/dashboard/slot-assigner";
-import { DraggableRowList } from "@/app/dashboard/row-list";
-import { RowEditor } from "@/app/dashboard/row-editor";
+import { BlockPicker } from "@/app/dashboard/block-picker";
+import { BlockSlotAssigner } from "@/app/dashboard/block-slot-assigner";
+import { getMainPatterns, getSidebarPatterns, PATTERNS } from "@/lib/patterns";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
-
-const SIZE_LABELS: Record<string, string> = {
-  large: "Large (full width)",
-  medium: "Medium (2/3)",
-  small: "Small (1/3)",
-};
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
@@ -51,15 +44,13 @@ export default async function GroupEditorPage({
         select: { id: true, title: true, section: true },
         orderBy: { createdAt: "desc" },
       },
-      rows: {
+      blocks: {
         orderBy: { order: "asc" },
         include: {
           slots: {
             orderBy: { order: "asc" },
             include: {
-              article: {
-                select: { id: true, title: true, section: true },
-              },
+              article: { select: { id: true, title: true, section: true } },
             },
           },
         },
@@ -83,23 +74,25 @@ export default async function GroupEditorPage({
   const isWebMaster = session.user.role === "WEB_MASTER";
   const canPublish = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
 
-  // Articles already assigned to a slot in this group
+  // Articles already assigned to a block slot in this group
   const assignedIds = new Set(
-    group.rows.flatMap((r: (typeof group.rows)[number]) =>
-      r.slots.filter((s: (typeof r.slots)[number]) => s.articleId).map((s: (typeof r.slots)[number]) => s.articleId)
+    group.blocks.flatMap((b: any) =>
+      b.slots.filter((s: any) => s.articleId).map((s: any) => s.articleId)
     )
   );
-  // Pool articles not yet assigned to a slot
-  const availableForSlots = group.articles.filter(
-    (a: (typeof group.articles)[number]) => !assignedIds.has(a.id)
-  );
+  const availableArticles = group.articles.filter((a: any) => !assignedIds.has(a.id));
+
+  // Split blocks by column
+  const mainBlocks = group.blocks.filter((b: any) => b.column === "main");
+  const sidebarBlocks = group.blocks.filter((b: any) => b.column === "sidebar");
+
+  const totalSlots = group.blocks.reduce((sum: number, b: any) => sum + b.slots.length, 0);
 
   const boundUpdate = updateGroup.bind(null, id);
   const boundPublish = publishGroup.bind(null, id);
   const boundUnpublish = unpublishGroup.bind(null, id);
   const boundSchedule = scheduleGroup.bind(null, id);
   const boundDelete = deleteGroup.bind(null, id);
-  const boundAddRow = addRow.bind(null, id);
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -114,7 +107,7 @@ export default async function GroupEditorPage({
               {group.name}
             </h2>
             <p className="font-headline text-[13px] text-caption mt-1">
-              {group.rows.length} rows &middot; {group.rows.reduce((sum: number, r: (typeof group.rows)[number]) => sum + r.slots.length, 0)} slots
+              {group.blocks.length} blocks &middot; {totalSlots} slots
               &middot; {group.articles.length} articles
             </p>
           </div>
@@ -249,144 +242,117 @@ export default async function GroupEditorPage({
         <div className="mt-8">
           <h3 className="font-headline text-[20px] font-bold tracking-wide mb-4">Layout</h3>
 
-          {group.rows.length === 0 && (
-            <p className="font-headline text-[15px] text-caption/50 italic mb-6">
-              No rows yet. Add one below.
-            </p>
-          )}
-
-          <DraggableRowList groupId={id} rowIds={group.rows.map((r: (typeof group.rows)[number]) => r.id)}>
-            {group.rows.map((row, rowIdx) => {
-              if (row.isSeparator) {
-                const boundDeleteSep = deleteRow.bind(null, row.id, id);
-                return (
-                  <Fragment key={row.id}>
-                    <div className="border border-dashed border-ink/10 px-5 py-2 flex items-center justify-between">
-                      <p className="font-headline text-[12px] text-caption/50 tracking-wide">
-                        &mdash;&mdash; Separator &mdash;&mdash;
-                      </p>
-                      <form action={boundDeleteSep}>
-                        <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
-                          Remove
-                        </button>
-                      </form>
-                    </div>
-                    <div className="flex justify-center py-1">
-                      <form action={async () => {
-                        "use server";
-                        const { auth } = await import("@/lib/auth");
-                        const s = await auth();
-                        const DR = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
-                        if (!s?.user?.role || !DR.includes(s.user.role)) return;
-                        const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
-                        await addSeparatorRow(id, row.order);
-                      }}>
-                        <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/60 tracking-wide hover:text-maroon transition-colors">
-                          + Separator
-                        </button>
-                      </form>
-                    </div>
-                  </Fragment>
-                );
-              }
-
-              const boundDeleteRow = deleteRow.bind(null, row.id, id);
-              const currentLayout = row.slots.map((s: any) => s.size).join(",");
-              return (
-                <Fragment key={row.id}>
-                <div className="border border-ink/10 px-5 py-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <p className="font-headline text-[14px] font-semibold tracking-wide">
-                        Row {rowIdx + 1}
-                      </p>
-                      <RowEditor
-                        rowId={row.id}
-                        groupId={id}
-                        currentLayout={currentLayout}
-                        isFeatured={row.isFeatured}
-                      />
-                    </div>
-                    <form action={boundDeleteRow}>
-                      <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
-                        Remove
-                      </button>
-                    </form>
-                  </div>
-
-                  <div className="flex gap-3">
-                    {row.slots.map((slot: any) => (
-                      <div
-                        key={slot.id}
-                        className={`border border-dashed border-ink/15 p-3 ${
-                          slot.size === "large" ? "flex-[3]" :
-                          slot.size === "medium" ? "flex-[2]" : "flex-[1]"
-                        }`}
-                      >
-                        <p className="font-headline text-[11px] tracking-[0.08em] uppercase text-caption/50 mb-2">
-                          {SIZE_LABELS[slot.size]}
-                        </p>
-                        <SlotAssigner
-                          slotId={slot.id}
-                          groupId={id}
-                          currentArticleId={slot.articleId}
-                          currentArticleTitle={slot.article?.title ?? null}
-                          currentMediaUrl={slot.mediaUrl ?? null}
-                          currentMediaType={slot.mediaType ?? null}
-                          currentMediaAlt={slot.mediaAlt ?? null}
-                          currentMediaCredit={slot.mediaCredit ?? null}
-                          currentLockToRow={slot.lockToRow ?? true}
-                          currentRowSpan={slot.rowSpan ?? null}
-                          currentAutoplay={slot.autoplay ?? true}
-                          availableArticles={availableForSlots as { id: string; title: string; section: string }[]}
-                        />
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Main Column */}
+            <div className="flex-[2]">
+              <h4 className="font-headline text-[14px] font-semibold tracking-wide text-caption mb-3">Main Column (2/3)</h4>
+              <div className="space-y-3">
+                {mainBlocks.map((block: any) => {
+                  const patternDef = PATTERNS[block.pattern];
+                  const boundDeleteBlock = deleteBlock.bind(null, block.id, id);
+                  return (
+                    <div key={block.id} className="border border-ink/10 px-4 py-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <p className="font-headline text-[14px] font-semibold tracking-wide">
+                            {patternDef?.name ?? block.pattern}
+                          </p>
+                          <div className="flex gap-1">
+                            {["light", "bold", "none"].map((style) => (
+                              <form key={style} action={async () => {
+                                "use server";
+                                const { updateDividerStyle } = await import("@/app/dashboard/group-actions");
+                                await updateDividerStyle(block.id, style, id);
+                              }}>
+                                <button type="submit" className={`cursor-pointer font-headline text-[10px] px-2 py-0.5 transition-colors ${
+                                  block.dividerStyle === style
+                                    ? "bg-ink text-white"
+                                    : "border border-ink/15 text-caption hover:border-ink"
+                                }`}>
+                                  {style}
+                                </button>
+                              </form>
+                            ))}
+                          </div>
+                        </div>
+                        <form action={boundDeleteBlock}>
+                          <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
+                            Remove
+                          </button>
+                        </form>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-center py-1">
-                  <form action={async () => {
-                    "use server";
-                    const { auth } = await import("@/lib/auth");
-                    const s = await auth();
-                    const DR = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
-                    if (!s?.user?.role || !DR.includes(s.user.role)) return;
-                    const { addSeparatorRow } = await import("@/app/dashboard/group-actions");
-                    await addSeparatorRow(id, row.order);
-                  }}>
-                    <button type="submit" className="cursor-pointer font-headline text-[11px] text-caption/60 tracking-wide hover:text-maroon transition-colors">
-                      + Separator
-                    </button>
-                  </form>
-                </div>
-                </Fragment>
-              );
-            })}
-          </DraggableRowList>
-
-          {/* Add row */}
-          <div className="mt-6 border border-ink/10 px-5 py-4">
-            <p className="font-headline text-[14px] font-semibold tracking-wide mb-3">
-              Add Row
-            </p>
-            <form action={boundAddRow} className="flex flex-wrap gap-3 items-end">
-              <div>
-                <label className="block font-headline text-[12px] text-caption tracking-wide mb-1">Layout</label>
-                <select name="layout" className="border border-ink/20 px-3 py-2 font-headline text-[14px] outline-none bg-white">
-                  <option value="large">Large (full width)</option>
-                  <option value="medium,small">Medium + Small</option>
-                  <option value="small,medium">Small + Medium</option>
-                  <option value="small,small,small">3 Small</option>
-                </select>
+                      <div className="space-y-2">
+                        {block.slots.map((slot: any) => {
+                          const slotDef = patternDef?.slots[slot.order];
+                          return (
+                            <BlockSlotAssigner
+                              key={slot.id}
+                              slotId={slot.id}
+                              slotRole={slot.slotRole}
+                              slotLabel={slotDef?.label ?? slot.slotRole}
+                              groupId={id}
+                              currentArticleId={slot.articleId}
+                              currentArticleTitle={slot.article?.title ?? null}
+                              currentMediaUrl={slot.mediaUrl ?? null}
+                              availableArticles={availableArticles as { id: string; title: string; section: string }[]}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <label className="flex items-center gap-2 font-headline text-[13px] tracking-wide">
-                <input type="checkbox" name="isFeatured" value="true" />
-                Featured row
-              </label>
-              <button type="submit" className="cursor-pointer font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-5 py-2 hover:bg-maroon transition-colors">
-                Add Row
-              </button>
-            </form>
+              <div className="mt-3">
+                <BlockPicker groupId={id} column="main" patterns={getMainPatterns()} />
+              </div>
+            </div>
+
+            {/* Sidebar Column */}
+            <div className="flex-[1]">
+              <h4 className="font-headline text-[14px] font-semibold tracking-wide text-caption mb-3">Sidebar (1/3)</h4>
+              <div className="space-y-3">
+                {sidebarBlocks.map((block: any) => {
+                  const patternDef = PATTERNS[block.pattern];
+                  const boundDeleteBlock = deleteBlock.bind(null, block.id, id);
+                  return (
+                    <div key={block.id} className="border border-ink/10 px-4 py-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="font-headline text-[14px] font-semibold tracking-wide">
+                          {patternDef?.name ?? block.pattern}
+                        </p>
+                        <form action={boundDeleteBlock}>
+                          <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
+                            Remove
+                          </button>
+                        </form>
+                      </div>
+                      <div className="space-y-2">
+                        {block.slots.map((slot: any) => {
+                          const slotDef = patternDef?.slots[slot.order];
+                          return (
+                            <BlockSlotAssigner
+                              key={slot.id}
+                              slotId={slot.id}
+                              slotRole={slot.slotRole}
+                              slotLabel={slotDef?.label ?? slot.slotRole}
+                              groupId={id}
+                              currentArticleId={slot.articleId}
+                              currentArticleTitle={slot.article?.title ?? null}
+                              currentMediaUrl={slot.mediaUrl ?? null}
+                              availableArticles={availableArticles as { id: string; title: string; section: string }[]}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3">
+                <BlockPicker groupId={id} column="sidebar" patterns={getSidebarPatterns()} />
+              </div>
+            </div>
           </div>
         </div>
 
