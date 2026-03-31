@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   adapter: PrismaAdapter(prisma),
+  pages: {
+    error: "/auth-error",
+  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
