@@ -390,18 +390,29 @@ function ArticleCard({ article, size, isFeatured = false, rowSpan = 1 }: { artic
     ? "text-[24px] sm:text-[28px]"
     : isLarge ? "text-[24px] sm:text-[28px]" : isMedium ? "text-[22px] sm:text-[24px]" : "text-[20px] sm:text-[22px]";
 
+  const imageWidth = spansRows ? "w-full" : isLarge ? "w-[45%]" : isMedium ? "w-[40%]" : "w-[38%]";
+
   return (
-    <div className={`${spansRows ? "flex flex-col flex-1" : ""} ${article.featuredImage && !spansRows ? "flex gap-5" : ""}`}>
-      {article.featuredImage && (
-        <Link href={`/article/${article.slug}`} className={spansRows ? "block mb-4" : "shrink-0"}>
+    <div className={spansRows ? "flex flex-col flex-1" : ""}>
+      {article.featuredImage && !spansRows && (
+        <Link href={`/article/${article.slug}`} className={`float-left mr-4 mb-2 ${imageWidth}`}>
           <img
             src={article.featuredImage}
             alt={article.title}
-            className={`object-contain ${spansRows ? "w-full max-h-[300px]" : isLarge ? "w-[180px] sm:w-[220px] max-h-[180px]" : isMedium ? "w-[150px] sm:w-[180px] max-h-[160px]" : "w-[120px] sm:w-[150px] max-h-[130px]"}`}
+            className="w-full h-auto object-cover"
           />
         </Link>
       )}
-      <div className={`min-w-0 ${spansRows ? "flex flex-col flex-1" : ""}`}>
+      {article.featuredImage && spansRows && (
+        <Link href={`/article/${article.slug}`} className="block mb-4">
+          <img
+            src={article.featuredImage}
+            alt={article.title}
+            className="w-full max-h-[300px] object-contain"
+          />
+        </Link>
+      )}
+      <div className={spansRows ? "flex flex-col flex-1" : ""}>
         <div className="flex items-center gap-2">
           <Link href={SECTION_HREFS[article.section] ?? "#"} className="font-headline text-maroon italic text-[14px]">
             {SECTION_LABELS[article.section] ?? article.section}
@@ -436,12 +447,11 @@ function MediaElement({ slot }: { slot: SlotData }) {
   if (!slot.mediaUrl) return null;
 
   let heightStyle: React.CSSProperties | undefined;
-  let fit = "object-contain";
+  let fit = slot.lockToRow ? "object-contain" : "object-cover";
   if (slot.lockToRow) {
     heightStyle = { maxHeight: "250px" };
-  } else if (slot.rowSpan) {
-    // Each row is roughly 250px; rowSpan limits how many rows the media can bleed into
-    heightStyle = { maxHeight: `${slot.rowSpan * 250}px` };
+  } else {
+    heightStyle = { height: "100%", minHeight: "200px" };
   }
 
   const creditLabel = slot.mediaCredit
@@ -523,7 +533,7 @@ function BleedSection({ rows }: { rows: RowData[] }) {
   return (
     <div
       className="hidden lg:grid gap-0"
-      style={{ gridTemplateColumns: "repeat(3, 1fr)", gridAutoFlow: "dense" }}
+      style={{ gridTemplateColumns: "repeat(3, 1fr)", gridAutoFlow: "dense", gridAutoRows: "min-content" }}
     >
       {gridItems.map(({ slot, isFeatured, colStart, colSpan, rowSpan, isLast }) => (
         <div
