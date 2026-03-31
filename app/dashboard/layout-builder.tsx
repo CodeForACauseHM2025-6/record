@@ -474,17 +474,18 @@ function SlotView({
   const [popupOpen, setPopupOpen] = useState(false);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
 
+  // Filled: article — show real content with clear button on hover
   if (slot.article) {
     return (
-      <div className="py-2 px-3 bg-neutral-50 border border-neutral-200 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-headline text-[13px] font-semibold truncate">{slot.article.title}</p>
-          <p className="font-headline text-[10px] text-caption">{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
+      <div className="relative group/slot">
+        <div className="py-1">
+          <p className="font-headline text-[14px] font-bold leading-snug">{slot.article.title}</p>
+          <p className="font-headline text-[10px] text-caption italic mt-0.5">{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
         </div>
         <button
           type="button"
           onClick={() => clearBlockSlot(slot.id, groupId)}
-          className="cursor-pointer text-caption/40 hover:text-maroon text-[14px] shrink-0"
+          className="cursor-pointer absolute -top-1 -right-1 bg-white border border-neutral-200 shadow-sm w-5 h-5 flex items-center justify-center text-caption hover:text-maroon transition-colors text-[12px] opacity-0 group-hover/slot:opacity-100"
         >
           &times;
         </button>
@@ -492,14 +493,15 @@ function SlotView({
     );
   }
 
+  // Filled: media — show actual image with clear button on hover
   if (slot.mediaUrl) {
     return (
-      <div className="relative border border-neutral-200">
-        <img src={slot.mediaUrl} alt={slot.mediaAlt ?? ""} className="w-full max-h-[120px] object-contain bg-neutral-100" />
+      <div className="relative group/slot">
+        <img src={slot.mediaUrl} alt={slot.mediaAlt ?? ""} className="w-full h-full min-h-[80px] object-cover bg-neutral-100" />
         <button
           type="button"
           onClick={() => clearBlockSlot(slot.id, groupId)}
-          className="cursor-pointer absolute top-1 right-1 bg-white/90 border border-ink/10 w-5 h-5 flex items-center justify-center text-caption hover:text-maroon transition-colors text-[12px]"
+          className="cursor-pointer absolute top-1 right-1 bg-white/90 border border-ink/10 w-5 h-5 flex items-center justify-center text-caption hover:text-maroon transition-colors text-[12px] opacity-0 group-hover/slot:opacity-100"
         >
           &times;
         </button>
@@ -507,15 +509,29 @@ function SlotView({
     );
   }
 
+  // Empty: show lorem ipsum placeholder with hover highlight + click to assign
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setPopupOpen(!popupOpen)}
-        className="cursor-pointer w-full border border-dashed border-neutral-300 py-4 px-3 hover:border-maroon hover:bg-maroon/5 transition-colors flex items-center justify-center gap-2"
+        className="cursor-pointer w-full text-left transition-all hover:outline hover:outline-2 hover:outline-maroon/40 hover:bg-maroon/5 rounded-sm"
       >
-        <span className="text-neutral-400 text-[20px]">+</span>
-        <span className="font-headline text-[12px] text-neutral-400">{slotLabel}</span>
+        {isMedia ? (
+          <div className="bg-neutral-200 w-full min-h-[100px] flex items-center justify-center">
+            <span className="font-headline text-[11px] text-neutral-400">{slotLabel}</span>
+          </div>
+        ) : slot.slotRole === "headline" ? (
+          <div className="py-1">
+            <p className="font-headline text-[13px] font-semibold text-neutral-300">Lorem Ipsum Dolor Sit Amet Consectetur</p>
+          </div>
+        ) : (
+          <div className="py-1">
+            <p className="font-headline text-[14px] font-bold leading-snug text-neutral-300">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
+            <p className="font-body text-[11px] text-neutral-200 leading-relaxed mt-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+            <p className="font-headline text-[10px] text-neutral-200 mt-1">By Author Name</p>
+          </div>
+        )}
       </button>
 
       {popupOpen && (
