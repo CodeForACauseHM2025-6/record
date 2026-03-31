@@ -10,7 +10,6 @@ import {
   scheduleGroup,
   deleteGroup,
 } from "@/app/dashboard/group-actions";
-import { LayoutBuilder } from "@/app/dashboard/layout-builder";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
 
@@ -69,14 +68,6 @@ export default async function GroupEditorPage({
   const hasApproved = approvers.some((a: any) => a.id === session.user.id);
   const isWebMaster = session.user.role === "WEB_MASTER";
   const canPublish = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
-
-  // Articles already assigned to a block slot in this group
-  const assignedIds = new Set(
-    group.blocks.flatMap((b: any) =>
-      b.slots.filter((s: any) => s.articleId).map((s: any) => s.articleId)
-    )
-  );
-  const availableArticles = group.articles.filter((a: any) => !assignedIds.has(a.id));
 
   // Split blocks by column
   const mainBlocks = group.blocks.filter((b: any) => b.column === "main");
@@ -236,24 +227,30 @@ export default async function GroupEditorPage({
 
         {/* Layout */}
         <div className="mt-8">
-          <h3 className="font-headline text-[20px] font-bold tracking-wide mb-4">Layout</h3>
-          <LayoutBuilder
-            groupId={id}
-            mainBlocks={mainBlocks}
-            sidebarBlocks={sidebarBlocks}
-            availableArticles={availableArticles as { id: string; title: string; section: string }[]}
-          />
-        </div>
-
-        {/* Preview link */}
-        <div className="mt-8">
-          <a
-            href="/"
-            target="_blank"
-            className="font-headline text-[14px] tracking-wide text-maroon hover:underline"
-          >
-            Preview homepage &rarr;
-          </a>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline text-[20px] font-bold tracking-wide">Layout</h3>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/dashboard/groups/${id}/layout`}
+                className="font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2.5 hover:bg-maroon transition-colors"
+              >
+                Configure Layout
+              </Link>
+              <a
+                href="/"
+                target="_blank"
+                className="font-headline text-[13px] tracking-wide text-maroon hover:underline"
+              >
+                Preview &rarr;
+              </a>
+            </div>
+          </div>
+          <p className="font-headline text-[14px] text-caption">
+            {group.blocks.length === 0
+              ? "No layout configured yet. Click Configure Layout to start building."
+              : `${mainBlocks.length} main blocks, ${sidebarBlocks.length} sidebar blocks`
+            }
+          </p>
         </div>
       </div>
     </div>
