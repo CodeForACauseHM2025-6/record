@@ -327,22 +327,133 @@ function BlockView({
         {patternDef?.name ?? block.pattern}
       </p>
 
-      <div className="space-y-2">
-        {block.slots.map((slot) => {
-          const slotDef = patternDef?.slots[slot.order];
-          return (
-            <SlotView
-              key={slot.id}
-              slot={slot}
-              slotLabel={slotDef?.label ?? slot.slotRole}
-              groupId={groupId}
-              availableArticles={availableArticles}
-            />
-          );
-        })}
-      </div>
+      <PatternSlotLayout
+        pattern={block.pattern}
+        slots={block.slots}
+        patternDef={patternDef}
+        groupId={groupId}
+        availableArticles={availableArticles}
+      />
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/*  PatternSlotLayout — renders slots in the pattern's visual shape    */
+/* ------------------------------------------------------------------ */
+
+function PatternSlotLayout({
+  pattern,
+  slots,
+  patternDef,
+  groupId,
+  availableArticles,
+}: {
+  pattern: string;
+  slots: SlotData[];
+  patternDef: (typeof PATTERNS)[string] | undefined;
+  groupId: string;
+  availableArticles: { id: string; title: string; section: string }[];
+}) {
+  function slot(index: number) {
+    const s = slots[index];
+    if (!s) return null;
+    const label = patternDef?.slots[index]?.label ?? s.slotRole;
+    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} />;
+  }
+
+  switch (pattern) {
+    case "hero":
+      return (
+        <div className="flex gap-3" style={{ minHeight: 180 }}>
+          <div className="flex-1 flex flex-col gap-2">
+            {slot(0)}
+            <div className="border-t border-neutral-200 pt-2 flex flex-col gap-2">
+              {slot(2)}
+              {slot(3)}
+            </div>
+          </div>
+          <div className="flex-[1.2]">
+            {slot(1)}
+          </div>
+        </div>
+      );
+
+    case "four-grid":
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          {slot(0)}
+          {slot(1)}
+          {slot(2)}
+          {slot(3)}
+        </div>
+      );
+
+    case "text-images":
+      return (
+        <div className="flex gap-3" style={{ minHeight: 150 }}>
+          <div className="flex-1">{slot(0)}</div>
+          <div className="flex-[0.4]">{slot(1)}</div>
+          <div className="flex-[0.4]">{slot(2)}</div>
+        </div>
+      );
+
+    case "headline-stack":
+      return (
+        <div className="flex flex-col">
+          <div className="border-b-2 border-ink pb-2 mb-2">{slot(0)}</div>
+          <div className="border-b-2 border-ink pb-2 mb-2">{slot(1)}</div>
+          <div>{slot(2)}</div>
+        </div>
+      );
+
+    case "two-thumbnails":
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          {slot(0)}
+          {slot(1)}
+        </div>
+      );
+
+    case "single-feature":
+      return <div>{slot(0)}</div>;
+
+    case "sb-feature":
+      return <div>{slot(0)}</div>;
+
+    case "sb-two-small":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {slot(0)}
+          {slot(1)}
+        </div>
+      );
+
+    case "sb-headlines":
+      return (
+        <div className="flex flex-col">
+          <div className="border-b border-neutral-200 pb-2 mb-2">{slot(0)}</div>
+          <div className="border-b border-neutral-200 pb-2 mb-2">{slot(1)}</div>
+          <div>{slot(2)}</div>
+        </div>
+      );
+
+    case "sb-thumbnails":
+      return (
+        <div className="flex flex-col gap-2">
+          {slot(0)}
+          {slot(1)}
+          {slot(2)}
+        </div>
+      );
+
+    default:
+      return (
+        <div className="space-y-2">
+          {slots.map((s, i) => slot(i))}
+        </div>
+      );
+  }
 }
 
 /* ------------------------------------------------------------------ */
