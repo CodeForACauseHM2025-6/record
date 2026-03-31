@@ -92,11 +92,13 @@ model Article {
   updatedAt     DateTime      @updatedAt
   createdById   String
 
+  groupId     String
+
   createdBy  User           @relation(fields: [createdById], references: [id])
+  group      ArticleGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   credits    ArticleCredit[]
   images     ArticleImage[]
   groupSlots GroupSlot[]
-  groups     ArticleGroup[]
   approvals  Approval[]
 }
 

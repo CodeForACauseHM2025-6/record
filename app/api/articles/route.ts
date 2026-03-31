@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", 400);
   }
 
-  const { title, body: articleBody, excerpt, featuredImage, section, credits, images } = parsed.data;
+  const { title, body: articleBody, excerpt, featuredImage, section, groupId, credits, images } = parsed.data;
 
   const slug = await generateUniqueSlug(title);
   const sanitizedBody = sanitizeHtml(articleBody);
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
       excerpt,
       featuredImage,
       section,
+      groupId,
       createdById: session!.user.id,
       credits: credits
         ? { create: credits }

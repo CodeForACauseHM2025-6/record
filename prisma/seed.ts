@@ -42,6 +42,11 @@ async function main() {
     },
   });
 
+  // Create sample group
+  const group = await prisma.articleGroup.create({
+    data: { name: "Sample Edition", issueNumber: "1" },
+  });
+
   // Create sample articles
   const article1 = await prisma.article.upsert({
     where: { slug: "welcome-to-the-record" },
@@ -52,8 +57,7 @@ async function main() {
       body: "<p>Welcome to the new digital home of The Record, Horace Mann's student newspaper.</p>",
       excerpt: "Welcome to the new digital home of The Record.",
       section: "NEWS",
-      status: "PUBLISHED",
-      publishedAt: new Date(),
+      groupId: group.id,
       createdById: editor.id,
       credits: {
         create: [{ userId: writer.id, creditRole: "Writer" }],
@@ -70,7 +74,7 @@ async function main() {
       body: "<p>A look at what's coming this season for Horace Mann athletics.</p>",
       excerpt: "A look at what's coming this season.",
       section: "LIONS_DEN",
-      status: "DRAFT",
+      groupId: group.id,
       createdById: editor.id,
     },
   });

@@ -6,6 +6,7 @@ export const createArticleSchema = z.object({
   excerpt: z.string().max(500).optional(),
   featuredImage: z.string().url().optional(),
   section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE"]),
+  groupId: z.string().uuid(),
   credits: z
     .array(
       z.object({

@@ -157,44 +157,6 @@ export async function deleteRow(rowId: string, groupId: string) {
   revalidatePath(`/dashboard/groups/${groupId}`);
 }
 
-export async function addArticleToPool(groupId: string, articleId: string) {
-  const session = await auth();
-  requireDashboardRole(session);
-
-  await prisma.articleGroup.update({
-    where: { id: groupId },
-    data: { articles: { connect: { id: articleId } } },
-  });
-
-  revalidatePath(`/dashboard/groups/${groupId}`);
-}
-
-export async function removeArticleFromPool(groupId: string, articleId: string) {
-  const session = await auth();
-  requireDashboardRole(session);
-
-  // Also clear any slots that reference this article
-  const rows = await prisma.groupRow.findMany({
-    where: { groupId },
-    select: { slots: { where: { articleId }, select: { id: true } } },
-  });
-  const slotIds = rows.flatMap((r: { slots: { id: string }[] }) => r.slots.map((s: { id: string }) => s.id));
-  if (slotIds.length > 0) {
-    await prisma.groupSlot.updateMany({
-      where: { id: { in: slotIds } },
-      data: { articleId: null },
-    });
-  }
-
-  await prisma.articleGroup.update({
-    where: { id: groupId },
-    data: { articles: { disconnect: { id: articleId } } },
-  });
-
-  revalidatePath(`/dashboard/groups/${groupId}`);
-  revalidatePath("/");
-}
-
 export async function assignArticleToSlot(slotId: string, articleId: string | null, groupId: string) {
   const session = await auth();
   requireDashboardRole(session);

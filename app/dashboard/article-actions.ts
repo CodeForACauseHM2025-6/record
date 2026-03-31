@@ -20,41 +20,6 @@ function parseCredits(formData: FormData) {
   return credits;
 }
 
-export async function createArticle(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
-
-  const title = formData.get("title") as string;
-  const body = formData.get("body") as string;
-  const section = formData.get("section") as string;
-  const featuredImage = (formData.get("featuredImage") as string) || null;
-  const credits = parseCredits(formData);
-
-  if (!title || !body || !section) {
-    throw new Error("Title, body, and section are required");
-  }
-
-  if (title.trim().toLowerCase() === "media") {
-    throw new Error("Articles cannot be titled 'Media'");
-  }
-
-  const slug = await generateUniqueSlug(title);
-
-  const article = await prisma.article.create({
-    data: {
-      title,
-      slug,
-      body: sanitizeHtml(body),
-      featuredImage,
-      section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
-      createdById: session.user.id,
-      credits: credits.length > 0 ? { create: credits } : undefined,
-    },
-  });
-
-  redirect(`/dashboard/articles/${article.id}/edit`);
-}
-
 export async function createArticleInGroup(groupId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
@@ -84,7 +49,7 @@ export async function createArticleInGroup(groupId: string, formData: FormData) 
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
       createdById: session.user.id,
       credits: credits.length > 0 ? { create: credits } : undefined,
-      groups: { connect: { id: groupId } },
+      groupId,
     },
   });
 

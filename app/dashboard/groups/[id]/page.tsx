@@ -18,7 +18,6 @@ import { DraggableRowList } from "@/app/dashboard/row-list";
 import { RowEditor } from "@/app/dashboard/row-editor";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
-import { ArticlePool } from "@/app/dashboard/article-pool";
 
 const SIZE_LABELS: Record<string, string> = {
   large: "Large (full width)",
@@ -45,38 +44,32 @@ export default async function GroupEditorPage({
   const { id } = await params;
   const { saved } = await searchParams;
 
-  const [group, allArticles] = await Promise.all([
-    prisma.articleGroup.findUnique({
-      where: { id },
-      include: {
-        articles: {
-          select: { id: true, title: true, section: true },
-          orderBy: { publishedAt: "desc" },
-        },
-        rows: {
-          orderBy: { order: "asc" },
-          include: {
-            slots: {
-              orderBy: { order: "asc" },
-              include: {
-                article: {
-                  select: { id: true, title: true, section: true },
-                },
+  const group = await prisma.articleGroup.findUnique({
+    where: { id },
+    include: {
+      articles: {
+        select: { id: true, title: true, section: true },
+        orderBy: { createdAt: "desc" },
+      },
+      rows: {
+        orderBy: { order: "asc" },
+        include: {
+          slots: {
+            orderBy: { order: "asc" },
+            include: {
+              article: {
+                select: { id: true, title: true, section: true },
               },
             },
           },
         },
-        approvals: {
-          include: { user: { select: { id: true, name: true, image: true } } },
-          orderBy: { createdAt: "asc" as const },
-        },
       },
-    }),
-    prisma.article.findMany({
-      select: { id: true, title: true, section: true },
-      orderBy: { updatedAt: "desc" },
-    }),
-  ]);
+      approvals: {
+        include: { user: { select: { id: true, name: true, image: true } } },
+        orderBy: { createdAt: "asc" as const },
+      },
+    },
+  });
 
   if (!group) notFound();
 
@@ -220,9 +213,8 @@ export default async function GroupEditorPage({
             </Link>
           </div>
 
-          {/* Article pool */}
           {group.articles.length > 0 ? (
-            <div className="space-y-1.5 mb-4">
+            <div className="space-y-1.5">
               {group.articles.map((a: (typeof group.articles)[number]) => (
                 <div key={a.id} className="flex items-center justify-between gap-2 border border-ink/10 px-3 py-2">
                   <div className="flex items-baseline gap-2 min-w-0">
@@ -246,17 +238,10 @@ export default async function GroupEditorPage({
               ))}
             </div>
           ) : (
-            <p className="font-headline text-[14px] text-caption/50 italic mb-4">
-              No articles yet. Create one or add existing articles below.
+            <p className="font-headline text-[14px] text-caption/50 italic">
+              No articles yet. Create one above.
             </p>
           )}
-
-          {/* Add existing articles to pool */}
-          <ArticlePool
-            groupId={id}
-            poolArticles={group.articles as { id: string; title: string; section: string }[]}
-            allPublished={allArticles as { id: string; title: string; section: string }[]}
-          />
         </div>
         <div className="mt-6 h-[2px] bg-rule" />
 
