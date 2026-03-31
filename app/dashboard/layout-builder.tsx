@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, createContext, useContext } from "react";
-
-const OpacityContext = createContext(0.6);
+import { useState, useRef, useEffect } from "react";
 import {
   addBlock,
   deleteBlock,
@@ -47,16 +45,12 @@ interface LayoutBuilderProps {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  NEWS: "News",
-  FEATURES: "Features",
-  OPINIONS: "Opinions",
-  A_AND_E: "A&E",
-  LIONS_DEN: "Lion\u2019s Den",
-  THE_ROUNDTABLE: "The Roundtable",
+  NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
+  A_AND_E: "A&E", LIONS_DEN: "Lion\u2019s Den", THE_ROUNDTABLE: "The Roundtable",
 };
 
 /* ------------------------------------------------------------------ */
-/*  LayoutBuilder (root) — coordinates picking between columns         */
+/*  LayoutBuilder (root)                                               */
 /* ------------------------------------------------------------------ */
 
 export function LayoutBuilder({
@@ -66,110 +60,70 @@ export function LayoutBuilder({
   availableArticles,
   placeholderOpacity = 0.6,
 }: LayoutBuilderProps) {
-  // Which column is currently picking a pattern? null = none
-  const [pickingColumn, setPickingColumn] = useState<"main" | "sidebar" | null>(null);
-  // Which pattern is being previewed (hovered) in the picker
-  const [previewPatternId, setPreviewPatternId] = useState<string | null>(null);
-
-  async function handlePatternSelect(patternId: string) {
-    if (!pickingColumn) return;
-    const col = pickingColumn;
-    setPickingColumn(null);
-    setPreviewPatternId(null);
-    await addBlock(groupId, col, patternId);
-  }
-
-  function handleCancelPick() {
-    setPickingColumn(null);
-    setPreviewPatternId(null);
-  }
-
   return (
-    <OpacityContext.Provider value={placeholderOpacity}>
     <div className="flex flex-col lg:flex-row">
-      {/* Main column */}
       <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
-        {/* If sidebar is picking, show the pattern list here */}
-        {pickingColumn === "sidebar" ? (
-          <PatternList
-            column="sidebar"
-            onHover={setPreviewPatternId}
-            onSelect={handlePatternSelect}
-            onCancel={handleCancelPick}
-          />
-        ) : (
-          <ColumnContent
-            groupId={groupId}
-            column="main"
-            blocks={mainBlocks}
-            availableArticles={availableArticles}
-            onStartPick={() => setPickingColumn("main")}
-            isPicking={pickingColumn === "main"}
-            previewPatternId={pickingColumn === "main" ? previewPatternId : null}
-          />
-        )}
+        <ColumnView
+          groupId={groupId}
+          column="main"
+          blocks={mainBlocks}
+          availableArticles={availableArticles}
+          opacity={placeholderOpacity}
+        />
       </div>
-
-      {/* Sidebar column */}
       <div className="lg:flex-[1] lg:pl-8 mt-8 lg:mt-0 border-t lg:border-t-0 border-neutral-200 pt-8 lg:pt-0">
-        {/* If main is picking, show the pattern list here */}
-        {pickingColumn === "main" ? (
-          <PatternList
-            column="main"
-            onHover={setPreviewPatternId}
-            onSelect={handlePatternSelect}
-            onCancel={handleCancelPick}
-          />
-        ) : (
-          <ColumnContent
-            groupId={groupId}
-            column="sidebar"
-            blocks={sidebarBlocks}
-            availableArticles={availableArticles}
-            onStartPick={() => setPickingColumn("sidebar")}
-            isPicking={pickingColumn === "sidebar"}
-            previewPatternId={pickingColumn === "sidebar" ? previewPatternId : null}
-          />
-        )}
+        <ColumnView
+          groupId={groupId}
+          column="sidebar"
+          blocks={sidebarBlocks}
+          availableArticles={availableArticles}
+          opacity={placeholderOpacity}
+        />
       </div>
     </div>
-    </OpacityContext.Provider>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  ColumnContent — blocks + add button + optional pattern preview     */
+/*  ColumnView                                                         */
 /* ------------------------------------------------------------------ */
 
-function ColumnContent({
+function ColumnView({
   groupId,
   column,
   blocks,
   availableArticles,
-  onStartPick,
-  isPicking,
-  previewPatternId,
+  opacity,
 }: {
   groupId: string;
   column: "main" | "sidebar";
   blocks: BlockWithSlots[];
   availableArticles: { id: string; title: string; section: string }[];
-  onStartPick: () => void;
-  isPicking: boolean;
-  previewPatternId: string | null;
+  opacity: number;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const isMain = column === "main";
+  const isSidebar = column === "sidebar";
+
+  async function handleSelect(patternId: string) {
+    setPickerOpen(false);
+    setPreviewId(null);
+    await addBlock(groupId, column, patternId);
+  }
+
   return (
     <div>
-      {blocks.length === 0 && !isPicking && (
+      {blocks.length === 0 && !pickerOpen && (
         <div className="py-16 flex items-center justify-center">
           <button
             type="button"
-            onClick={onStartPick}
+            onClick={() => setPickerOpen(true)}
             className="cursor-pointer border border-dashed border-neutral-300 px-10 py-8 hover:border-maroon hover:bg-maroon/5 transition-colors"
           >
             <span className="block text-neutral-400 text-[24px] text-center">+</span>
             <span className="block font-headline text-[13px] text-neutral-400 mt-1">
-              Add a {column === "main" ? "main" : "sidebar"} block
+              Add a {isMain ? "main" : "sidebar"} block
             </span>
           </button>
         </div>
@@ -182,89 +136,63 @@ function ColumnContent({
             block={block}
             groupId={groupId}
             availableArticles={availableArticles}
+            opacity={opacity}
+            compact={isSidebar}
           />
         </div>
       ))}
 
-      {/* Pattern preview when hovering in the picker */}
-      {isPicking && previewPatternId && (
-        <div className="mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4 rounded">
+      {/* Pattern preview when hovering in picker */}
+      {pickerOpen && previewId && (
+        <div className="mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4">
           <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
-            Preview: {PATTERNS[previewPatternId]?.name}
+            Preview: {PATTERNS[previewId]?.name}
           </p>
-          <PatternPreview patternId={previewPatternId} />
+          <PatternPreview patternId={previewId} />
         </div>
       )}
 
-      {/* Placeholder when picking but no hover yet */}
-      {isPicking && !previewPatternId && (
-        <div className="mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center">
-          <p className="font-headline text-[12px] text-neutral-400">
-            Hover a pattern to preview it here
-          </p>
-        </div>
-      )}
-
-      {blocks.length > 0 && !isPicking && (
-        <div className="mt-4 mb-6">
+      {/* Add block button + inline picker */}
+      <div className="mt-4 mb-6">
+        {!pickerOpen ? (
           <button
             type="button"
-            onClick={onStartPick}
+            onClick={() => setPickerOpen(true)}
             className="cursor-pointer w-full border border-dashed border-neutral-300 py-3 text-center hover:border-maroon hover:bg-maroon/5 transition-colors font-headline text-[13px] tracking-wide text-neutral-400"
           >
             + Add Block
           </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  PatternList — shown in the opposite column when picking            */
-/* ------------------------------------------------------------------ */
-
-function PatternList({
-  column,
-  onHover,
-  onSelect,
-  onCancel,
-}: {
-  column: "main" | "sidebar";
-  onHover: (id: string | null) => void;
-  onSelect: (id: string) => void;
-  onCancel: () => void;
-}) {
-  const patterns = column === "main" ? getMainPatterns() : getSidebarPatterns();
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-headline text-[14px] font-semibold tracking-wide">
-          Choose a {column === "main" ? "main" : "sidebar"} pattern
-        </p>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="cursor-pointer font-headline text-[12px] text-caption hover:text-maroon transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-      <div className="space-y-1">
-        {patterns.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onMouseEnter={() => onHover(p.id)}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onSelect(p.id)}
-            className="cursor-pointer w-full text-left px-4 py-3 border border-neutral-100 hover:border-maroon hover:bg-maroon/5 transition-colors"
-          >
-            <span className="block font-headline text-[14px] font-semibold">{p.name}</span>
-            <span className="block font-headline text-[12px] text-caption mt-0.5">{p.description}</span>
-          </button>
-        ))}
+        ) : (
+          <div className="border border-neutral-200 shadow-sm">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-100">
+              <p className="font-headline text-[13px] font-semibold tracking-wide">
+                Choose a pattern
+              </p>
+              <button
+                type="button"
+                onClick={() => { setPickerOpen(false); setPreviewId(null); }}
+                className="cursor-pointer font-headline text-[12px] text-caption hover:text-maroon transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {(isMain ? getMainPatterns() : getSidebarPatterns()).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onMouseEnter={() => setPreviewId(p.id)}
+                  onMouseLeave={() => setPreviewId(null)}
+                  onClick={() => handleSelect(p.id)}
+                  className="cursor-pointer w-full text-left px-4 py-3 hover:border-maroon hover:bg-maroon/5 transition-colors border-b border-neutral-100 last:border-b-0"
+                >
+                  <span className="block font-headline text-[14px] font-semibold">{p.name}</span>
+                  <span className="block font-headline text-[12px] text-caption mt-0.5">{p.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -288,10 +216,14 @@ function BlockView({
   block,
   groupId,
   availableArticles,
+  opacity,
+  compact,
 }: {
   block: BlockWithSlots;
   groupId: string;
   availableArticles: { id: string; title: string; section: string }[];
+  opacity: number;
+  compact: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const patternDef = PATTERNS[block.pattern];
@@ -339,13 +271,15 @@ function BlockView({
         patternDef={patternDef}
         groupId={groupId}
         availableArticles={availableArticles}
+        opacity={opacity}
+        compact={compact}
       />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  PatternSlotLayout — renders slots in the pattern's visual shape    */
+/*  PatternSlotLayout                                                  */
 /* ------------------------------------------------------------------ */
 
 function PatternSlotLayout({
@@ -354,18 +288,22 @@ function PatternSlotLayout({
   patternDef,
   groupId,
   availableArticles,
+  opacity,
+  compact,
 }: {
   pattern: string;
   slots: SlotData[];
   patternDef: (typeof PATTERNS)[string] | undefined;
   groupId: string;
   availableArticles: { id: string; title: string; section: string }[];
+  opacity: number;
+  compact: boolean;
 }) {
   function slot(index: number) {
     const s = slots[index];
     if (!s) return null;
     const label = patternDef?.slots[index]?.label ?? s.slotRole;
-    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} />;
+    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} opacity={opacity} compact={compact} />;
   }
 
   switch (pattern) {
@@ -379,22 +317,15 @@ function PatternSlotLayout({
               {slot(3)}
             </div>
           </div>
-          <div className="flex-[1.2]">
-            {slot(1)}
-          </div>
+          <div className="flex-[1.2]">{slot(1)}</div>
         </div>
       );
-
     case "four-grid":
       return (
         <div className="grid grid-cols-2 gap-3">
-          {slot(0)}
-          {slot(1)}
-          {slot(2)}
-          {slot(3)}
+          {slot(0)}{slot(1)}{slot(2)}{slot(3)}
         </div>
       );
-
     case "text-images":
       return (
         <div className="flex gap-3" style={{ minHeight: 150 }}>
@@ -403,7 +334,6 @@ function PatternSlotLayout({
           <div className="flex-[0.4]">{slot(2)}</div>
         </div>
       );
-
     case "headline-stack":
       return (
         <div className="flex flex-col">
@@ -412,29 +342,14 @@ function PatternSlotLayout({
           <div>{slot(2)}</div>
         </div>
       );
-
     case "two-thumbnails":
-      return (
-        <div className="grid grid-cols-2 gap-3">
-          {slot(0)}
-          {slot(1)}
-        </div>
-      );
-
+      return <div className="grid grid-cols-2 gap-3">{slot(0)}{slot(1)}</div>;
     case "single-feature":
       return <div>{slot(0)}</div>;
-
     case "sb-feature":
       return <div>{slot(0)}</div>;
-
     case "sb-two-small":
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          {slot(0)}
-          {slot(1)}
-        </div>
-      );
-
+      return <div className="grid grid-cols-2 gap-2">{slot(0)}{slot(1)}</div>;
     case "sb-headlines":
       return (
         <div className="flex flex-col">
@@ -443,22 +358,10 @@ function PatternSlotLayout({
           <div>{slot(2)}</div>
         </div>
       );
-
     case "sb-thumbnails":
-      return (
-        <div className="flex flex-col gap-2">
-          {slot(0)}
-          {slot(1)}
-          {slot(2)}
-        </div>
-      );
-
+      return <div className="flex flex-col gap-2">{slot(0)}{slot(1)}{slot(2)}</div>;
     default:
-      return (
-        <div className="space-y-2">
-          {slots.map((s, i) => slot(i))}
-        </div>
-      );
+      return <div className="space-y-2">{slots.map((_, i) => slot(i))}</div>;
   }
 }
 
@@ -471,32 +374,44 @@ function SlotView({
   slotLabel,
   groupId,
   availableArticles,
+  opacity,
+  compact,
 }: {
   slot: SlotData;
   slotLabel: string;
   groupId: string;
   availableArticles: { id: string; title: string; section: string }[];
+  opacity: number;
+  compact: boolean;
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
-  const opacity = useContext(OpacityContext);
 
-  // Filled: article — show rich content matching the placeholder style
+  // Size classes based on compact (sidebar) vs full (main)
+  const titleSize = compact ? "text-[14px]" : "text-[22px]";
+  const headlineSize = compact ? "text-[13px]" : "text-[20px]";
+  const excerptSize = compact ? "text-[12px]" : "text-[16px]";
+  const bylineSize = compact ? "text-[11px]" : "text-[14px]";
+  const sectionSize = compact ? "text-[11px]" : "text-[14px]";
+
+  // Filled: article
   if (slot.article) {
     return (
       <div className="relative group/slot">
         {slot.slotRole === "headline" ? (
           <div className="py-1">
-            <p className="font-headline text-[20px] font-bold leading-snug">{slot.article.title}</p>
+            <p className={`font-headline ${headlineSize} font-bold leading-snug`}>{slot.article.title}</p>
           </div>
         ) : (
           <div className="py-1">
-            <p className="font-headline text-maroon italic text-[14px]">{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
-            <p className="font-headline text-[22px] font-bold leading-snug mt-1">{slot.article.title}</p>
-            <p className="text-[16px] leading-[1.65] text-caption mt-2">
-              {slot.article.title}...
-            </p>
-            <p className="font-headline text-[14px] mt-3">
+            <p className={`font-headline text-maroon italic ${sectionSize}`}>{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
+            <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>{slot.article.title}</p>
+            {!compact && (
+              <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>
+                {slot.article.title}...
+              </p>
+            )}
+            <p className={`font-headline ${bylineSize} mt-2`}>
               <span className="text-maroon font-semibold">By Author</span>{" "}
               <span className="italic text-caption">Staff Writer</span>
             </p>
@@ -513,7 +428,7 @@ function SlotView({
     );
   }
 
-  // Filled: media — show actual image with clear button on hover
+  // Filled: media
   if (slot.mediaUrl) {
     return (
       <div className="relative group/slot">
@@ -529,7 +444,7 @@ function SlotView({
     );
   }
 
-  // Empty: show lorem ipsum placeholder with hover highlight + click to assign
+  // Empty: placeholder with hover highlight
   return (
     <div className="relative">
       <button
@@ -543,14 +458,16 @@ function SlotView({
           </div>
         ) : slot.slotRole === "headline" ? (
           <div className="py-1" style={{ opacity }}>
-            <p className="font-headline text-[20px] font-bold leading-snug">Lorem Ipsum Dolor Sit Amet Consectetur</p>
+            <p className={`font-headline ${headlineSize} font-bold leading-snug`}>Lorem Ipsum Dolor Sit Amet Consectetur</p>
           </div>
         ) : (
           <div className="py-1" style={{ opacity }}>
-            <p className="font-headline text-maroon italic text-[14px]">News</p>
-            <p className="font-headline text-[22px] font-bold leading-snug mt-1">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
-            <p className="text-[16px] leading-[1.65] text-caption mt-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
-            <p className="font-headline text-[14px] mt-3"><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
+            <p className={`font-headline text-maroon italic ${sectionSize}`}>News</p>
+            <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
+            {!compact && (
+              <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+            )}
+            <p className={`font-headline ${bylineSize} mt-2`}><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
           </div>
         )}
       </button>
