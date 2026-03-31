@@ -98,7 +98,7 @@ model Article {
   group      ArticleGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   credits    ArticleCredit[]
   images     ArticleImage[]
-  groupSlots GroupSlot[]
+  blockSlots BlockSlot[]
   approvals  Approval[]
 }
 
@@ -140,40 +140,36 @@ model ArticleGroup {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  rows      GroupRow[]
+  blocks    LayoutBlock[]
   articles  Article[]
   approvals Approval[]
 }
 
-model GroupRow {
-  id          String  @id @default(uuid())
-  groupId     String
-  order       Int
-  isFeatured  Boolean @default(false)
-  isSeparator Boolean @default(false)
+model LayoutBlock {
+  id           String  @id @default(uuid())
+  groupId      String
+  column       String  // "main" | "sidebar"
+  pattern      String  // pattern ID from registry
+  order        Int
+  dividerStyle String  @default("light") // "light" | "bold" | "none"
 
-  group ArticleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  slots GroupSlot[]
+  group  ArticleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  slots  BlockSlot[]
 }
 
-model GroupSlot {
-  id        String  @id @default(uuid())
-  rowId     String
-  size      String  // "large" (3 slots), "medium" (2 slots), "small" (1 slot)
-  order     Int
-  articleId String?
-
-  // Media fields — a slot holds either an article OR media, never both
-  mediaUrl  String?
-  mediaType String?  // "image" | "video" | "gif"
+model BlockSlot {
+  id          String  @id @default(uuid())
+  blockId     String
+  slotRole    String  // "article" | "headline" | "image" | "media"
+  order       Int
+  articleId   String?
+  mediaUrl    String?
+  mediaType   String?
   mediaAlt    String?
   mediaCredit String?
-  lockToRow   Boolean  @default(true)
-  rowSpan   Float?
-  autoplay  Boolean  @default(true)
 
-  row     GroupRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  article Article? @relation(fields: [articleId], references: [id])
+  block   LayoutBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  article Article?    @relation(fields: [articleId], references: [id])
 }
 
 model Approval {
