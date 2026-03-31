@@ -92,7 +92,7 @@ export function AccountDropdown({
         {/* Links */}
         <nav className="py-1">
           <DropdownLink href="/account" label="Account Settings" onClick={() => setOpen(false)} open={open} delay={120} />
-          {(userRole === "WEB_TEAM" || userRole === "WEB_MASTER") && (
+          {["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(userRole) && (
             <DropdownLink href="/dashboard" label="Dashboard" onClick={() => setOpen(false)} open={open} delay={170} />
           )}
           {userRole === "WEB_MASTER" && (
