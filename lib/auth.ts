@@ -37,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (dbUser) {
         session.user.id = dbUser.id;
         session.user.role = dbUser.role;
-        session.user.isAdmin = dbUser.isAdmin;
+        session.user.isAdmin = dbUser.role === "WEB_TEAM" || dbUser.role === "WEB_MASTER";
         // If googleImage not set yet, seed it from the current image
         if (!dbUser.googleImage && dbUser.image && !(dbUser.image as string).startsWith("data:")) {
           await prisma.user.update({
