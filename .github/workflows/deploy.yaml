@@ -16,9 +16,11 @@ jobs:
           username: ${{ secrets.LINODE_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
-            cd /path/to/record-app
+            cd /var/www/record
             git fetch --tags
             git checkout ${{ github.event.release.tag_name }}
-            npm install
+            npm install --legacy-peer-deps
+            npx prisma generate
+            npx prisma migrate deploy
             npm run build
             pm2 restart record
