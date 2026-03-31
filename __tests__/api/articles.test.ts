@@ -175,6 +175,7 @@ describe("POST /api/articles", () => {
       title: "Test Article",
       body: "<p>Content</p>",
       section: "NEWS",
+      groupId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     });
     const res = await POST(req);
     const body = await res.json();
@@ -197,6 +198,7 @@ describe("POST /api/articles", () => {
       title: "Test Article",
       body: "<p>Content</p>",
       section: "NEWS",
+      groupId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
       credits: [{ userId: "550e8400-e29b-41d4-a716-446655440000", creditRole: "Author" }],
     });
     const res = await POST(req);
@@ -236,6 +238,7 @@ describe("POST /api/articles", () => {
       title: "Test Article",
       body: "<script>alert('xss')</script><p>Content</p>",
       section: "NEWS",
+      groupId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     });
     await POST(req);
 
