@@ -60,25 +60,70 @@ export function LayoutBuilder({
   availableArticles,
   placeholderOpacity = 0.6,
 }: LayoutBuilderProps) {
+  const [pickingColumn, setPickingColumn] = useState<"main" | "sidebar" | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  async function handleSelect(patternId: string) {
+    if (!pickingColumn) return;
+    const col = pickingColumn;
+    setPickingColumn(null);
+    setPreviewId(null);
+    await addBlock(groupId, col, patternId);
+  }
+
+  function handleCancel() {
+    setPickingColumn(null);
+    setPreviewId(null);
+  }
+
   return (
     <div className="flex flex-col lg:flex-row">
+      {/* Main column */}
       <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
-        <ColumnView
-          groupId={groupId}
-          column="main"
-          blocks={mainBlocks}
-          availableArticles={availableArticles}
-          opacity={placeholderOpacity}
-        />
+        {pickingColumn === "sidebar" ? (
+          /* Sidebar is picking — show picker list here in the main column */
+          <PatternList
+            column="sidebar"
+            onHover={setPreviewId}
+            onSelect={handleSelect}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <ColumnView
+            groupId={groupId}
+            column="main"
+            blocks={mainBlocks}
+            availableArticles={availableArticles}
+            opacity={placeholderOpacity}
+            onStartPick={() => setPickingColumn("main")}
+            isPicking={pickingColumn === "main"}
+            previewId={pickingColumn === "main" ? previewId : null}
+          />
+        )}
       </div>
+
+      {/* Sidebar column */}
       <div className="lg:flex-[1] lg:pl-8 mt-8 lg:mt-0 border-t lg:border-t-0 border-neutral-200 pt-8 lg:pt-0">
-        <ColumnView
-          groupId={groupId}
-          column="sidebar"
-          blocks={sidebarBlocks}
-          availableArticles={availableArticles}
-          opacity={placeholderOpacity}
-        />
+        {pickingColumn === "main" ? (
+          /* Main is picking — show picker list here in the sidebar */
+          <PatternList
+            column="main"
+            onHover={setPreviewId}
+            onSelect={handleSelect}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <ColumnView
+            groupId={groupId}
+            column="sidebar"
+            blocks={sidebarBlocks}
+            availableArticles={availableArticles}
+            opacity={placeholderOpacity}
+            onStartPick={() => setPickingColumn("sidebar")}
+            isPicking={pickingColumn === "sidebar"}
+            previewId={pickingColumn === "sidebar" ? previewId : null}
+          />
+        )}
       </div>
     </div>
   );
@@ -94,36 +139,33 @@ function ColumnView({
   blocks,
   availableArticles,
   opacity,
+  onStartPick,
+  isPicking,
+  previewId,
 }: {
   groupId: string;
   column: "main" | "sidebar";
   blocks: BlockWithSlots[];
   availableArticles: { id: string; title: string; section: string }[];
   opacity: number;
+  onStartPick: () => void;
+  isPicking: boolean;
+  previewId: string | null;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  const isMain = column === "main";
   const isSidebar = column === "sidebar";
-
-  async function handleSelect(patternId: string) {
-    setPickerOpen(false);
-    setPreviewId(null);
-    await addBlock(groupId, column, patternId);
-  }
 
   return (
     <div>
-      {blocks.length === 0 && !pickerOpen && (
+      {blocks.length === 0 && !isPicking && (
         <div className="py-16 flex items-center justify-center">
           <button
             type="button"
-            onClick={() => setPickerOpen(true)}
+            onClick={onStartPick}
             className="cursor-pointer border border-dashed border-neutral-300 px-10 py-8 hover:border-maroon hover:bg-maroon/5 transition-colors"
           >
             <span className="block text-neutral-400 text-[24px] text-center">+</span>
             <span className="block font-headline text-[13px] text-neutral-400 mt-1">
-              Add a {isMain ? "main" : "sidebar"} block
+              Add a {isSidebar ? "sidebar" : "main"} block
             </span>
           </button>
         </div>
@@ -142,8 +184,8 @@ function ColumnView({
         </div>
       ))}
 
-      {/* Pattern preview when hovering in picker */}
-      {pickerOpen && previewId && (
+      {/* Pattern preview at bottom of column when picking */}
+      {isPicking && previewId && (
         <div className="mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4">
           <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
             Preview: {PATTERNS[previewId]?.name}
@@ -152,47 +194,72 @@ function ColumnView({
         </div>
       )}
 
-      {/* Add block button + inline picker */}
-      <div className="mt-4 mb-6">
-        {!pickerOpen ? (
+      {isPicking && !previewId && (
+        <div className="mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center">
+          <p className="font-headline text-[12px] text-neutral-400">Hover a pattern to preview it here</p>
+        </div>
+      )}
+
+      {blocks.length > 0 && !isPicking && (
+        <div className="mt-4 mb-6">
           <button
             type="button"
-            onClick={() => setPickerOpen(true)}
+            onClick={onStartPick}
             className="cursor-pointer w-full border border-dashed border-neutral-300 py-3 text-center hover:border-maroon hover:bg-maroon/5 transition-colors font-headline text-[13px] tracking-wide text-neutral-400"
           >
             + Add Block
           </button>
-        ) : (
-          <div className="border border-neutral-200 shadow-sm">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-100">
-              <p className="font-headline text-[13px] font-semibold tracking-wide">
-                Choose a pattern
-              </p>
-              <button
-                type="button"
-                onClick={() => { setPickerOpen(false); setPreviewId(null); }}
-                className="cursor-pointer font-headline text-[12px] text-caption hover:text-maroon transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-            <div className="max-h-72 overflow-y-auto">
-              {(isMain ? getMainPatterns() : getSidebarPatterns()).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onMouseEnter={() => setPreviewId(p.id)}
-                  onMouseLeave={() => setPreviewId(null)}
-                  onClick={() => handleSelect(p.id)}
-                  className="cursor-pointer w-full text-left px-4 py-3 hover:border-maroon hover:bg-maroon/5 transition-colors border-b border-neutral-100 last:border-b-0"
-                >
-                  <span className="block font-headline text-[14px] font-semibold">{p.name}</span>
-                  <span className="block font-headline text-[12px] text-caption mt-0.5">{p.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  PatternList — shown in the opposite column                         */
+/* ------------------------------------------------------------------ */
+
+function PatternList({
+  column,
+  onHover,
+  onSelect,
+  onCancel,
+}: {
+  column: "main" | "sidebar";
+  onHover: (id: string | null) => void;
+  onSelect: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const patterns = column === "main" ? getMainPatterns() : getSidebarPatterns();
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-headline text-[14px] font-semibold tracking-wide">
+          Choose a {column === "main" ? "main" : "sidebar"} pattern
+        </p>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="cursor-pointer font-headline text-[12px] text-caption hover:text-maroon transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+      <div className="space-y-1">
+        {patterns.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onMouseEnter={() => onHover(p.id)}
+            onMouseLeave={() => onHover(null)}
+            onClick={() => onSelect(p.id)}
+            className="cursor-pointer w-full text-left px-4 py-3 border border-neutral-100 hover:border-maroon hover:bg-maroon/5 transition-colors"
+          >
+            <span className="block font-headline text-[14px] font-semibold">{p.name}</span>
+            <span className="block font-headline text-[12px] text-caption mt-0.5">{p.description}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
