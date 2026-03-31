@@ -31,7 +31,7 @@ export default async function DashboardPage({
   const groups = await prisma.articleGroup.findMany({
     orderBy: { updatedAt: "desc" },
     include: {
-      rows: {
+      blocks: {
         include: { slots: { select: { articleId: true } } },
       },
     },
@@ -65,9 +65,9 @@ export default async function DashboardPage({
         {groups.length > 0 ? (
           <div className="mt-4 divide-y divide-neutral-200">
             {groups.map((group) => {
-              const slotCount = group.rows.reduce((sum, r) => sum + r.slots.length, 0);
-              const filledCount = group.rows.reduce(
-                (sum, r) => sum + r.slots.filter((s) => s.articleId).length, 0
+              const slotCount = group.blocks.reduce((sum, b) => sum + b.slots.length, 0);
+              const filledCount = group.blocks.reduce(
+                (sum, b) => sum + b.slots.filter((s) => s.articleId).length, 0
               );
               return (
                 <Link
@@ -79,7 +79,7 @@ export default async function DashboardPage({
                     <div>
                       <h3 className="font-headline text-[17px] font-bold">{group.name}</h3>
                       <p className="font-headline text-[13px] text-caption mt-0.5">
-                        {group.rows.length} rows &middot; {filledCount}/{slotCount} slots filled
+                        {group.blocks.length} blocks &middot; {filledCount}/{slotCount} slots filled
                         {group.scheduledAt && (
                           <span> &middot; Scheduled: {formatDate(group.scheduledAt)}</span>
                         )}
