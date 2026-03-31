@@ -522,14 +522,15 @@ function SlotView({
             <span className="font-headline text-[11px] text-neutral-400">{slotLabel}</span>
           </div>
         ) : slot.slotRole === "headline" ? (
-          <div className="py-1">
-            <p className="font-headline text-[13px] font-semibold text-neutral-400">Lorem Ipsum Dolor Sit Amet Consectetur</p>
+          <div className="py-1 opacity-60">
+            <p className="font-headline text-[20px] font-bold leading-snug">Lorem Ipsum Dolor Sit Amet Consectetur</p>
           </div>
         ) : (
-          <div className="py-1">
-            <p className="font-headline text-[14px] font-bold leading-snug text-neutral-400">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
-            <p className="font-body text-[11px] text-neutral-400 leading-relaxed mt-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
-            <p className="font-headline text-[10px] text-neutral-400 mt-1">By Author Name</p>
+          <div className="py-1 opacity-60">
+            <p className="font-headline text-maroon italic text-[14px]">News</p>
+            <p className="font-headline text-[22px] font-bold leading-snug mt-1">Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
+            <p className="text-[16px] leading-[1.65] text-caption mt-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+            <p className="font-headline text-[14px] mt-3"><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
           </div>
         )}
       </button>
