@@ -9,12 +9,8 @@ import {
   unpublishGroup,
   scheduleGroup,
   deleteGroup,
-  deleteBlock,
-  updateDividerStyle,
 } from "@/app/dashboard/group-actions";
-import { BlockPicker } from "@/app/dashboard/block-picker";
-import { BlockSlotAssigner } from "@/app/dashboard/block-slot-assigner";
-import { getMainPatterns, getSidebarPatterns, PATTERNS } from "@/lib/patterns";
+import { LayoutBuilder } from "@/app/dashboard/layout-builder";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
 
@@ -241,119 +237,12 @@ export default async function GroupEditorPage({
         {/* Layout */}
         <div className="mt-8">
           <h3 className="font-headline text-[20px] font-bold tracking-wide mb-4">Layout</h3>
-
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Column */}
-            <div className="flex-[2]">
-              <h4 className="font-headline text-[14px] font-semibold tracking-wide text-caption mb-3">Main Column (2/3)</h4>
-              <div className="space-y-3">
-                {mainBlocks.map((block: any) => {
-                  const patternDef = PATTERNS[block.pattern];
-                  const boundDeleteBlock = deleteBlock.bind(null, block.id, id);
-                  return (
-                    <div key={block.id} className="border border-ink/10 px-4 py-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <p className="font-headline text-[14px] font-semibold tracking-wide">
-                            {patternDef?.name ?? block.pattern}
-                          </p>
-                          <div className="flex gap-1">
-                            {["light", "bold", "none"].map((style) => (
-                              <form key={style} action={async () => {
-                                "use server";
-                                const { updateDividerStyle } = await import("@/app/dashboard/group-actions");
-                                await updateDividerStyle(block.id, style, id);
-                              }}>
-                                <button type="submit" className={`cursor-pointer font-headline text-[10px] px-2 py-0.5 transition-colors ${
-                                  block.dividerStyle === style
-                                    ? "bg-ink text-white"
-                                    : "border border-ink/15 text-caption hover:border-ink"
-                                }`}>
-                                  {style}
-                                </button>
-                              </form>
-                            ))}
-                          </div>
-                        </div>
-                        <form action={boundDeleteBlock}>
-                          <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
-                            Remove
-                          </button>
-                        </form>
-                      </div>
-                      <div className="space-y-2">
-                        {block.slots.map((slot: any) => {
-                          const slotDef = patternDef?.slots[slot.order];
-                          return (
-                            <BlockSlotAssigner
-                              key={slot.id}
-                              slotId={slot.id}
-                              slotRole={slot.slotRole}
-                              slotLabel={slotDef?.label ?? slot.slotRole}
-                              groupId={id}
-                              currentArticleId={slot.articleId}
-                              currentArticleTitle={slot.article?.title ?? null}
-                              currentMediaUrl={slot.mediaUrl ?? null}
-                              availableArticles={availableArticles as { id: string; title: string; section: string }[]}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-3">
-                <BlockPicker groupId={id} column="main" patterns={getMainPatterns()} />
-              </div>
-            </div>
-
-            {/* Sidebar Column */}
-            <div className="flex-[1]">
-              <h4 className="font-headline text-[14px] font-semibold tracking-wide text-caption mb-3">Sidebar (1/3)</h4>
-              <div className="space-y-3">
-                {sidebarBlocks.map((block: any) => {
-                  const patternDef = PATTERNS[block.pattern];
-                  const boundDeleteBlock = deleteBlock.bind(null, block.id, id);
-                  return (
-                    <div key={block.id} className="border border-ink/10 px-4 py-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="font-headline text-[14px] font-semibold tracking-wide">
-                          {patternDef?.name ?? block.pattern}
-                        </p>
-                        <form action={boundDeleteBlock}>
-                          <button type="submit" className="cursor-pointer font-headline text-[12px] text-caption/40 hover:text-maroon transition-colors">
-                            Remove
-                          </button>
-                        </form>
-                      </div>
-                      <div className="space-y-2">
-                        {block.slots.map((slot: any) => {
-                          const slotDef = patternDef?.slots[slot.order];
-                          return (
-                            <BlockSlotAssigner
-                              key={slot.id}
-                              slotId={slot.id}
-                              slotRole={slot.slotRole}
-                              slotLabel={slotDef?.label ?? slot.slotRole}
-                              groupId={id}
-                              currentArticleId={slot.articleId}
-                              currentArticleTitle={slot.article?.title ?? null}
-                              currentMediaUrl={slot.mediaUrl ?? null}
-                              availableArticles={availableArticles as { id: string; title: string; section: string }[]}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-3">
-                <BlockPicker groupId={id} column="sidebar" patterns={getSidebarPatterns()} />
-              </div>
-            </div>
-          </div>
+          <LayoutBuilder
+            groupId={id}
+            mainBlocks={mainBlocks}
+            sidebarBlocks={sidebarBlocks}
+            availableArticles={availableArticles as { id: string; title: string; section: string }[]}
+          />
         </div>
 
         {/* Preview link */}
