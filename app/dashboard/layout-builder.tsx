@@ -297,7 +297,7 @@ function BlockView({
 
   return (
     <div
-      className="relative group py-2"
+      className="relative group py-2 overflow-hidden"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -366,11 +366,11 @@ function PatternSlotLayout({
   opacity: number;
   compact: boolean;
 }) {
-  function slot(index: number, options?: { showImage?: boolean; imagePosition?: "top" | "left" | "thumbnail" }) {
+  function slot(index: number, options?: { showImage?: boolean; imagePosition?: "top" | "left" | "thumbnail"; size?: "sm" | "md" | "lg" }) {
     const s = slots[index];
     if (!s) return null;
     const label = patternDef?.slots[index]?.label ?? s.slotRole;
-    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} opacity={opacity} compact={compact} showImage={options?.showImage} imagePosition={options?.imagePosition} />;
+    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} opacity={opacity} compact={compact} showImage={options?.showImage} imagePosition={options?.imagePosition} size={options?.size} />;
   }
 
   switch (pattern) {
@@ -390,9 +390,9 @@ function PatternSlotLayout({
     case "four-grid":
       return (
         <div className="grid grid-cols-2 gap-3">
-          {slot(0)}{slot(1)}
-          {slot(2, { showImage: true, imagePosition: "left" })}
-          {slot(3, { showImage: true, imagePosition: "left" })}
+          {slot(0, { size: "sm" })}{slot(1, { size: "sm" })}
+          {slot(2, { showImage: true, imagePosition: "left", size: "sm" })}
+          {slot(3, { showImage: true, imagePosition: "left", size: "sm" })}
         </div>
       );
     case "text-images":
@@ -414,8 +414,8 @@ function PatternSlotLayout({
     case "two-thumbnails":
       return (
         <div className="grid grid-cols-2 gap-3">
-          {slot(0, { showImage: true, imagePosition: "top" })}
-          {slot(1, { showImage: true, imagePosition: "top" })}
+          {slot(0, { showImage: true, imagePosition: "top", size: "md" })}
+          {slot(1, { showImage: true, imagePosition: "top", size: "md" })}
         </div>
       );
     case "single-feature":
@@ -463,6 +463,7 @@ function SlotView({
   compact,
   showImage,
   imagePosition,
+  size,
 }: {
   slot: SlotData;
   slotLabel: string;
@@ -472,16 +473,19 @@ function SlotView({
   compact: boolean;
   showImage?: boolean;
   imagePosition?: "top" | "left" | "thumbnail";
+  size?: "sm" | "md" | "lg";
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
 
-  // Size classes based on compact (sidebar) vs full (main)
-  const titleSize = compact ? "text-[14px]" : "text-[22px]";
-  const headlineSize = compact ? "text-[13px]" : "text-[20px]";
-  const excerptSize = compact ? "text-[12px]" : "text-[16px]";
-  const bylineSize = compact ? "text-[11px]" : "text-[14px]";
-  const sectionSize = compact ? "text-[11px]" : "text-[14px]";
+  // Size classes — explicit size > compact > default (lg)
+  const effectiveSize = size ?? (compact ? "sm" : "lg");
+  const titleSize = effectiveSize === "sm" ? "text-[15px]" : effectiveSize === "md" ? "text-[18px]" : "text-[22px]";
+  const headlineSize = effectiveSize === "sm" ? "text-[14px]" : effectiveSize === "md" ? "text-[16px]" : "text-[20px]";
+  const excerptSize = effectiveSize === "sm" ? "text-[12px]" : effectiveSize === "md" ? "text-[14px]" : "text-[16px]";
+  const bylineSize = effectiveSize === "sm" ? "text-[11px]" : effectiveSize === "md" ? "text-[12px]" : "text-[14px]";
+  const sectionSize = effectiveSize === "sm" ? "text-[11px]" : effectiveSize === "md" ? "text-[12px]" : "text-[14px]";
+  const showExcerpt = effectiveSize !== "sm";
 
   // Image placeholder for patterns that show images
   const imagePlaceholder = <div className="bg-neutral-200 w-full h-full min-h-[60px]" />;
@@ -496,7 +500,7 @@ function SlotView({
       <div className="py-1">
         <p className={`font-headline text-maroon italic ${sectionSize}`}>{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
         <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>{slot.article.title}</p>
-        {!compact && imagePosition !== "thumbnail" && (
+        {showExcerpt && imagePosition !== "thumbnail" && (
           <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>
             {slot.article.title}...
           </p>
@@ -589,7 +593,7 @@ function SlotView({
               <div className="py-1">
                 <p className={`font-headline text-maroon italic ${sectionSize}`}>News</p>
                 <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
-                {!compact && (
+                {showExcerpt && (
                   <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
                 )}
                 <p className={`font-headline ${bylineSize} mt-2`}><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
