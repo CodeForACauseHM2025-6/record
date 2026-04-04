@@ -366,11 +366,11 @@ function PatternSlotLayout({
   opacity: number;
   compact: boolean;
 }) {
-  function slot(index: number) {
+  function slot(index: number, options?: { showImage?: boolean; imagePosition?: "top" | "left" | "thumbnail" }) {
     const s = slots[index];
     if (!s) return null;
     const label = patternDef?.slots[index]?.label ?? s.slotRole;
-    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} opacity={opacity} compact={compact} />;
+    return <SlotView key={s.id} slot={s} slotLabel={label} groupId={groupId} availableArticles={availableArticles} opacity={opacity} compact={compact} showImage={options?.showImage} imagePosition={options?.imagePosition} />;
   }
 
   switch (pattern) {
@@ -390,7 +390,9 @@ function PatternSlotLayout({
     case "four-grid":
       return (
         <div className="grid grid-cols-2 gap-3">
-          {slot(0)}{slot(1)}{slot(2)}{slot(3)}
+          {slot(0)}{slot(1)}
+          {slot(2, { showImage: true, imagePosition: "left" })}
+          {slot(3, { showImage: true, imagePosition: "left" })}
         </div>
       );
     case "text-images":
@@ -410,13 +412,23 @@ function PatternSlotLayout({
         </div>
       );
     case "two-thumbnails":
-      return <div className="grid grid-cols-2 gap-3">{slot(0)}{slot(1)}</div>;
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          {slot(0, { showImage: true, imagePosition: "top" })}
+          {slot(1, { showImage: true, imagePosition: "top" })}
+        </div>
+      );
     case "single-feature":
-      return <div>{slot(0)}</div>;
+      return <div>{slot(0, { showImage: true, imagePosition: "top" })}</div>;
     case "sb-feature":
-      return <div>{slot(0)}</div>;
+      return <div>{slot(0, { showImage: true, imagePosition: "top" })}</div>;
     case "sb-two-small":
-      return <div className="grid grid-cols-2 gap-2">{slot(0)}{slot(1)}</div>;
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {slot(0, { showImage: true, imagePosition: "top" })}
+          {slot(1, { showImage: true, imagePosition: "top" })}
+        </div>
+      );
     case "sb-headlines":
       return (
         <div className="flex flex-col">
@@ -426,7 +438,13 @@ function PatternSlotLayout({
         </div>
       );
     case "sb-thumbnails":
-      return <div className="flex flex-col gap-2">{slot(0)}{slot(1)}{slot(2)}</div>;
+      return (
+        <div className="flex flex-col">
+          <div className="border-b border-neutral-100 pb-2 mb-2">{slot(0, { showImage: true, imagePosition: "thumbnail" })}</div>
+          <div className="border-b border-neutral-100 pb-2 mb-2">{slot(1, { showImage: true, imagePosition: "thumbnail" })}</div>
+          <div>{slot(2, { showImage: true, imagePosition: "thumbnail" })}</div>
+        </div>
+      );
     default:
       return <div className="space-y-2">{slots.map((_, i) => slot(i))}</div>;
   }
@@ -443,6 +461,8 @@ function SlotView({
   availableArticles,
   opacity,
   compact,
+  showImage,
+  imagePosition,
 }: {
   slot: SlotData;
   slotLabel: string;
@@ -450,6 +470,8 @@ function SlotView({
   availableArticles: { id: string; title: string; section: string }[];
   opacity: number;
   compact: boolean;
+  showImage?: boolean;
+  imagePosition?: "top" | "left" | "thumbnail";
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
@@ -461,28 +483,46 @@ function SlotView({
   const bylineSize = compact ? "text-[11px]" : "text-[14px]";
   const sectionSize = compact ? "text-[11px]" : "text-[14px]";
 
+  // Image placeholder for patterns that show images
+  const imagePlaceholder = <div className="bg-neutral-200 w-full h-full min-h-[60px]" />;
+
   // Filled: article
   if (slot.article) {
+    const articleContent = slot.slotRole === "headline" ? (
+      <div className="py-1">
+        <p className={`font-headline ${headlineSize} font-bold leading-snug`}>{slot.article.title}</p>
+      </div>
+    ) : (
+      <div className="py-1">
+        <p className={`font-headline text-maroon italic ${sectionSize}`}>{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
+        <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>{slot.article.title}</p>
+        {!compact && imagePosition !== "thumbnail" && (
+          <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>
+            {slot.article.title}...
+          </p>
+        )}
+        <p className={`font-headline ${bylineSize} mt-2`}>
+          <span className="text-maroon font-semibold">By Author</span>{" "}
+          <span className="italic text-caption">Staff Writer</span>
+        </p>
+      </div>
+    );
+
     return (
       <div className="relative group/slot">
-        {slot.slotRole === "headline" ? (
-          <div className="py-1">
-            <p className={`font-headline ${headlineSize} font-bold leading-snug`}>{slot.article.title}</p>
+        {showImage && imagePosition === "top" && imagePlaceholder}
+        {showImage && imagePosition === "thumbnail" ? (
+          <div className="flex gap-2 items-start">
+            <div className="w-[50px] h-[50px] bg-neutral-200 shrink-0" />
+            <div className="min-w-0 flex-1">{articleContent}</div>
+          </div>
+        ) : showImage && imagePosition === "left" ? (
+          <div className="flex gap-2 items-start">
+            <div className="w-[60px] h-[50px] bg-neutral-200 shrink-0" />
+            <div className="min-w-0 flex-1">{articleContent}</div>
           </div>
         ) : (
-          <div className="py-1">
-            <p className={`font-headline text-maroon italic ${sectionSize}`}>{SECTION_LABELS[slot.article.section] ?? slot.article.section}</p>
-            <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>{slot.article.title}</p>
-            {!compact && (
-              <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>
-                {slot.article.title}...
-              </p>
-            )}
-            <p className={`font-headline ${bylineSize} mt-2`}>
-              <span className="text-maroon font-semibold">By Author</span>{" "}
-              <span className="italic text-caption">Staff Writer</span>
-            </p>
-          </div>
+          articleContent
         )}
         <button
           type="button"
@@ -528,13 +568,33 @@ function SlotView({
             <p className={`font-headline ${headlineSize} font-bold leading-snug`}>Lorem Ipsum Dolor Sit Amet Consectetur</p>
           </div>
         ) : (
-          <div className="py-1" style={{ opacity }}>
-            <p className={`font-headline text-maroon italic ${sectionSize}`}>News</p>
-            <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
-            {!compact && (
-              <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+          <div style={{ opacity }}>
+            {showImage && imagePosition === "top" && <div className="bg-neutral-200 w-full h-[80px] mb-2" />}
+            {showImage && imagePosition === "thumbnail" ? (
+              <div className="flex gap-2 items-start py-1">
+                <div className="w-[50px] h-[50px] bg-neutral-200 shrink-0" />
+                <div>
+                  <p className={`font-headline ${titleSize} font-bold leading-snug`}>Lorem Ipsum Dolor Sit</p>
+                </div>
+              </div>
+            ) : showImage && imagePosition === "left" ? (
+              <div className="flex gap-2 items-start py-1">
+                <div className="w-[60px] h-[50px] bg-neutral-200 shrink-0" />
+                <div>
+                  <p className={`font-headline ${titleSize} font-bold leading-snug`}>Lorem Ipsum Dolor Sit Amet</p>
+                  <p className={`${excerptSize} text-caption mt-1`}>Lorem ipsum dolor sit amet...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-1">
+                <p className={`font-headline text-maroon italic ${sectionSize}`}>News</p>
+                <p className={`font-headline ${titleSize} font-bold leading-snug mt-1`}>Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing</p>
+                {!compact && (
+                  <p className={`${excerptSize} leading-[1.65] text-caption mt-2`}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
+                )}
+                <p className={`font-headline ${bylineSize} mt-2`}><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
+              </div>
             )}
-            <p className={`font-headline ${bylineSize} mt-2`}><span className="text-maroon font-semibold">By Author</span> <span className="italic">Staff Writer</span></p>
           </div>
         )}
       </button>

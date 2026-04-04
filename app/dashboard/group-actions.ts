@@ -276,11 +276,12 @@ export async function clearBlockSlot(slotId: string, groupId: string) {
   const session = await auth();
   requireDashboardRole(session);
 
-  await prisma.blockSlot.update({
+  await prisma.blockSlot.updateMany({
     where: { id: slotId },
     data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, mediaCredit: null },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
 }
