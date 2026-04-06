@@ -1,0 +1,4 @@
+ALTER TABLE "BlockSlot" ADD COLUMN "imageFloat" TEXT NOT NULL DEFAULT 'full';
+ALTER TABLE "BlockSlot" ADD COLUMN "imageWidth" INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE "BlockSlot" ADD COLUMN "imageCrop" TEXT NOT NULL DEFAULT 'original';
+ALTER TABLE "BlockSlot" ADD COLUMN "imageCropCustom" TEXT;

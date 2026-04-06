@@ -1,0 +1,1 @@
+ALTER TABLE "BlockSlot" ADD COLUMN "imageScale" TEXT NOT NULL DEFAULT 'M';

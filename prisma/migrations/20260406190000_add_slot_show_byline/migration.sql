@@ -1,0 +1,1 @@
+ALTER TABLE "BlockSlot" ADD COLUMN "showByline" BOOLEAN NOT NULL DEFAULT false;

@@ -167,6 +167,15 @@ model BlockSlot {
   mediaType   String?
   mediaAlt    String?
   mediaCredit String?
+  scale       String  @default("M") // "S" | "M" | "L" | "XL"
+  imageScale  String  @default("M") // "S" | "M" | "L" | "XL"
+  previewLength Int     @default(200)
+  featured      Boolean @default(false)
+  showByline    Boolean @default(true)
+  imageFloat    String  @default("full") // "left" | "right" | "full"
+  imageWidth    Int     @default(100) // 10-100 percentage of container
+  imageCrop     String  @default("original") // "original" | "landscape" | "portrait" | "square" | "custom"
+  imageCropCustom String? // e.g. "16:9" for custom ratio
 
   block   LayoutBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
   article Article?    @relation(fields: [articleId], references: [id])
