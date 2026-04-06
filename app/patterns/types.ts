@@ -19,6 +19,15 @@ export interface PopulatedSlot {
   mediaType: string | null;
   mediaAlt: string | null;
   mediaCredit: string | null;
+  scale: string;
+  imageScale: string;
+  previewLength: number;
+  featured: boolean;
+  showByline: boolean;
+  imageFloat: string;
+  imageWidth: number;
+  imageCrop: string;
+  imageCropCustom: string | null;
 }
 
 export interface BlockData {
