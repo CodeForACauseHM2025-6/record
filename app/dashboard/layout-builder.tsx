@@ -403,7 +403,7 @@ function BlockView({
         </div>
       )}
 
-      <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-caption/40 mb-2">
+      <p className="absolute -left-2 -translate-x-full font-headline text-[10px] tracking-[0.08em] uppercase text-caption/30 whitespace-nowrap" style={{ top: 8 }}>
         {patternDef?.name ?? block.pattern}
       </p>
 
@@ -451,19 +451,19 @@ function PatternSlotLayout({
     case "hero":
       return (
         <div>
-          <div className="flex gap-3" style={{ minHeight: 140 }}>
-            <div className="flex-1">{slot(0, { size: "md" })}</div>
-            <div className="flex-[1.2]">{slot(1)}</div>
+          <div className="flex gap-6" style={{ minHeight: 140 }}>
+            <div className="w-[40%]">{slot(0)}</div>
+            <div className="w-[60%]">{slot(1)}</div>
           </div>
-          <div className="border-t border-neutral-200 mt-1 pt-1 flex gap-3">
-            <div className="flex-1">{slot(2, { size: "sm" })}</div>
-            <div className="flex-1 border-l border-neutral-200 pl-3">{slot(3, { size: "sm" })}</div>
+          <div className="border-t border-neutral-200 mt-3 pt-3 flex gap-4">
+            <div className="flex-1">{slot(2, { size: "md" })}</div>
+            <div className="flex-1 border-l border-neutral-200 pl-4">{slot(3, { size: "md" })}</div>
           </div>
         </div>
       );
     case "four-grid":
       return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5">
           {slot(0, { size: "md" })}{slot(1, { size: "md" })}
           {slot(2, { showImage: true, imagePosition: "left", size: "md" })}
           {slot(3, { showImage: true, imagePosition: "left", size: "md" })}
@@ -471,10 +471,10 @@ function PatternSlotLayout({
       );
     case "text-images":
       return (
-        <div className="flex gap-4" style={{ minHeight: 200 }}>
-          <div className="flex-[2]">{slot(0)}</div>
-          <div className="flex-[1.5]">{slot(1)}</div>
-          <div className="flex-[1.5]">{slot(2)}</div>
+        <div className="flex gap-6" style={{ minHeight: 200 }}>
+          <div className="w-[40%]">{slot(0)}</div>
+          <div className="w-[30%]">{slot(1)}</div>
+          <div className="w-[30%]">{slot(2)}</div>
         </div>
       );
     case "headline-stack":
@@ -487,7 +487,7 @@ function PatternSlotLayout({
       );
     case "two-thumbnails":
       return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           {slot(0, { showImage: true, imagePosition: "top", size: "md" })}
           {slot(1, { showImage: true, imagePosition: "top", size: "md" })}
         </div>
@@ -498,9 +498,9 @@ function PatternSlotLayout({
       return <div>{slot(0, { showImage: true, imagePosition: "top", size: "md" })}</div>;
     case "sb-two-small":
       return (
-        <div className="grid grid-cols-2 gap-3">
-          {slot(0, { showImage: true, imagePosition: "top", size: "sm" })}
-          {slot(1, { showImage: true, imagePosition: "top", size: "sm" })}
+        <div className="flex gap-4">
+          <div className="flex-1">{slot(0, { showImage: true, imagePosition: "top", size: "sm" })}</div>
+          <div className="flex-1">{slot(1, { showImage: true, imagePosition: "top", size: "sm" })}</div>
         </div>
       );
     case "sb-headlines":
@@ -889,18 +889,20 @@ function SlotSettingsPopup({
               {slot.featured ? "On" : "Off"}
             </button>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="font-headline text-[12px] text-caption">Show author</span>
-            <button
-              type="button"
-              onClick={() => toggleSlotByline(slot.id, !slot.showByline, groupId)}
-              className={`cursor-pointer font-headline text-[11px] px-2.5 py-1 border transition-colors ${
-                slot.showByline ? "border-maroon text-maroon bg-maroon/5" : "border-neutral-200 text-caption hover:text-maroon"
-              }`}
-            >
-              {slot.showByline ? "On" : "Off"}
-            </button>
-          </div>
+          {isHeadline && (
+            <div className="flex items-center justify-between">
+              <span className="font-headline text-[12px] text-caption">Show author</span>
+              <button
+                type="button"
+                onClick={() => toggleSlotByline(slot.id, !slot.showByline, groupId)}
+                className={`cursor-pointer font-headline text-[11px] px-2.5 py-1 border transition-colors ${
+                  slot.showByline ? "border-maroon text-maroon bg-maroon/5" : "border-neutral-200 text-caption hover:text-maroon"
+                }`}
+              >
+                {slot.showByline ? "On" : "Off"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>,
