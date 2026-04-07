@@ -241,10 +241,6 @@ export async function assignToBlockSlot(slotId: string, articleId: string | null
     where: { id: slotId },
     data: {
       articleId: articleId || null,
-      mediaUrl: null,
-      mediaType: null,
-      mediaAlt: null,
-      mediaCredit: null,
     },
   });
 
@@ -265,7 +261,7 @@ export async function assignMediaToBlockSlot(
 
   await prisma.blockSlot.update({
     where: { id: slotId },
-    data: { articleId: null, mediaUrl, mediaType, mediaAlt, mediaCredit },
+    data: { mediaUrl, mediaType, mediaAlt, mediaCredit },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
@@ -279,6 +275,166 @@ export async function clearBlockSlot(slotId: string, groupId: string) {
   await prisma.blockSlot.updateMany({
     where: { id: slotId },
     data: { articleId: null, mediaUrl: null, mediaType: null, mediaAlt: null, mediaCredit: null },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function clearSlotArticle(slotId: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.blockSlot.updateMany({
+    where: { id: slotId },
+    data: { articleId: null },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateSlotScale(slotId: string, scale: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  if (!["S", "M", "L", "XL"].includes(scale)) throw new Error("Invalid scale");
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { scale },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateSlotImageScale(slotId: string, imageScale: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  if (!["S", "M", "L", "XL"].includes(imageScale)) throw new Error("Invalid scale");
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { imageScale },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateSlotPreviewLength(slotId: string, length: number, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  const clamped = Math.max(50, Math.min(500, Math.round(length)));
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { previewLength: clamped },
+  });
+
+  revalidatePath("/");
+}
+
+export async function toggleSlotFeatured(slotId: string, featured: boolean, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { featured },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function toggleSlotByline(slotId: string, showByline: boolean, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { showByline },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateImageFloat(slotId: string, imageFloat: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  if (!["left", "right", "full"].includes(imageFloat)) throw new Error("Invalid imageFloat");
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { imageFloat },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateImageWidth(slotId: string, imageWidth: number, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  const clamped = Math.max(10, Math.min(100, Math.round(imageWidth)));
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { imageWidth: clamped },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateImageCrop(slotId: string, imageCrop: string, imageCropCustom: string | null, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  if (!["original", "landscape", "portrait", "square", "custom"].includes(imageCrop)) throw new Error("Invalid imageCrop");
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { imageCrop, imageCropCustom: imageCrop === "custom" ? imageCropCustom : null },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function updateMediaCredit(slotId: string, mediaCredit: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.blockSlot.update({
+    where: { id: slotId },
+    data: { mediaCredit },
+  });
+
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  revalidatePath(`/dashboard/groups/${groupId}/layout`);
+  revalidatePath("/");
+}
+
+export async function clearSlotMedia(slotId: string, groupId: string) {
+  const session = await auth();
+  requireDashboardRole(session);
+
+  await prisma.blockSlot.updateMany({
+    where: { id: slotId },
+    data: { mediaUrl: null, mediaType: null, mediaAlt: null, mediaCredit: null },
   });
 
   revalidatePath(`/dashboard/groups/${groupId}`);
