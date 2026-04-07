@@ -145,17 +145,6 @@ export default async function LoginPage({
           </p>
         </div>
 
-        {/* Pull-quote style motto */}
-        <div className="reveal reveal-delay-5 mt-10 px-6">
-          <p className="font-headline font-semibold italic text-[16px] sm:text-[18px] text-caption/70 leading-relaxed">
-            &ldquo;The duty of a newspaper is to comfort the afflicted<br className="hidden sm:inline" />
-            and afflict the comfortable.&rdquo;
-          </p>
-          <p className="font-headline font-semibold text-[11px] tracking-[0.12em] uppercase text-caption/50 mt-2">
-            &mdash; Finley Peter Dunne, 1902
-          </p>
-        </div>
-
         {/* Bottom ornament + return link */}
         <div className="reveal reveal-delay-6 mt-8 flex items-center gap-3 px-12">
           <div className="flex-1 h-px bg-ink/10" />
