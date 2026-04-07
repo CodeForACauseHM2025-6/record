@@ -93,10 +93,19 @@ export default async function LayoutEditorPage({
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       {/* ============ HEADER (mirrors homepage, non-interactive) ============ */}
-      <header className="px-4 sm:px-8 pt-12 pb-2">
+      <header className="px-4 sm:px-8 pt-4 pb-2">
         <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
-          <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
-            <div className="w-6 h-6" />
+          <div className="flex items-center gap-3 font-headline text-[13px] tracking-wide">
+            <a
+              href={`/dashboard/groups/${id}`}
+              className="text-caption/60 hover:text-maroon transition-colors"
+            >
+              &larr; Back to Group
+            </a>
+            <span className="text-caption/30">|</span>
+            <span className="font-semibold text-ink">
+              Editing: {group.name}
+            </span>
           </div>
           <div className="text-center">
             <h1 className="font-masthead text-[44px] sm:text-[60px] lg:text-[72px] leading-none tracking-tight">
@@ -106,13 +115,7 @@ export default async function LayoutEditorPage({
               Horace Mann&rsquo;s Weekly Newspaper Since 1903
             </p>
           </div>
-          <div className="flex items-center justify-end gap-4 sm:gap-5 font-headline text-base">
-            <span className="hidden sm:inline font-bold tracking-wide text-caption/30">About</span>
-            <div className="w-8 h-8 rounded-full bg-neutral-200" />
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-caption/30">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-              <line x1="16.5" y1="16.5" x2="22" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+          <div id="editor-toolbar-slot" className="flex items-center justify-end">
           </div>
         </div>
       </header>

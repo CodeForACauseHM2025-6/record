@@ -101,7 +101,7 @@ export function LayoutEditorWrapper({
 
   return (
     <>
-      {/* Fixed toolbar at top of viewport */}
+      {/* Toolbar controls rendered in header right column */}
       <LayoutToolbar
         groupId={groupId}
         groupName={groupName}
@@ -124,26 +124,22 @@ export function LayoutEditorWrapper({
       {previewOpen &&
         createPortal(
           <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
-            {/* Close bar */}
-            <div className="sticky top-0 z-10 bg-ink text-white px-4 py-2 flex items-center justify-between">
-              <span className="font-headline text-[14px] font-semibold tracking-wide">
-                Preview: {groupName}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(false)}
-                className="cursor-pointer font-headline text-[13px] tracking-wide text-white/70 hover:text-white transition-colors"
-              >
-                &larr; Back to Editor
-              </button>
-            </div>
-
             {/* Page content — mirrors app/page.tsx layout exactly */}
             <div className="min-h-screen flex flex-col font-body">
               <header className="px-4 sm:px-8 pt-4 pb-2">
                 <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
-                  <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
-                    <HamburgerButton />
+                  <div className="flex items-center gap-3 font-headline text-[13px] tracking-wide">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewOpen(false)}
+                      className="cursor-pointer text-caption/60 hover:text-maroon transition-colors"
+                    >
+                      &larr; Back to Editor
+                    </button>
+                    <span className="text-caption/30">|</span>
+                    <span className="font-semibold text-ink">
+                      Preview: {groupName}
+                    </span>
                   </div>
                   <div className="text-center">
                     <Link href="/">
