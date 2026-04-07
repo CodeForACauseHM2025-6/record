@@ -403,10 +403,6 @@ function BlockView({
         </div>
       )}
 
-      <p className="absolute -left-2 -translate-x-full font-headline text-[10px] tracking-[0.08em] uppercase text-caption/30 whitespace-nowrap" style={{ top: 8 }}>
-        {patternDef?.name ?? block.pattern}
-      </p>
-
       <PatternSlotLayout
         pattern={block.pattern}
         slots={block.slots}
