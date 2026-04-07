@@ -148,10 +148,10 @@ export default async function HomePage({
             <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
               {mainBlocks.map((block, i) => (
                 <div key={block.id}>
-                  {i > 0 && block.dividerStyle !== "none" && (
+                  <PatternRenderer block={block} />
+                  {i < mainBlocks.length - 1 && block.dividerStyle !== "none" && (
                     <div className={`my-6 ${block.dividerStyle === "bold" ? "h-[2px] bg-ink" : "h-px bg-neutral-200"}`} />
                   )}
-                  <PatternRenderer block={block} />
                 </div>
               ))}
             </div>
@@ -159,10 +159,10 @@ export default async function HomePage({
             <div className="lg:flex-[1] lg:pl-8 mt-8 lg:mt-0 border-t lg:border-t-0 border-neutral-200 pt-8 lg:pt-0">
               {sidebarBlocks.map((block, i) => (
                 <div key={block.id}>
-                  {i > 0 && block.dividerStyle !== "none" && (
+                  <PatternRenderer block={block} />
+                  {i < sidebarBlocks.length - 1 && block.dividerStyle !== "none" && (
                     <div className={`my-6 ${block.dividerStyle === "bold" ? "h-[2px] bg-ink" : "h-px bg-neutral-200"}`} />
                   )}
-                  <PatternRenderer block={block} />
                 </div>
               ))}
             </div>
