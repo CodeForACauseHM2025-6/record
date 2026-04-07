@@ -236,13 +236,12 @@ export default async function GroupEditorPage({
               >
                 Configure Layout
               </Link>
-              <a
-                href="/"
-                target="_blank"
+              <Link
+                href={`/dashboard/groups/${id}/layout?preview=1`}
                 className="font-headline text-[13px] tracking-wide text-maroon hover:underline"
               >
                 Preview &rarr;
-              </a>
+              </Link>
             </div>
           </div>
           <p className="font-headline text-[14px] text-caption">

@@ -25,20 +25,23 @@ function formatDateLong(date: Date): string {
 
 export default async function LayoutEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const session = await auth();
   if (!session?.user || !DASHBOARD_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
   const { id } = await params;
+  const { preview } = await searchParams;
 
-  const [group, volSetting] = await Promise.all([
+  const [group, volSetting, staffMembers] = await Promise.all([
     prisma.articleGroup.findUnique({
       where: { id },
       include: {
         articles: {
-          select: { id: true, title: true, section: true },
+          select: { id: true, title: true, section: true, body: true },
           orderBy: { createdAt: "desc" },
         },
         blocks: {
@@ -47,7 +50,14 @@ export default async function LayoutEditorPage({
             slots: {
               orderBy: { order: "asc" },
               include: {
-                article: { select: { id: true, title: true, section: true } },
+                article: {
+                  select: {
+                    id: true, title: true, slug: true, section: true, body: true,
+                    featuredImage: true, publishedAt: true,
+                    createdBy: { select: { id: true, name: true, role: true, displayTitle: true } },
+                    credits: { select: { creditRole: true, user: { select: { id: true, name: true } } } },
+                  },
+                },
               },
             },
           },
@@ -55,6 +65,11 @@ export default async function LayoutEditorPage({
       },
     }),
     prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } }),
+    prisma.user.findMany({
+      where: { role: { in: ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"] } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!group) notFound();
@@ -132,6 +147,17 @@ export default async function LayoutEditorPage({
           mainBlocks={mainBlocks as any}
           sidebarBlocks={sidebarBlocks as any}
           availableArticles={availableArticles as { id: string; title: string; section: string }[]}
+          staffMembers={staffMembers as { id: string; name: string }[]}
+          initialPreview={preview === "1"}
+          previewMeta={{
+            userName: session.user.name ?? null,
+            userEmail: session.user.email ?? null,
+            userImage: session.user.image ?? null,
+            userRole: session.user.role ?? "READER",
+            volumeNumber,
+            issueNumber,
+            groupDate: groupDate.toISOString(),
+          }}
         />
       </main>
 
