@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -8,18 +8,19 @@ import {
   getAuthorInfo,
 } from "@/lib/article-helpers";
 
-export function FourGridPattern({ slots }: { slots: PopulatedSlot[] }) {
+export function FourGridPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const topSlots = slots.slice(0, 2);
   const bottomSlots = slots.slice(2, 4);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
       {/* Top row — headline + excerpt + byline, no image */}
-      {topSlots.map((slot) => {
+      {topSlots.map((slot, idx) => {
         if (!slot.article) return null;
         const author = getAuthorInfo(slot.article);
         const sc = slot.scale;
-        return (
+        return w(idx,
           <div key={slot.id}>
             {slot.featured && (
               <span className="block font-headline text-[10px] tracking-[0.1em] uppercase text-white font-semibold bg-maroon px-2 py-0.5 w-fit mb-1">Featured</span>
@@ -51,7 +52,7 @@ export function FourGridPattern({ slots }: { slots: PopulatedSlot[] }) {
       })}
 
       {/* Bottom row — image floated left + headline + excerpt + byline */}
-      {bottomSlots.map((slot) => {
+      {bottomSlots.map((slot, idx) => {
         if (!slot.article) return null;
         const author = getAuthorInfo(slot.article);
         const sc = slot.scale;
@@ -59,7 +60,7 @@ export function FourGridPattern({ slots }: { slots: PopulatedSlot[] }) {
         const iFloat = slot.imageFloat ?? "left";
         const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
 
-        return (
+        return w(idx + 2,
           <div key={slot.id} className="overflow-hidden">
             {imgSrc && (
               <div

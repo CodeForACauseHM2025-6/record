@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getSectionLabel,
@@ -7,21 +7,22 @@ import {
   getAuthorInfo,
 } from "@/lib/article-helpers";
 
-export function SbTwoSmallPattern({ slots }: { slots: PopulatedSlot[] }) {
+export function SbTwoSmallPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const displaySlots = slots.slice(0, 2).filter((s) => s.article);
 
   if (displaySlots.length === 0) return null;
 
   return (
     <div className="flex gap-4">
-      {displaySlots.map((slot) => {
+      {displaySlots.map((slot, idx) => {
         const article = slot.article!;
         const author = getAuthorInfo(article);
         const sc = slot.scale;
         const imgSrc = slot.mediaUrl ?? article.featuredImage ?? null;
         const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
-        return (
-          <div key={slot.id} className="flex-1">
+        return <div key={slot.id} className="flex-1">
+          {w(idx, <div>
             {imgSrc && (
               <div className="relative">
                 <Link href={`/article/${article.slug}`} className="block">
@@ -56,8 +57,8 @@ export function SbTwoSmallPattern({ slots }: { slots: PopulatedSlot[] }) {
               <Link href={`/profile/${author.id}`} className="text-maroon font-semibold hover:underline">{author.name}</Link>{" "}
               <span className="italic">{author.role}</span>
             </div>
-          </div>
-        );
+          </div>)}
+        </div>;
       })}
     </div>
   );

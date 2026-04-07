@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getSectionLabel,
@@ -7,7 +7,8 @@ import {
   getAuthorInfo,
 } from "@/lib/article-helpers";
 
-export function SbThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
+export function SbThumbnailsPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const displaySlots = slots.slice(0, 3).filter((s) => s.article);
 
   if (displaySlots.length === 0) return null;
@@ -21,7 +22,7 @@ export function SbThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
         const imgSrc = slot.mediaUrl ?? article.featuredImage ?? null;
         const thumbSize = scalePx(40, slot.imageScale);
         const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
-        return (
+        return w(idx,
           <div
             key={slot.id}
             className={`flex items-start gap-3 py-2.5 ${
@@ -61,7 +62,8 @@ export function SbThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
             </div>
           </div>
         );
-      })}
+      })
+}
     </div>
   );
 }

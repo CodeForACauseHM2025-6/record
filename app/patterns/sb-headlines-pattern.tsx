@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import { getAuthorInfo } from "@/lib/article-helpers";
 
-export function SbHeadlinesPattern({ slots }: { slots: PopulatedSlot[] }) {
+export function SbHeadlinesPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const headlineSlots = slots.slice(0, 3).filter((s) => s.article);
 
   if (headlineSlots.length === 0) return null;
@@ -12,7 +13,7 @@ export function SbHeadlinesPattern({ slots }: { slots: PopulatedSlot[] }) {
     <div>
       {headlineSlots.map((slot, idx) => {
         const author = slot.showByline ? getAuthorInfo(slot.article!) : null;
-        return (
+        return w(idx,
           <div
             key={slot.id}
             className={`py-2 ${

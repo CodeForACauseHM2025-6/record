@@ -37,3 +37,9 @@ export interface BlockData {
   dividerStyle: string;
   slots: PopulatedSlot[];
 }
+
+/** Render prop that wraps each slot's content with editing controls */
+export type SlotWrapper = (
+  slotIndex: number,
+  content: React.ReactNode,
+) => React.ReactNode;

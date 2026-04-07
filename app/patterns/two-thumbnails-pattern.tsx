@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -8,14 +8,15 @@ import {
   getAuthorInfo,
 } from "@/lib/article-helpers";
 
-export function TwoThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
+export function TwoThumbnailsPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const displaySlots = slots.slice(0, 2).filter((s) => s.article);
 
   if (displaySlots.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {displaySlots.map((slot) => {
+      {displaySlots.map((slot, idx) => {
         const article = slot.article!;
         const author = getAuthorInfo(article);
         const sc = slot.scale;
@@ -25,7 +26,7 @@ export function TwoThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
         const isFloated = iFloat === "left" || iFloat === "right";
 
         if (isFloated && imgSrc) {
-          return (
+          return w(idx,
             <div key={slot.id} className="overflow-hidden">
               <div
                 className={`relative ${iFloat === "left" ? "float-left mr-3 mb-1" : "float-right ml-3 mb-1"}`}
@@ -59,7 +60,7 @@ export function TwoThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
           );
         }
 
-        return (
+        return w(idx,
           <div key={slot.id}>
             {imgSrc && (
               <div className="relative">
@@ -103,7 +104,8 @@ export function TwoThumbnailsPattern({ slots }: { slots: PopulatedSlot[] }) {
             </div>
           </div>
         );
-      })}
+      })
+}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot } from "@/app/patterns/types";
+import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -9,7 +9,8 @@ import {
   formatDateShort,
 } from "@/lib/article-helpers";
 
-export function SingleFeaturePattern({ slots }: { slots: PopulatedSlot[] }) {
+export function SingleFeaturePattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
+  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
   const slot = slots[0] ?? null;
   const article = slot?.article;
 
@@ -24,7 +25,7 @@ export function SingleFeaturePattern({ slots }: { slots: PopulatedSlot[] }) {
   const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
 
   if (isFloated && imgSrc) {
-    return (
+    return w(0,
       <div className="overflow-hidden">
         <div
           className={`relative ${iFloat === "left" ? "float-left mr-4 mb-2" : "float-right ml-4 mb-2"}`}
@@ -72,7 +73,7 @@ export function SingleFeaturePattern({ slots }: { slots: PopulatedSlot[] }) {
     );
   }
 
-  return (
+  return w(0,
     <div>
       {imgSrc && (
         <div className="relative">
