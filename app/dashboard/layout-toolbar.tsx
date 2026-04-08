@@ -8,10 +8,9 @@ interface LayoutToolbarProps {
   groupName: string;
   opacity: number;
   onOpacityChange: (v: number) => void;
-  onPreview: () => void;
 }
 
-export function LayoutToolbar({ groupId, groupName, opacity, onOpacityChange, onPreview }: LayoutToolbarProps) {
+export function LayoutToolbar({ groupId, groupName, opacity, onOpacityChange }: LayoutToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -71,13 +70,6 @@ export function LayoutToolbar({ groupId, groupName, opacity, onOpacityChange, on
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={onPreview}
-            className="cursor-pointer font-headline text-[13px] tracking-wide text-white/70 hover:text-white transition-colors"
-          >
-            Preview &rarr;
-          </button>
         </div>
       </div>
     </div>

@@ -25,16 +25,13 @@ function formatDateLong(date: Date): string {
 
 export default async function LayoutEditorPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ preview?: string }>;
 }) {
   const session = await auth();
   if (!session?.user || !DASHBOARD_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
   const { id } = await params;
-  const { preview } = await searchParams;
 
   const [group, volSetting, staffMembers] = await Promise.all([
     prisma.articleGroup.findUnique({
@@ -148,16 +145,6 @@ export default async function LayoutEditorPage({
           sidebarBlocks={sidebarBlocks as any}
           availableArticles={availableArticles as { id: string; title: string; section: string }[]}
           staffMembers={staffMembers as { id: string; name: string }[]}
-          initialPreview={preview === "1"}
-          previewMeta={{
-            userName: session.user.name ?? null,
-            userEmail: session.user.email ?? null,
-            userImage: session.user.image ?? null,
-            userRole: session.user.role ?? "READER",
-            volumeNumber,
-            issueNumber,
-            groupDate: groupDate.toISOString(),
-          }}
         />
       </main>
 

@@ -10,7 +10,10 @@ import { SbTwoSmallPattern } from "@/app/patterns/sb-two-small-pattern";
 import { SbHeadlinesPattern } from "@/app/patterns/sb-headlines-pattern";
 import { SbThumbnailsPattern } from "@/app/patterns/sb-thumbnails-pattern";
 
-const RENDERERS: Record<string, React.ComponentType<{ slots: BlockData["slots"] }>> = {
+const RENDERERS: Record<
+  string,
+  React.ComponentType<{ slots: BlockData["slots"]; editMode?: boolean }>
+> = {
   hero: HeroPattern,
   "four-grid": FourGridPattern,
   "text-images": TextImagesPattern,
@@ -23,8 +26,14 @@ const RENDERERS: Record<string, React.ComponentType<{ slots: BlockData["slots"] 
   "sb-thumbnails": SbThumbnailsPattern,
 };
 
-export function PatternRenderer({ block }: { block: BlockData }) {
+export function PatternRenderer({
+  block,
+  editMode = false,
+}: {
+  block: BlockData;
+  editMode?: boolean;
+}) {
   const Component = RENDERERS[block.pattern];
   if (!Component) return null;
-  return <Component slots={block.slots} />;
+  return <Component slots={block.slots} editMode={editMode} />;
 }
