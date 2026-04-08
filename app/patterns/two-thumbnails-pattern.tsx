@@ -29,6 +29,7 @@ export function TwoThumbnailsPattern({ slots, wrapSlot }: { slots: PopulatedSlot
           return w(idx,
             <div key={slot.id} className="overflow-hidden">
               <div
+                data-img-container
                 className={`relative ${iFloat === "left" ? "float-left mr-3 mb-1" : "float-right ml-3 mb-1"}`}
                 style={{ width: `${slot.imageWidth ?? 40}%`, ...(cropRatio ? { aspectRatio: cropRatio } : {}) }}
               >

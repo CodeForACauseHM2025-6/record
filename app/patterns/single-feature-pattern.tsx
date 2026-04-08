@@ -28,6 +28,7 @@ export function SingleFeaturePattern({ slots, wrapSlot }: { slots: PopulatedSlot
     return w(0,
       <div className="overflow-hidden">
         <div
+          data-img-container
           className={`relative ${iFloat === "left" ? "float-left mr-4 mb-2" : "float-right ml-4 mb-2"}`}
           style={{
             width: `${slot.imageWidth ?? 50}%`,

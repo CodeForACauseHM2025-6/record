@@ -64,6 +64,7 @@ export function FourGridPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; w
           <div key={slot.id} className="overflow-hidden">
             {imgSrc && (
               <div
+                data-img-container
                 className={`relative ${iFloat === "right" ? "float-right ml-4 mb-2" : "float-left mr-4 mb-2"}`}
                 style={{
                   width: `${slot.imageWidth ?? 50}%`,

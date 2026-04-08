@@ -50,8 +50,23 @@ export function EditableSlot({
 }: EditableSlotProps) {
   const [popupType, setPopupType] = useState<"article" | "media" | "settings" | null>(null);
   const cogRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [dragWidth, setDragWidth] = useState(slot.imageWidth ?? 50);
+  const startX = useRef(0);
+  const startW = useRef(0);
+  const [imgContainerEl, setImgContainerEl] = useState<HTMLElement | null>(null);
   const isMedia = slot.slotRole === "image" || slot.slotRole === "media";
   const hasContent = isMedia ? !!slot.mediaUrl : !!slot.article;
+  const iFloat = slot.imageFloat ?? "full";
+  const isFloated = iFloat === "left" || iFloat === "right";
+  const canResize = !!slot.mediaUrl && isFloated;
+
+  useEffect(() => {
+    if (canResize && containerRef.current) {
+      setImgContainerEl(containerRef.current.querySelector("[data-img-container]") as HTMLElement | null);
+    }
+  }, [canResize]);
 
   if (!hasContent) {
     // Empty slot — clickable placeholder
@@ -84,8 +99,36 @@ export function EditableSlot({
     );
   }
 
+  function handlePointerDown(e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+    startX.current = e.clientX;
+    startW.current = dragWidth;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!dragging || !containerRef.current) return;
+    const parentW = containerRef.current.parentElement?.clientWidth ?? 400;
+    const deltaPx = e.clientX - startX.current;
+    const sign = iFloat === "right" ? -1 : 1;
+    const deltaPct = (deltaPx / parentW) * 100 * sign;
+    const newW = Math.max(10, Math.min(100, Math.round(startW.current + deltaPct)));
+    setDragWidth(newW);
+    // Direct DOM manipulation for instant visual feedback
+    const imgContainer = containerRef.current.querySelector("[data-img-container]") as HTMLElement | null;
+    if (imgContainer) imgContainer.style.width = `${newW}%`;
+  }
+
+  function handlePointerUp() {
+    if (!dragging) return;
+    setDragging(false);
+    updateImageWidth(slot.id, dragWidth, groupId);
+  }
+
   return (
-    <div className="relative group/slot">
+    <div ref={containerRef} className="relative group/slot">
       {children}
       {/* Hover controls */}
       <div className="absolute -top-1 -right-1 flex items-center gap-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity z-20">
@@ -109,6 +152,29 @@ export function EditableSlot({
           &times;
         </button>
       </div>
+      {/* Drag resize handle — portaled into the image container */}
+      {canResize && imgContainerEl && createPortal(
+        <>
+          <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            className={`absolute bottom-0 w-6 h-6 flex items-center justify-center transition-opacity z-10 ${
+              iFloat === "right" ? "left-0 cursor-nesw-resize" : "right-0 cursor-nwse-resize"
+            } ${dragging ? "opacity-100" : "opacity-0 group-hover/slot:opacity-100"}`}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" className="text-maroon/70">
+              <path d={iFloat === "right" ? "M0 10L10 0M0 6L6 0M0 2L2 0" : "M10 10L0 0M10 6L4 0M10 2L8 0"} stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
+          <span className={`absolute bottom-1 font-headline text-[9px] bg-white/90 border border-ink/10 px-1 py-0.5 text-caption transition-opacity z-10 ${
+            iFloat === "right" ? "left-8" : "right-8"
+          } ${dragging ? "opacity-100" : "opacity-0 group-hover/slot:opacity-100"}`}>
+            {dragging ? dragWidth : slot.imageWidth ?? 50}%
+          </span>
+        </>,
+        imgContainerEl,
+      )}
       {popupType === "settings" && (
         <SlotSettingsInline
           slot={slot}
