@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   clearBlockSlot,
@@ -151,17 +151,22 @@ function SlotSettingsInline({
 
   // Position near the anchor button
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  useState(() => {
+
+  const reposition = useCallback(() => {
     const anchor = anchorRef.current;
     if (!anchor) return;
     const r = anchor.getBoundingClientRect();
-    const top = r.bottom + 4;
+    const popH = ref.current?.offsetHeight ?? 300;
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const top = spaceBelow >= popH ? r.bottom + 4 : Math.max(8, r.top - popH - 4);
     const left = Math.max(8, Math.min(r.right - 240, window.innerWidth - 252));
     setPos({ top, left });
-  });
+  }, [anchorRef]);
+
+  useEffect(() => { reposition(); }, [reposition]);
 
   // Close on outside click
-  useState(() => {
+  useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node) &&
           !(anchorRef.current && anchorRef.current.contains(e.target as Node))) {
@@ -170,7 +175,7 @@ function SlotSettingsInline({
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  });
+  }, [onClose, anchorRef]);
 
   function commitPvLen(v: number) {
     const clamped = Math.max(50, Math.min(500, v));

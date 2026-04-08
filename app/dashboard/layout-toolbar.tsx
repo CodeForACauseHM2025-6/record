@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 interface LayoutToolbarProps {
-  groupId: string;
-  groupName: string;
   opacity: number;
   onOpacityChange: (v: number) => void;
-  onPreview: () => void;
 }
 
-export function LayoutToolbar({ groupId, groupName, opacity, onOpacityChange, onPreview }: LayoutToolbarProps) {
+export function LayoutToolbar({ opacity, onOpacityChange }: LayoutToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -61,14 +58,6 @@ export function LayoutToolbar({ groupId, groupName, opacity, onOpacityChange, on
           </div>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={onPreview}
-        className="cursor-pointer text-caption/60 hover:text-maroon transition-colors"
-      >
-        Preview &rarr;
-      </button>
     </div>
   );
 
