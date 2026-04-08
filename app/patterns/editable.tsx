@@ -945,14 +945,15 @@ export function EditableImage({
   const [imgWidth, setImgWidth] = useState(slot.imageWidth ?? 100);
   const cropRatio = parseCropRatio(slot.imageCrop ?? "original", slot.imageCropCustom ?? null);
   const isMediaSlot = slot.slotRole === "image" || slot.slotRole === "media";
+  const displayCredit = credit ?? slot.mediaCredit ?? null;
 
   if (!inEditMode) {
     const imgEl = (
       <>
         <img src={src} alt={alt} className={imgClassName} style={imgStyle} />
-        {credit && (
+        {displayCredit && (
           <span className="absolute bottom-1 right-1 font-headline text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5">
-            {credit}
+            {displayCredit}
           </span>
         )}
       </>
@@ -983,7 +984,7 @@ export function EditableImage({
         <ResizableImage
           src={src}
           alt={alt}
-          credit={credit ?? slot.mediaCredit ?? null}
+          credit={displayCredit}
           imageFloat={slot.imageFloat ?? "full"}
           imageWidth={imgWidth}
           cropRatio={cropRatio}
@@ -1031,9 +1032,9 @@ export function EditableImage({
       style={wrapperStyle}
     >
       <img src={src} alt={alt} className={imgClassName} style={imgStyle} draggable={false} />
-      {credit && (
+      {displayCredit && (
         <span className="absolute bottom-1 right-1 font-headline text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5">
-          {credit}
+          {displayCredit}
         </span>
       )}
       <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover/slot:opacity-100 transition-opacity z-20">
