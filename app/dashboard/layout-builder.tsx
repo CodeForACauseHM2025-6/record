@@ -8,7 +8,6 @@ import {
   reorderBlocks,
 } from "@/app/dashboard/group-actions";
 import { PATTERNS, getMainPatterns, getSidebarPatterns } from "@/lib/patterns";
-import { PatternPreview } from "@/app/dashboard/pattern-previews";
 import { EditorProvider } from "@/app/patterns/editor-context";
 import { PatternRenderer } from "@/app/patterns/pattern-renderer";
 import { BlockData, PopulatedSlot } from "@/app/patterns/types";
@@ -106,6 +105,44 @@ function toBlockData(block: BlockWithSlots): BlockData {
         imageWidth: s.imageWidth,
         imageCrop: s.imageCrop,
         imageCropCustom: s.imageCropCustom,
+      }),
+    ),
+  };
+}
+
+/**
+ * Builds a synthetic BlockData for the picker preview: empty slots whose
+ * defaults match a freshly-added BlockSlot row, so the pattern component
+ * renders identically to the real block once added (its EditableSlot
+ * wrappers will fill empties with getPlaceholderArticle() in editMode).
+ */
+function placeholderBlockData(patternId: string): BlockData | null {
+  const def = PATTERNS[patternId];
+  if (!def) return null;
+  return {
+    id: `preview-${patternId}`,
+    pattern: patternId,
+    order: 0,
+    dividerStyle: "none",
+    slots: def.slots.map(
+      (s, i): PopulatedSlot => ({
+        id: `preview-${patternId}-${i}`,
+        slotRole: s.role,
+        order: i,
+        article: null,
+        mediaUrl: null,
+        mediaType: null,
+        mediaAlt: null,
+        mediaCredit: null,
+        scale: "M",
+        imageScale: "M",
+        previewLength: 200,
+        featured: false,
+        showByline: true,
+        imageFloat: "full",
+        imageWidth: 100,
+        imageCrop: "original",
+        imageCropCustom: null,
       }),
     ),
   };
@@ -261,17 +298,39 @@ function ColumnView({
         </div>
       ))}
 
-      {isPicking && previewId && (
-        <div className="mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4">
-          <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
-            Preview: {PATTERNS[previewId]?.name}
-          </p>
-          <PatternPreview patternId={previewId} />
-        </div>
-      )}
+      {/* Preview area has a fixed min-height so swapping patterns can't
+          change the column height. Without this, hovering a taller pattern
+          reflows the flex row, the picker buttons shift under the cursor,
+          and spurious mouseenter events leave the preview stuck on the
+          wrong pattern. Same min-height on both states keeps the area
+          stable from the moment the picker opens. */}
+      {isPicking && previewId && (() => {
+        const previewBlock = placeholderBlockData(previewId);
+        if (!previewBlock) return null;
+        return (
+          <div
+            className={`mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4 ${
+              isSidebar ? "min-h-[250px]" : "min-h-[500px]"
+            }`}
+          >
+            <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
+              Preview: {PATTERNS[previewId]?.name}
+            </p>
+            {/* pointer-events-none so the preview is purely visual:
+                no slot popups, no hover chrome firing inside it. */}
+            <div className="pointer-events-none">
+              <PatternRenderer block={previewBlock} editMode />
+            </div>
+          </div>
+        );
+      })()}
 
       {isPicking && !previewId && (
-        <div className="mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center">
+        <div
+          className={`mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center ${
+            isSidebar ? "min-h-[250px]" : "min-h-[500px]"
+          }`}
+        >
           <p className="font-headline text-[12px] text-neutral-400">
             Hover a pattern to preview it here
           </p>
@@ -329,8 +388,11 @@ function PatternList({
           <button
             key={p.id}
             type="button"
+            // Only set on enter, never clear on leave: clearing causes the
+            // preview to collapse mid-move, the page reflows, and the next
+            // button's mouseenter misfires because the cursor lands somewhere
+            // different. handleSelect / handleCancel still reset previewId.
             onMouseEnter={() => onHover(p.id)}
-            onMouseLeave={() => onHover(null)}
             onClick={() => onSelect(p.id)}
             className="cursor-pointer w-full text-left px-4 py-3 border border-neutral-100 hover:border-maroon hover:bg-maroon/5 transition-colors"
           >
