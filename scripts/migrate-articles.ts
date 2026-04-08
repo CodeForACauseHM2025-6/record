@@ -13,6 +13,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 function parseArgs(): { from: string; to: string } {
   const args = process.argv.slice(2);
@@ -32,8 +33,8 @@ function parseArgs(): { from: string; to: string } {
 async function main() {
   const { from, to } = parseArgs();
 
-  const oldDb = new PrismaClient({ datasources: { db: { url: from } } });
-  const newDb = new PrismaClient({ datasources: { db: { url: to } } });
+  const oldDb = new PrismaClient({ adapter: new PrismaPg({ connectionString: from }) });
+  const newDb = new PrismaClient({ adapter: new PrismaPg({ connectionString: to }) });
 
   try {
     await oldDb.$connect();
