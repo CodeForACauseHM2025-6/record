@@ -181,6 +181,7 @@ export function EditableSlot({
           groupId={groupId}
           staffMembers={staffMembers}
           anchorRef={cogRef}
+          supportsFloat={!!imgContainerEl}
           onClose={() => setPopupType(null)}
         />
       )}
@@ -197,12 +198,14 @@ function SlotSettingsInline({
   groupId,
   staffMembers,
   anchorRef,
+  supportsFloat,
   onClose,
 }: {
   slot: PopulatedSlot;
   groupId: string;
   staffMembers: { id: string; name: string }[];
   anchorRef: React.RefObject<HTMLButtonElement | null>;
+  supportsFloat: boolean;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -264,24 +267,26 @@ function SlotSettingsInline({
     >
       {hasImage && (
         <>
-          <div className="flex items-center justify-between">
-            <span className="font-headline text-[12px] text-caption">Position</span>
-            <div className="flex border border-neutral-200">
-              {(["left", "full", "right"] as const).map((f) => (
-                <button key={f} type="button" onClick={() => updateImageFloat(slot.id, f, groupId)}
-                  className={`cursor-pointer px-2.5 py-1 font-headline text-[11px] transition-colors ${
-                    (slot.imageFloat ?? "full") === f ? "bg-ink text-white" : "text-caption hover:text-maroon"
-                  }`}
-                >{f === "left" ? "Left" : f === "right" ? "Right" : "Full"}</button>
-              ))}
-            </div>
-          </div>
-          {(slot.imageFloat ?? "full") !== "full" && (
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-headline text-[12px] text-caption">Width</span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-headline text-[11px] text-caption w-[28px] text-right">{imgWidth}%</span>
-                <input type="range" min="10" max="80" step="5" value={imgWidth}
+          {supportsFloat && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-headline text-[12px] text-caption">Position</span>
+                <div className="flex border border-neutral-200">
+                  {(["left", "full", "right"] as const).map((f) => (
+                    <button key={f} type="button" onClick={() => updateImageFloat(slot.id, f, groupId)}
+                      className={`cursor-pointer px-2.5 py-1 font-headline text-[11px] transition-colors ${
+                        (slot.imageFloat ?? "full") === f ? "bg-ink text-white" : "text-caption hover:text-maroon"
+                      }`}
+                    >{f === "left" ? "Left" : f === "right" ? "Right" : "Full"}</button>
+                  ))}
+                </div>
+              </div>
+              {(slot.imageFloat ?? "full") !== "full" && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-headline text-[12px] text-caption">Width</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-headline text-[11px] text-caption w-[28px] text-right">{imgWidth}%</span>
+                    <input type="range" min="10" max="80" step="5" value={imgWidth}
                   onChange={(e) => setImgWidth(parseInt(e.target.value, 10))}
                   onMouseUp={() => commitImgWidth(imgWidth)}
                   onTouchEnd={() => commitImgWidth(imgWidth)}
@@ -289,6 +294,8 @@ function SlotSettingsInline({
                 />
               </div>
             </div>
+          )}
+            </>
           )}
           <div className="flex items-center justify-between">
             <span className="font-headline text-[12px] text-caption">Crop</span>
