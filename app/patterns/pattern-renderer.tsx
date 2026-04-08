@@ -1,4 +1,4 @@
-import { BlockData, SlotWrapper } from "@/app/patterns/types";
+import { BlockData } from "@/app/patterns/types";
 import { HeroPattern } from "@/app/patterns/hero-pattern";
 import { FourGridPattern } from "@/app/patterns/four-grid-pattern";
 import { TextImagesPattern } from "@/app/patterns/text-images-pattern";
@@ -10,7 +10,7 @@ import { SbTwoSmallPattern } from "@/app/patterns/sb-two-small-pattern";
 import { SbHeadlinesPattern } from "@/app/patterns/sb-headlines-pattern";
 import { SbThumbnailsPattern } from "@/app/patterns/sb-thumbnails-pattern";
 
-const RENDERERS: Record<string, React.ComponentType<{ slots: BlockData["slots"]; wrapSlot?: SlotWrapper }>> = {
+const RENDERERS: Record<string, React.ComponentType<{ slots: BlockData["slots"] }>> = {
   hero: HeroPattern,
   "four-grid": FourGridPattern,
   "text-images": TextImagesPattern,
@@ -23,8 +23,8 @@ const RENDERERS: Record<string, React.ComponentType<{ slots: BlockData["slots"];
   "sb-thumbnails": SbThumbnailsPattern,
 };
 
-export function PatternRenderer({ block, wrapSlot }: { block: BlockData; wrapSlot?: SlotWrapper }) {
+export function PatternRenderer({ block }: { block: BlockData }) {
   const Component = RENDERERS[block.pattern];
   if (!Component) return null;
-  return <Component slots={block.slots} wrapSlot={wrapSlot} />;
+  return <Component slots={block.slots} />;
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
+import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -9,8 +9,7 @@ import {
   formatDateShort,
 } from "@/lib/article-helpers";
 
-export function SbFeaturePattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
-  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
+export function SbFeaturePattern({ slots }: { slots: PopulatedSlot[] }) {
   const slot = slots[0] ?? null;
   const article = slot?.article;
 
@@ -25,10 +24,9 @@ export function SbFeaturePattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; 
   const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
 
   if (isFloated && imgSrc) {
-    return w(0,
+    return (
       <div className="overflow-hidden">
         <div
-          data-img-container
           className={`relative ${iFloat === "left" ? "float-left mr-3 mb-2" : "float-right ml-3 mb-2"}`}
           style={{ width: `${slot.imageWidth ?? 50}%`, ...(cropRatio ? { aspectRatio: cropRatio } : {}) }}
         >
@@ -61,7 +59,7 @@ export function SbFeaturePattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; 
     );
   }
 
-  return w(0,
+  return (
     <div>
       {imgSrc && (
         <div className="relative">

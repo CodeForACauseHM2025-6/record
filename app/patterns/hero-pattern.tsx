@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
+import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -9,8 +9,7 @@ import {
   formatDateShort,
 } from "@/lib/article-helpers";
 
-export function HeroPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
-  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
+export function HeroPattern({ slots }: { slots: PopulatedSlot[] }) {
   const featuredSlot = slots[0] ?? null;
   const imageSlot = slots[1] ?? null;
   const headlineSlots = slots.slice(2, 4);
@@ -28,7 +27,6 @@ export function HeroPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapS
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left — featured article */}
         <div className={heroImage ? "lg:w-[40%]" : "w-full"}>
-        {w(0, <div>
           {featuredSlot.featured && (
             <span className="block font-headline text-[10px] tracking-[0.1em] uppercase text-white font-semibold bg-maroon px-2 py-0.5 w-fit mb-1">Featured</span>
           )}
@@ -64,17 +62,14 @@ export function HeroPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapS
               </span>
             )}
           </div>
-        </div>)}
         </div>
 
         {/* Right — hero image */}
-        <div className="lg:w-[60%]">
-        {w(1, (() => {
-          if (!heroImage) return <></>;
+        {heroImage && (() => {
           const imgCrop = imageSlot?.imageCrop ?? "original";
           const cropRatio = imgCrop === "landscape" ? "16/9" : imgCrop === "portrait" ? "3/4" : imgCrop === "square" ? "1/1" : imgCrop === "custom" && imageSlot?.imageCropCustom ? imageSlot.imageCropCustom.replace(":", "/") : undefined;
           return (
-            <div className="relative">
+            <div className="lg:w-[60%] relative">
               <img
                 src={heroImage}
                 alt={imageSlot?.mediaAlt ?? ""}
@@ -88,8 +83,7 @@ export function HeroPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapS
               )}
             </div>
           );
-        })())}
-        </div>
+        })()}
       </div>
 
       {/* Headline-only articles below — full width */}
@@ -100,22 +94,20 @@ export function HeroPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapS
             const hlAuthor = slot.showByline ? getAuthorInfo(slot.article) : null;
             return (
               <div key={slot.id} className={`flex-1 ${idx < headlineSlots.length - 1 ? "border-r border-neutral-200 pr-4" : ""}`}>
-                {w(idx + 2, <div>
-                  <h4 className="font-headline font-bold leading-snug" style={{ fontSize: scalePx(18, slot.scale) }}>
-                    <Link
-                      href={`/article/${slot.article.slug}`}
-                      className="hover:text-maroon transition-colors"
-                    >
-                      {slot.article.title}
-                    </Link>
-                  </h4>
-                  {hlAuthor && (
-                    <p className="font-headline mt-1" style={{ fontSize: scalePx(13, slot.scale) }}>
-                      <Link href={`/profile/${hlAuthor.id}`} className="text-maroon font-semibold hover:underline">{hlAuthor.name}</Link>{" "}
-                      <span className="italic">{hlAuthor.role}</span>
-                    </p>
-                  )}
-                </div>)}
+                <h4 className="font-headline font-bold leading-snug" style={{ fontSize: scalePx(18, slot.scale) }}>
+                  <Link
+                    href={`/article/${slot.article.slug}`}
+                    className="hover:text-maroon transition-colors"
+                  >
+                    {slot.article.title}
+                  </Link>
+                </h4>
+                {hlAuthor && (
+                  <p className="font-headline mt-1" style={{ fontSize: scalePx(13, slot.scale) }}>
+                    <Link href={`/profile/${hlAuthor.id}`} className="text-maroon font-semibold hover:underline">{hlAuthor.name}</Link>{" "}
+                    <span className="italic">{hlAuthor.role}</span>
+                  </p>
+                )}
               </div>
             );
           })}

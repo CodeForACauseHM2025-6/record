@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
+import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import { getAuthorInfo } from "@/lib/article-helpers";
 
-export function HeadlineStackPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
-  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
+export function HeadlineStackPattern({ slots }: { slots: PopulatedSlot[] }) {
   const headlineSlots = slots.slice(0, 3).filter((s) => s.article);
 
   if (headlineSlots.length === 0) return null;
@@ -13,7 +12,7 @@ export function HeadlineStackPattern({ slots, wrapSlot }: { slots: PopulatedSlot
     <div>
       {headlineSlots.map((slot, idx) => {
         const author = slot.showByline ? getAuthorInfo(slot.article!) : null;
-        return w(idx,
+        return (
           <div
             key={slot.id}
             className={`py-3 ${

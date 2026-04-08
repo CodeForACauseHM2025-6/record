@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PopulatedSlot, SlotWrapper } from "@/app/patterns/types";
+import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import {
   getPreviewText,
@@ -9,8 +9,7 @@ import {
   formatDateShort,
 } from "@/lib/article-helpers";
 
-export function TextImagesPattern({ slots, wrapSlot }: { slots: PopulatedSlot[]; wrapSlot?: SlotWrapper }) {
-  const w = (i: number, node: React.ReactNode) => wrapSlot ? wrapSlot(i, node) : node;
+export function TextImagesPattern({ slots }: { slots: PopulatedSlot[] }) {
   const articleSlot = slots[0] ?? null;
   const imageSlots = slots.slice(1, 3);
 
@@ -25,7 +24,6 @@ export function TextImagesPattern({ slots, wrapSlot }: { slots: PopulatedSlot[];
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left — article text */}
       <div className="lg:w-[40%]">
-      {w(0, <div>
         {articleSlot.featured && (
           <span className="font-headline text-[10px] tracking-[0.1em] uppercase text-maroon font-semibold">Featured</span>
         )}
@@ -61,16 +59,15 @@ export function TextImagesPattern({ slots, wrapSlot }: { slots: PopulatedSlot[];
             </span>
           )}
         </div>
-      </div>)}
       </div>
 
       {/* Right — two tall images side by side */}
       {images.length > 0 && (
         <div className="lg:w-[60%] flex gap-3">
-          {images.map((slot, idx) => {
+          {images.map((slot) => {
             const cropRatio = slot.imageCrop === "landscape" ? "16/9" : slot.imageCrop === "portrait" ? "3/4" : slot.imageCrop === "square" ? "1/1" : slot.imageCrop === "custom" && slot.imageCropCustom ? slot.imageCropCustom.replace(":", "/") : undefined;
-            return <div key={slot.id} className="flex-1">
-              {w(idx + 1, <div className="relative">
+            return (
+              <div key={slot.id} className="flex-1 relative">
                 <img
                   src={slot.mediaUrl!}
                   alt={slot.mediaAlt ?? ""}
@@ -82,8 +79,8 @@ export function TextImagesPattern({ slots, wrapSlot }: { slots: PopulatedSlot[];
                     {slot.mediaCredit}
                   </span>
                 )}
-              </div>)}
-            </div>;
+              </div>
+            );
           })}
         </div>
       )}
