@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
+import { getAuthorInfo } from "@/lib/article-helpers";
 import {
   EditableSlot,
   EditableImage,
@@ -22,6 +23,7 @@ export function SbTwoSmallPattern({
     <div className="flex gap-4">
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
+        const author = slot?.showByline ? getAuthorInfo(article) : null;
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const cropRatio =
           slot?.imageCrop === "landscape"
@@ -57,17 +59,33 @@ export function SbTwoSmallPattern({
               />
             ) : null}
             <EditableSlot slot={slot}>
-              <h4
-                className="font-headline font-bold leading-snug mt-1.5"
-                style={{ fontSize: scalePx(16, slot?.scale) }}
-              >
-                <Link
-                  href={`/article/${article.slug}`}
-                  className="hover:text-maroon transition-colors"
+              <>
+                <h4
+                  className="font-headline font-bold leading-snug mt-1.5"
+                  style={{ fontSize: scalePx(16, slot?.scale) }}
                 >
-                  {article.title}
-                </Link>
-              </h4>
+                  <Link
+                    href={`/article/${article.slug}`}
+                    className="hover:text-maroon transition-colors"
+                  >
+                    {article.title}
+                  </Link>
+                </h4>
+                {author && (
+                  <p
+                    className="font-headline mt-1"
+                    style={{ fontSize: scalePx(12, slot?.scale) }}
+                  >
+                    <Link
+                      href={`/profile/${author.id}`}
+                      className="text-maroon font-semibold hover:underline"
+                    >
+                      {author.name}
+                    </Link>{" "}
+                    <span className="italic">{author.role}</span>
+                  </p>
+                )}
+              </>
             </EditableSlot>
           </div>
         );
