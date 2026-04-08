@@ -311,7 +311,7 @@ function PatternList({
   const patterns = column === "main" ? getMainPatterns() : getSidebarPatterns();
 
   return (
-    <div>
+    <div className="sticky top-12 z-30 bg-white pt-3 pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <p className="font-headline text-[14px] font-semibold tracking-wide">
           Choose a {column === "main" ? "main" : "sidebar"} pattern
