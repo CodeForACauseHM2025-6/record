@@ -6,12 +6,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { PATTERNS } from "@/lib/patterns";
 
-function requireWebMaster(session: { user?: { role?: string } } | null) {
-  if (session?.user?.role !== "WEB_MASTER") {
-    throw new Error("Only Web Master can perform this action");
-  }
-}
-
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
 const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
@@ -29,7 +23,7 @@ function requireEditor(session: { user?: { role?: string } } | null) {
 
 export async function createGroup(formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   const name = formData.get("name") as string;
   if (!name) throw new Error("Name is required");
@@ -43,7 +37,7 @@ export async function createGroup(formData: FormData) {
 
 export async function updateGroup(id: string, formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   const name = formData.get("name") as string;
   const issueNumber = (formData.get("issueNumber") as string) || null;
@@ -105,7 +99,7 @@ export async function scheduleGroup(id: string, formData: FormData) {
 
 export async function deleteGroup(id: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   await prisma.articleGroup.delete({ where: { id } });
 
@@ -131,7 +125,7 @@ export async function removeGroupApproval(approvalId: string, groupId: string) {
   const approval = await prisma.approval.findUnique({ where: { id: approvalId } });
   if (!approval) throw new Error("Approval not found");
 
-  if (approval.userId !== session.user.id && session.user.role !== "WEB_MASTER") {
+  if (approval.userId !== session.user.id && !EDITOR_ROLES.includes(session.user.role ?? "")) {
     throw new Error("You can only remove your own approval");
   }
 
@@ -142,7 +136,7 @@ export async function removeGroupApproval(approvalId: string, groupId: string) {
 
 export async function createGroupWithArticles(formData: FormData) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   const name = formData.get("name") as string;
   const issueNumber = (formData.get("issueNumber") as string) || null;

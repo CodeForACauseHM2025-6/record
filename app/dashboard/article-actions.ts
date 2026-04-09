@@ -20,9 +20,24 @@ function parseCredits(formData: FormData) {
   return credits;
 }
 
+const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
+const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
+
+function requireDashboardRole(session: { user?: { role?: string } } | null) {
+  if (!session?.user?.role || !DASHBOARD_ROLES.includes(session.user.role)) {
+    throw new Error("Dashboard access required");
+  }
+}
+
+function requireEditor(session: { user?: { role?: string } } | null) {
+  if (!session?.user?.role || !EDITOR_ROLES.includes(session.user.role)) {
+    throw new Error("Editor access required");
+  }
+}
+
 export async function createArticleInGroup(groupId: string, formData: FormData) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireDashboardRole(session);
 
   const title = formData.get("title") as string;
   const body = formData.get("body") as string;
@@ -47,7 +62,7 @@ export async function createArticleInGroup(groupId: string, formData: FormData) 
       body: sanitizeHtml(body),
       featuredImage,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
-      createdById: session.user.id,
+      createdById: session!.user!.id,
       credits: credits.length > 0 ? { create: credits } : undefined,
       groupId,
     },
@@ -58,7 +73,7 @@ export async function createArticleInGroup(groupId: string, formData: FormData) 
 
 export async function updateArticle(id: string, formData: FormData) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireDashboardRole(session);
 
   const title = formData.get("title") as string;
   const body = formData.get("body") as string;
@@ -90,20 +105,6 @@ export async function updateArticle(id: string, formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/");
   redirect("/dashboard?saved=1");
-}
-
-function requireWebMaster(session: { user?: { role?: string } } | null) {
-  if (session?.user?.role !== "WEB_MASTER") {
-    throw new Error("Only Web Master can perform this action");
-  }
-}
-
-const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
-
-function requireEditor(session: { user?: { role?: string } } | null) {
-  if (!session?.user?.role || !EDITOR_ROLES.includes(session.user.role)) {
-    throw new Error("Editor access required");
-  }
 }
 
 export async function publishArticle(id: string) {
@@ -141,7 +142,7 @@ export async function unpublishArticle(id: string) {
 
 export async function deleteArticle(id: string) {
   const session = await auth();
-  requireWebMaster(session);
+  requireEditor(session);
 
   await prisma.article.delete({ where: { id } });
 
@@ -152,10 +153,10 @@ export async function deleteArticle(id: string) {
 
 export async function approveArticle(articleId: string) {
   const session = await auth();
-  if (!session?.user) throw new Error("Not authenticated");
+  requireDashboardRole(session);
 
   await prisma.approval.create({
-    data: { userId: session.user.id, articleId },
+    data: { userId: session!.user!.id, articleId },
   });
 
   revalidatePath(`/dashboard/articles/${articleId}/edit`);
@@ -168,8 +169,8 @@ export async function removeArticleApproval(approvalId: string, articleId: strin
   const approval = await prisma.approval.findUnique({ where: { id: approvalId } });
   if (!approval) throw new Error("Approval not found");
 
-  // Users can remove their own approval; WM can remove anyone's
-  if (approval.userId !== session.user.id && session.user.role !== "WEB_MASTER") {
+  // Users can remove their own approval; EDITOR+ can remove anyone's
+  if (approval.userId !== session.user.id && !EDITOR_ROLES.includes(session.user.role ?? "")) {
     throw new Error("You can only remove your own approval");
   }
 
