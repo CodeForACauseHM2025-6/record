@@ -66,7 +66,7 @@ export default async function GroupEditorPage({
     image: a.user.image,
   }));
   const hasApproved = approvers.some((a: any) => a.id === session.user.id);
-  const isWebMaster = session.user.role === "WEB_MASTER";
+  const canManage = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
   const canPublish = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
 
   // Split blocks by column
@@ -117,12 +117,12 @@ export default async function GroupEditorPage({
             hasApproved={hasApproved}
             onApprove={async () => { "use server"; const { approveGroup } = await import("@/app/dashboard/group-actions"); await approveGroup(id); }}
             onRemoveApproval={async (approvalId: string) => { "use server"; const { removeGroupApproval } = await import("@/app/dashboard/group-actions"); await removeGroupApproval(approvalId, id); }}
-            isWebMaster={isWebMaster}
+            canRemoveOthers={canManage}
           />
         </div>
 
-        {/* Name + Issue # (WM only) */}
-        {isWebMaster && (
+        {/* Name + Issue # (EDITOR+ only) */}
+        {canManage && (
           <form action={boundUpdate} className="mt-4 flex gap-3">
             <input
               name="name"
@@ -171,7 +171,7 @@ export default async function GroupEditorPage({
               </button>
             </form>
           )}
-          {isWebMaster && (
+          {canManage && (
             <form action={boundDelete} className="ml-auto">
               <button type="submit" className="cursor-pointer font-headline text-[13px] tracking-wide text-caption/50 hover:text-maroon transition-colors">
                 Delete Group

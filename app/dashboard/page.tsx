@@ -37,7 +37,7 @@ export default async function DashboardPage({
     },
   });
 
-  const isWebMaster = session.user.role === "WEB_MASTER";
+  const canManage = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -51,7 +51,7 @@ export default async function DashboardPage({
           <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
             Groups
           </h2>
-          {isWebMaster && (
+          {canManage && (
             <Link
               href="/dashboard/groups/new"
               className="font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2.5 hover:bg-maroon transition-colors"

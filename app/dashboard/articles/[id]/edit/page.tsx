@@ -64,7 +64,7 @@ export default async function EditArticlePage({
     image: a.user.image,
   }));
   const hasApproved = approvers.some((a: any) => a.id === session.user.id);
-  const isWebMaster = session.user.role === "WEB_MASTER";
+  const canManage = ["EDITOR", "WEB_TEAM", "WEB_MASTER"].includes(session.user.role ?? "");
 
   const existingCredits = article.credits.map((c: (typeof article.credits)[number]) => ({
     userId: c.user.id,
@@ -112,7 +112,7 @@ export default async function EditArticlePage({
             hasApproved={hasApproved}
             onApprove={async () => { "use server"; const { approveArticle } = await import("@/app/dashboard/article-actions"); await approveArticle(id); }}
             onRemoveApproval={async (approvalId: string) => { "use server"; const { removeArticleApproval } = await import("@/app/dashboard/article-actions"); await removeArticleApproval(approvalId, id); }}
-            isWebMaster={isWebMaster}
+            canRemoveOthers={canManage}
           />
         </div>
         <div className="mt-4 h-[2px] bg-rule" />
@@ -127,7 +127,7 @@ export default async function EditArticlePage({
               View Live
             </Link>
           )}
-          {isWebMaster && (
+          {canManage && (
             <form action={boundDelete} className="ml-auto">
               <button
                 type="submit"

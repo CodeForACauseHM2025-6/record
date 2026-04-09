@@ -15,7 +15,7 @@ interface ApprovalDisplayProps {
   hasApproved: boolean;
   onApprove: () => Promise<void>;
   onRemoveApproval?: (approvalId: string) => Promise<void>;
-  isWebMaster: boolean;
+  canRemoveOthers: boolean;
 }
 
 function Avatar({ name, image, size = 28 }: { name: string; image: string | null; size?: number }) {
@@ -48,7 +48,7 @@ export function ApprovalDisplay({
   hasApproved,
   onApprove,
   onRemoveApproval,
-  isWebMaster,
+  canRemoveOthers,
 }: ApprovalDisplayProps) {
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -115,7 +115,7 @@ export function ApprovalDisplay({
               <div key={a.id} className="flex items-center gap-2 px-3 py-1.5">
                 <Avatar name={a.name} image={a.image} size={22} />
                 <span className="font-headline text-[13px]">{a.name}</span>
-                {isWebMaster && onRemoveApproval && (
+                {canRemoveOthers && onRemoveApproval && (
                   <button
                     type="button"
                     onClick={() => onRemoveApproval(a.approvalId)}

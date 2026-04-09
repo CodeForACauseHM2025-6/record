@@ -5,7 +5,8 @@ import { createGroupWithArticles } from "@/app/dashboard/group-actions";
 
 export default async function NewGroupPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "WEB_MASTER") redirect("/dashboard");
+  const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
+  if (!session?.user || !EDITOR_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
