@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
-import { getPreviewText, getAuthorInfo } from "@/lib/article-helpers";
+import { getPreviewText, getAuthorInfo, getSectionLabel, getSectionHref } from "@/lib/article-helpers";
 import {
   EditableSlot,
   EditableImage,
@@ -37,8 +37,15 @@ export function FourGridPattern({
                     Featured
                   </span>
                 )}
+                <Link
+                  href={getSectionHref(article.section)}
+                  className="font-headline text-maroon italic inline-block"
+                  style={{ fontSize: scalePx(13, slot?.scale) }}
+                >
+                  {getSectionLabel(article.section)}
+                </Link>
                 <h4
-                  className="font-headline font-bold leading-snug"
+                  className="font-headline font-bold leading-snug mt-1"
                   style={{ fontSize: scalePx(20, slot?.scale) }}
                 >
                   <Link
@@ -119,8 +126,15 @@ export function FourGridPattern({
             <div className="min-w-0">
               <EditableSlot slot={slot}>
                 <>
+                  <Link
+                    href={getSectionHref(article.section)}
+                    className="font-headline text-maroon italic inline-block"
+                    style={{ fontSize: scalePx(11, slot?.scale) }}
+                  >
+                    {getSectionLabel(article.section)}
+                  </Link>
                   <h4
-                    className="font-headline font-bold leading-snug"
+                    className="font-headline font-bold leading-snug mt-0.5"
                     style={{ fontSize: scalePx(18, slot?.scale) }}
                   >
                     <Link

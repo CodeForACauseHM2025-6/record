@@ -67,8 +67,15 @@ export function TwoThumbnailsPattern({
                       Featured
                     </span>
                   )}
+                  <Link
+                    href={getSectionHref(article.section)}
+                    className="font-headline text-maroon italic mt-2 inline-block"
+                    style={{ fontSize: scalePx(13, slot?.scale) }}
+                  >
+                    {getSectionLabel(article.section)}
+                  </Link>
                   <h4
-                    className="font-headline font-bold leading-snug mt-2"
+                    className="font-headline font-bold leading-snug mt-1"
                     style={{ fontSize: scalePx(20, slot?.scale) }}
                   >
                     <Link
@@ -101,13 +108,6 @@ export function TwoThumbnailsPattern({
                       </>
                     )}
                   </p>
-                  <Link
-                    href={getSectionHref(article.section)}
-                    className="font-headline text-maroon italic mt-1.5 inline-block"
-                    style={{ fontSize: scalePx(13, slot?.scale) }}
-                  >
-                    {getSectionLabel(article.section)}
-                  </Link>
                 </>
               </EditableSlot>
               <div style={{ clear: "both" }} />
@@ -145,8 +145,15 @@ export function TwoThumbnailsPattern({
                     Featured
                   </span>
                 )}
+                <Link
+                  href={getSectionHref(article.section)}
+                  className="font-headline text-maroon italic mt-2 inline-block"
+                  style={{ fontSize: scalePx(13, slot?.scale) }}
+                >
+                  {getSectionLabel(article.section)}
+                </Link>
                 <h4
-                  className="font-headline font-bold leading-snug mt-2"
+                  className="font-headline font-bold leading-snug mt-1"
                   style={{ fontSize: scalePx(20, slot?.scale) }}
                 >
                   <Link
@@ -179,13 +186,6 @@ export function TwoThumbnailsPattern({
                     </>
                   )}
                 </p>
-                <Link
-                  href={getSectionHref(article.section)}
-                  className="font-headline text-maroon italic mt-1.5 inline-block"
-                  style={{ fontSize: scalePx(13, slot?.scale) }}
-                >
-                  {getSectionLabel(article.section)}
-                </Link>
               </>
             </EditableSlot>
           </div>
