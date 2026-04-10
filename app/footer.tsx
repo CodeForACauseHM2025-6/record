@@ -71,7 +71,7 @@ export function Footer() {
                 &copy; {new Date().getFullYear()} The Record, Horace Mann School
               </p>
               <a
-                href="https://github.com/horacemann/record"
+                href="https://github.com/CodeForACauseHM2025-6/record"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-caption hover:text-maroon transition-colors"
