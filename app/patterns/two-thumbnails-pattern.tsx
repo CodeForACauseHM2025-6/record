@@ -5,6 +5,7 @@ import {
   getPreviewText,
   getSectionLabel,
   getSectionHref,
+  getAuthorInfo,
 } from "@/lib/article-helpers";
 import {
   EditableSlot,
@@ -27,6 +28,7 @@ export function TwoThumbnailsPattern({
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
+        const author = getAuthorInfo(article);
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const cropRatio =
           slot?.imageCrop === "landscape"
@@ -81,6 +83,23 @@ export function TwoThumbnailsPattern({
                     style={{ fontSize: scalePx(15, slot?.scale) }}
                   >
                     {getPreviewText(article.body, slot?.previewLength ?? 100)}
+                  </p>
+                  <p
+                    className="font-headline mt-1.5"
+                    style={{ fontSize: scalePx(13, slot?.scale) }}
+                  >
+                    <Link
+                      href={`/profile/${author.id}`}
+                      className="text-maroon font-semibold hover:underline"
+                    >
+                      {author.name}
+                    </Link>
+                    {author.role && (
+                      <>
+                        {" "}
+                        <span className="italic">{author.role}</span>
+                      </>
+                    )}
                   </p>
                   <Link
                     href={getSectionHref(article.section)}
@@ -142,6 +161,23 @@ export function TwoThumbnailsPattern({
                   style={{ fontSize: scalePx(15, slot?.scale) }}
                 >
                   {getPreviewText(article.body, slot?.previewLength ?? 100)}
+                </p>
+                <p
+                  className="font-headline mt-1.5"
+                  style={{ fontSize: scalePx(13, slot?.scale) }}
+                >
+                  <Link
+                    href={`/profile/${author.id}`}
+                    className="text-maroon font-semibold hover:underline"
+                  >
+                    {author.name}
+                  </Link>
+                  {author.role && (
+                    <>
+                      {" "}
+                      <span className="italic">{author.role}</span>
+                    </>
+                  )}
                 </p>
                 <Link
                   href={getSectionHref(article.section)}
