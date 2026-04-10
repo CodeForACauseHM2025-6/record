@@ -23,7 +23,7 @@ export function SbTwoSmallPattern({
     <div className="flex gap-4">
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const author = slot?.showByline ? getAuthorInfo(article) : null;
+        const author = getAuthorInfo(article);
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const cropRatio =
           slot?.imageCrop === "landscape"
@@ -71,25 +71,23 @@ export function SbTwoSmallPattern({
                     {article.title}
                   </Link>
                 </h4>
-                {author && (
-                  <p
-                    className="font-headline mt-1"
-                    style={{ fontSize: scalePx(12, slot?.scale) }}
+                <p
+                  className="font-headline mt-1"
+                  style={{ fontSize: scalePx(12, slot?.scale) }}
+                >
+                  <Link
+                    href={`/profile/${author.id}`}
+                    className="text-maroon font-semibold hover:underline"
                   >
-                    <Link
-                      href={`/profile/${author.id}`}
-                      className="text-maroon font-semibold hover:underline"
-                    >
-                      {author.name}
-                    </Link>
-                    {author.role && (
-                      <>
-                        {" "}
-                        <span className="italic">{author.role}</span>
-                      </>
-                    )}
-                  </p>
-                )}
+                    {author.name}
+                  </Link>
+                  {author.role && (
+                    <>
+                      {" "}
+                      <span className="italic">{author.role}</span>
+                    </>
+                  )}
+                </p>
               </>
             </EditableSlot>
           </div>

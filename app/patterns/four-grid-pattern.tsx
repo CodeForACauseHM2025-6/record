@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
-import { getPreviewText } from "@/lib/article-helpers";
+import { getPreviewText, getAuthorInfo } from "@/lib/article-helpers";
 import {
   EditableSlot,
   EditableImage,
@@ -27,6 +27,7 @@ export function FourGridPattern({
       {/* Top row — headline + short excerpt, no image */}
       {topSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
+        const author = getAuthorInfo(article);
         return (
           <div key={slot?.id ?? `top-${idx}`}>
             <EditableSlot slot={slot}>
@@ -53,6 +54,23 @@ export function FourGridPattern({
                 >
                   {getPreviewText(article.body, slot?.previewLength ?? 120)}
                 </p>
+                <p
+                  className="font-headline mt-1.5"
+                  style={{ fontSize: scalePx(13, slot?.scale) }}
+                >
+                  <Link
+                    href={`/profile/${author.id}`}
+                    className="text-maroon font-semibold hover:underline"
+                  >
+                    {author.name}
+                  </Link>
+                  {author.role && (
+                    <>
+                      {" "}
+                      <span className="italic">{author.role}</span>
+                    </>
+                  )}
+                </p>
               </>
             </EditableSlot>
           </div>
@@ -62,6 +80,7 @@ export function FourGridPattern({
       {/* Bottom row — small thumbnail + headline */}
       {bottomSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
+        const author = getAuthorInfo(article);
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const imgSize = scalePx(60, slot?.imageScale);
         const cropRatio =
@@ -97,19 +116,40 @@ export function FourGridPattern({
                 label="+"
               />
             ) : null}
-            <EditableSlot slot={slot}>
-              <h4
-                className="font-headline font-bold leading-snug"
-                style={{ fontSize: scalePx(18, slot?.scale) }}
-              >
-                <Link
-                  href={`/article/${article.slug}`}
-                  className="hover:text-maroon transition-colors"
-                >
-                  {article.title}
-                </Link>
-              </h4>
-            </EditableSlot>
+            <div className="min-w-0">
+              <EditableSlot slot={slot}>
+                <>
+                  <h4
+                    className="font-headline font-bold leading-snug"
+                    style={{ fontSize: scalePx(18, slot?.scale) }}
+                  >
+                    <Link
+                      href={`/article/${article.slug}`}
+                      className="hover:text-maroon transition-colors"
+                    >
+                      {article.title}
+                    </Link>
+                  </h4>
+                  <p
+                    className="font-headline mt-1"
+                    style={{ fontSize: scalePx(12, slot?.scale) }}
+                  >
+                    <Link
+                      href={`/profile/${author.id}`}
+                      className="text-maroon font-semibold hover:underline"
+                    >
+                      {author.name}
+                    </Link>
+                    {author.role && (
+                      <>
+                        {" "}
+                        <span className="italic">{author.role}</span>
+                      </>
+                    )}
+                  </p>
+                </>
+              </EditableSlot>
+            </div>
           </div>
         );
       })}
