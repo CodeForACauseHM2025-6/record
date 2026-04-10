@@ -49,8 +49,13 @@ export function HeadlineStackPattern({
                       className="text-maroon font-semibold hover:underline"
                     >
                       {author.name}
-                    </Link>{" "}
-                    <span className="italic">{author.role}</span>
+                    </Link>
+                    {author.role && (
+                      <>
+                        {" "}
+                        <span className="italic">{author.role}</span>
+                      </>
+                    )}
                   </p>
                 )}
               </>

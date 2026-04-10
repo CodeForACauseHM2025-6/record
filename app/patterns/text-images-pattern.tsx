@@ -72,8 +72,13 @@ export function TextImagesPattern({
                 className="text-maroon font-semibold hover:underline"
               >
                 {author.name}
-              </Link>{" "}
-              <span className="italic">{author.role}</span>
+              </Link>
+              {author.role && (
+                <>
+                  {" "}
+                  <span className="italic">{author.role}</span>
+                </>
+              )}
               {article.publishedAt && (
                 <span className="text-caption ml-2">
                   &middot; {formatDateShort(article.publishedAt)}

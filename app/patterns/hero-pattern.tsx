@@ -88,8 +88,13 @@ export function HeroPattern({
                   className="text-maroon font-semibold hover:underline"
                 >
                   {author.name}
-                </Link>{" "}
-                <span className="italic">{author.role}</span>
+                </Link>
+                {author.role && (
+                  <>
+                    {" "}
+                    <span className="italic">{author.role}</span>
+                  </>
+                )}
                 {article.publishedAt && (
                   <span className="text-caption ml-2">
                     &middot; {formatDateShort(article.publishedAt)}
@@ -160,8 +165,13 @@ export function HeroPattern({
                           className="text-maroon font-semibold hover:underline"
                         >
                           {hlAuthor.name}
-                        </Link>{" "}
-                        <span className="italic">{hlAuthor.role}</span>
+                        </Link>
+                        {hlAuthor.role && (
+                          <>
+                            {" "}
+                            <span className="italic">{hlAuthor.role}</span>
+                          </>
+                        )}
                       </p>
                     )}
                   </>

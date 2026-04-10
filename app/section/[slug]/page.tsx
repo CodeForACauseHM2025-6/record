@@ -65,20 +65,24 @@ function getExcerptText(article: ArticleData): string {
   return plain.slice(0, 280).replace(/\s+\S*$/, "") + "\u2026";
 }
 
-function getAuthorInfo(article: ArticleData) {
+function getAuthorInfo(article: ArticleData): { name: string; role: string | null; id: string } {
   if (article.credits.length > 0) {
     const primary = article.credits[0];
     return {
       name: primary.user.name,
-      role: primary.creditRole,
+      role: hideReader(primary.creditRole),
       id: primary.user.id,
     };
   }
   return {
     name: article.createdBy.name,
-    role: article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
+    role: hideReader(article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role),
     id: article.createdBy.id,
   };
+}
+
+function hideReader(role: string): string | null {
+  return role === "Reader" ? null : role;
 }
 
 const PER_PAGE = 10;
@@ -185,10 +189,15 @@ export default async function SectionPage({
                       className="text-maroon font-bold hover:underline"
                     >
                       {getAuthorInfo(featured).name}
-                    </Link>{" "}
-                    <span className="italic">
-                      {getAuthorInfo(featured).role}
-                    </span>
+                    </Link>
+                    {getAuthorInfo(featured).role && (
+                      <>
+                        {" "}
+                        <span className="italic">
+                          {getAuthorInfo(featured).role}
+                        </span>
+                      </>
+                    )}
                   </p>
                   {featured.publishedAt && (
                     <p className="text-maroon text-[15px] font-headline font-semibold mt-0.5">
@@ -234,8 +243,13 @@ export default async function SectionPage({
                                       className="text-maroon hover:underline"
                                     >
                                       {author.name}
-                                    </Link>{" "}
-                                    <span className="italic">{author.role}</span>
+                                    </Link>
+                                    {author.role && (
+                                      <>
+                                        {" "}
+                                        <span className="italic">{author.role}</span>
+                                      </>
+                                    )}
                                   </span>
                                   {article.publishedAt && (
                                     <span className="text-caption text-[13px] shrink-0">
@@ -289,8 +303,13 @@ export default async function SectionPage({
                             className="text-maroon hover:underline"
                           >
                             {author.name}
-                          </Link>{" "}
-                          <span className="italic">{author.role}</span>
+                          </Link>
+                          {author.role && (
+                            <>
+                              {" "}
+                              <span className="italic">{author.role}</span>
+                            </>
+                          )}
                           {article.publishedAt && (
                             <span className="text-caption ml-2">
                               &middot; {formatDateShort(article.publishedAt)}

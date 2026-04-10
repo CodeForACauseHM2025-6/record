@@ -37,10 +37,10 @@ export function getSectionHref(section: string): string {
 export function getAuthorInfo(article: {
   credits: { creditRole: string; user: { id: string; name: string } }[];
   createdBy: { id: string; name: string; role: string; displayTitle: string | null };
-}) {
+}): { name: string; role: string | null; id: string } {
   if (article.credits.length > 0) {
     const primary = article.credits[0];
-    return { name: primary.user.name, role: primary.creditRole, id: primary.user.id };
+    return { name: primary.user.name, role: hideReader(primary.creditRole), id: primary.user.id };
   }
   const ROLE_DISPLAY: Record<string, string> = {
     READER: "Reader", WRITER: "Staff Writer", DESIGNER: "Designer",
@@ -48,7 +48,11 @@ export function getAuthorInfo(article: {
   };
   return {
     name: article.createdBy.name,
-    role: article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role,
+    role: hideReader(article.createdBy.displayTitle ?? ROLE_DISPLAY[article.createdBy.role] ?? article.createdBy.role),
     id: article.createdBy.id,
   };
+}
+
+function hideReader(role: string): string | null {
+  return role === "Reader" ? null : role;
 }
