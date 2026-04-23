@@ -43,8 +43,6 @@ const mockArticle = {
   excerpt: "Test excerpt",
   featuredImage: null,
   section: "NEWS",
-  status: "PUBLISHED",
-  publishedAt: new Date("2026-01-01"),
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
   createdById: "user-1",
@@ -81,7 +79,7 @@ describe("GET /api/articles", () => {
     expect(body.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 });
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: "PUBLISHED" }),
+        where: expect.objectContaining({ group: { status: "PUBLISHED" } }),
       })
     );
   });
@@ -95,7 +93,7 @@ describe("GET /api/articles", () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: "PUBLISHED", section: "NEWS" }),
+        where: expect.objectContaining({ group: { status: "PUBLISHED" }, section: "NEWS" }),
       })
     );
   });

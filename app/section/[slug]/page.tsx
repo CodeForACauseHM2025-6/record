@@ -22,10 +22,10 @@ interface ArticleData {
   excerpt: string | null;
   featuredImage: string | null;
   section: string;
-  publishedAt: Date | null;
   createdBy: { id: string; name: string; role: string; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; caption: string | null; altText: string }[];
+  group: { publishedAt: Date | null } | null;
 }
 
 const ROLE_DISPLAY: Record<string, string> = {
@@ -103,19 +103,25 @@ export default async function SectionPage({
     notFound();
   }
 
+  const sectionWhere = {
+    group: { status: "PUBLISHED" as const },
+    section: sectionInfo.dbKey as Section,
+  };
+
   const [articles, totalCount] = await Promise.all([
     prisma.article.findMany({
-      where: { status: "PUBLISHED", section: sectionInfo.dbKey as Section },
-      orderBy: { publishedAt: "desc" },
+      where: sectionWhere,
+      orderBy: { group: { publishedAt: "desc" } },
       skip: (currentPage - 1) * PER_PAGE,
       take: PER_PAGE,
       include: {
         createdBy: true,
         credits: { include: { user: true } },
         images: { orderBy: { order: "asc" } },
+        group: { select: { publishedAt: true } },
     },
     }) as Promise<unknown>,
-    prisma.article.count({ where: { status: "PUBLISHED", section: sectionInfo.dbKey as Section } }),
+    prisma.article.count({ where: sectionWhere }),
   ]);
 
   const allArticles = articles as unknown as ArticleData[];
@@ -199,9 +205,9 @@ export default async function SectionPage({
                       </>
                     )}
                   </p>
-                  {featured.publishedAt && (
+                  {featured.group?.publishedAt && (
                     <p className="text-maroon text-[15px] font-headline font-semibold mt-0.5">
-                      {formatDateShort(featured.publishedAt)}
+                      {formatDateShort(featured.group.publishedAt)}
                     </p>
                   )}
                 </div>
@@ -251,9 +257,9 @@ export default async function SectionPage({
                                       </>
                                     )}
                                   </span>
-                                  {article.publishedAt && (
+                                  {article.group?.publishedAt && (
                                     <span className="text-caption text-[13px] shrink-0">
-                                      {formatDateShort(article.publishedAt)}
+                                      {formatDateShort(article.group.publishedAt)}
                                     </span>
                                   )}
                                 </div>
@@ -310,9 +316,9 @@ export default async function SectionPage({
                               <span className="italic">{author.role}</span>
                             </>
                           )}
-                          {article.publishedAt && (
+                          {article.group?.publishedAt && (
                             <span className="text-caption ml-2">
-                              &middot; {formatDateShort(article.publishedAt)}
+                              &middot; {formatDateShort(article.group.publishedAt)}
                             </span>
                           )}
                         </div>

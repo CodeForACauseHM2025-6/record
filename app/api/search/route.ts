@@ -10,17 +10,18 @@ export async function GET(request: NextRequest) {
 
   const articles = await prisma.article.findMany({
     where: {
-      status: "PUBLISHED",
+      group: { status: "PUBLISHED" },
       OR: [
         { title: { contains: q, mode: "insensitive" } },
         { body: { contains: q, mode: "insensitive" } },
       ],
     },
-    orderBy: { publishedAt: "desc" },
+    orderBy: { group: { publishedAt: "desc" } },
     take: 30,
     include: {
       createdBy: { select: { id: true, name: true } },
       credits: { include: { user: { select: { id: true, name: true } } } },
+      group: { select: { publishedAt: true } },
     },
   });
 
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       slug: a.slug,
       body: a.body,
       section: a.section,
-      publishedAt: a.publishedAt?.toISOString() ?? null,
+      publishedAt: a.group?.publishedAt?.toISOString() ?? null,
       authorName: author.name,
       authorId: author.id,
     };

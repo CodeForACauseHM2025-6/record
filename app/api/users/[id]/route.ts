@@ -17,7 +17,7 @@ export async function GET(
       role: true,
       createdAt: true,
       articleCredits: {
-        where: { article: { status: "PUBLISHED" } },
+        where: { article: { group: { status: "PUBLISHED" } } },
         include: {
           article: {
             select: {
@@ -25,11 +25,11 @@ export async function GET(
               title: true,
               slug: true,
               section: true,
-              publishedAt: true,
+              group: { select: { publishedAt: true } },
             },
           },
         },
-        orderBy: { article: { publishedAt: "desc" } },
+        orderBy: { article: { group: { publishedAt: "desc" } } },
       },
     },
   });

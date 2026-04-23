@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const { section, page, limit, search } = parsed.data;
   const skip = (page - 1) * limit;
 
-  const where: Record<string, unknown> = { status: "PUBLISHED" };
+  const where: Record<string, unknown> = { group: { status: "PUBLISHED" } };
   if (section) where.section = section;
   if (search) {
     where.OR = [
@@ -37,11 +37,12 @@ export async function GET(req: NextRequest) {
       where,
       skip,
       take: limit,
-      orderBy: { publishedAt: "desc" },
+      orderBy: { group: { publishedAt: "desc" } },
       include: {
         createdBy: true,
         credits: { include: { user: true } },
         images: { orderBy: { order: "asc" } },
+        group: { select: { publishedAt: true, issueNumber: true, status: true } },
       },
     }),
     prisma.article.count({ where }),

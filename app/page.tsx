@@ -73,6 +73,17 @@ export default async function HomePage({
       },
     });
     const allBlocks = (fullGroup?.blocks ?? []) as unknown as (BlockData & { column: string })[];
+    // Articles no longer carry their own publishedAt; expose the group's
+    // publishedAt to patterns under the same field name so existing pattern
+    // code (which reads `article.publishedAt`) continues to display the date.
+    const groupPublishedAt = currentGroup.publishedAt ?? null;
+    for (const block of allBlocks) {
+      for (const slot of block.slots ?? []) {
+        if (slot.article) {
+          (slot.article as { publishedAt: Date | null }).publishedAt = groupPublishedAt;
+        }
+      }
+    }
     mainBlocks = allBlocks.filter((b) => b.column === "main");
     sidebarBlocks = allBlocks.filter((b) => b.column === "sidebar");
     groupDate = currentGroup.publishedAt ?? currentGroup.createdAt;

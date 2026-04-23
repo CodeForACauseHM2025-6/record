@@ -50,7 +50,7 @@ export default async function LayoutEditorPage({
                 article: {
                   select: {
                     id: true, title: true, slug: true, section: true, body: true,
-                    featuredImage: true, publishedAt: true,
+                    featuredImage: true,
                     createdBy: { select: { id: true, name: true, role: true, displayTitle: true } },
                     credits: { select: { creditRole: true, user: { select: { id: true, name: true } } } },
                   },

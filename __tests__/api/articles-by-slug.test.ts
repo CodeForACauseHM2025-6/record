@@ -21,8 +21,6 @@ const mockArticle = {
   excerpt: "Test excerpt",
   featuredImage: null,
   section: "NEWS",
-  status: "PUBLISHED",
-  publishedAt: new Date("2026-01-01"),
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
   createdById: "user-1",
@@ -45,7 +43,7 @@ describe("GET /api/articles/by-slug/[slug]", () => {
     expect(body.slug).toBe("test-article");
     expect(mockFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { slug: "test-article", status: "PUBLISHED" },
+        where: { slug: "test-article", group: { status: "PUBLISHED" } },
       })
     );
   });

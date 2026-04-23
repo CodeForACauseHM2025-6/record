@@ -9,7 +9,7 @@ export async function GET(
   const { slug } = await params;
 
   const article = await prisma.article.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, group: { status: "PUBLISHED" } },
     include: {
       createdBy: true,
       credits: {
@@ -18,6 +18,7 @@ export async function GET(
       images: {
         orderBy: { order: "asc" },
       },
+      group: { select: { publishedAt: true, issueNumber: true, status: true } },
     },
   });
 
