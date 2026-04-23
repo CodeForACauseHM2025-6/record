@@ -88,7 +88,7 @@ export function HeroPattern({
                   authors={authors}
                   linkClassName="text-maroon font-semibold hover:underline"
                 />
-                {primaryRole && (
+                {primaryRole && authors.length === 1 && (
                   <>
                     {" "}
                     <span className="italic">{primaryRole}</span>
@@ -163,7 +163,7 @@ export function HeroPattern({
                           authors={hlByline.authors}
                           linkClassName="text-maroon font-semibold hover:underline"
                         />
-                        {hlByline.primaryRole && (
+                        {hlByline.primaryRole && hlByline.authors.length === 1 && (
                           <>
                             {" "}
                             <span className="italic">{hlByline.primaryRole}</span>

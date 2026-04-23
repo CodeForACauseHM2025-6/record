@@ -72,7 +72,7 @@ export function TextImagesPattern({
                 authors={authors}
                 linkClassName="text-maroon font-semibold hover:underline"
               />
-              {primaryRole && (
+              {primaryRole && authors.length === 1 && (
                 <>
                   {" "}
                   <span className="italic">{primaryRole}</span>

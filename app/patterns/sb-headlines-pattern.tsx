@@ -49,7 +49,7 @@ export function SbHeadlinesPattern({
                       authors={byline.authors}
                       linkClassName="text-maroon font-semibold hover:underline"
                     />
-                    {byline.primaryRole && (
+                    {byline.primaryRole && byline.authors.length === 1 && (
                       <>
                         {" "}
                         <span className="italic">{byline.primaryRole}</span>
