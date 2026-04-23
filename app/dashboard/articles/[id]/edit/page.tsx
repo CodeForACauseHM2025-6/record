@@ -10,6 +10,7 @@ import {
 } from "@/app/dashboard/article-actions";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
 import { approveArticle, removeArticleApproval } from "@/app/dashboard/article-actions";
+import { joinAuthorNames } from "@/lib/article-helpers";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -35,7 +36,6 @@ export default async function EditArticlePage({
     prisma.article.findUnique({
       where: { id },
       include: {
-        createdBy: { select: { name: true } },
         credits: { include: { user: { select: { id: true, name: true, role: true, displayTitle: true } } } },
         approvals: {
           include: { user: { select: { id: true, name: true, image: true } } },
@@ -89,7 +89,13 @@ export default async function EditArticlePage({
               Edit Article
             </h2>
             <p className="font-headline text-[13px] text-caption mt-1 tracking-wide">
-              By {article.createdBy.name} &middot; Last updated {formatDate(article.updatedAt)}
+              {joinAuthorNames(article.credits) ? (
+                <>By {joinAuthorNames(article.credits)}</>
+              ) : (
+                <span className="italic">Uncredited</span>
+              )}
+              {" · "}
+              Last updated {formatDate(article.updatedAt)}
             </p>
           </div>
         </div>

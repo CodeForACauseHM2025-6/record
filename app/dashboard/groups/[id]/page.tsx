@@ -12,6 +12,7 @@ import {
 } from "@/app/dashboard/group-actions";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
+import { joinAuthorNames } from "@/lib/article-helpers";
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
@@ -36,7 +37,14 @@ export default async function GroupEditorPage({
     where: { id },
     include: {
       articles: {
-        select: { id: true, title: true, section: true },
+        select: {
+          id: true,
+          title: true,
+          section: true,
+          credits: {
+            select: { creditRole: true, user: { select: { id: true, name: true } } },
+          },
+        },
         orderBy: { createdAt: "desc" },
       },
       blocks: {
@@ -195,27 +203,35 @@ export default async function GroupEditorPage({
 
           {group.articles.length > 0 ? (
             <div className="space-y-1.5">
-              {group.articles.map((a: (typeof group.articles)[number]) => (
-                <div key={a.id} className="flex items-center justify-between gap-2 border border-ink/10 px-3 py-2">
-                  <div className="flex items-baseline gap-2 min-w-0">
+              {group.articles.map((a: (typeof group.articles)[number]) => {
+                const byline = joinAuthorNames(a.credits);
+                return (
+                  <div key={a.id} className="flex items-center justify-between gap-2 border border-ink/10 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <Link
+                          href={`/dashboard/articles/${a.id}/edit`}
+                          className="font-headline text-[14px] font-semibold truncate hover:text-maroon transition-colors"
+                        >
+                          {a.title}
+                        </Link>
+                        <span className="font-headline text-[11px] text-caption/50 shrink-0">
+                          {SECTION_LABELS[a.section] ?? a.section}
+                        </span>
+                      </div>
+                      <p className="font-headline text-[12px] text-caption mt-0.5 truncate">
+                        {byline ? <>By {byline}</> : <span className="italic text-caption/50">Uncredited</span>}
+                      </p>
+                    </div>
                     <Link
                       href={`/dashboard/articles/${a.id}/edit`}
-                      className="font-headline text-[14px] font-semibold truncate hover:text-maroon transition-colors"
+                      className="font-headline text-[12px] text-maroon hover:underline shrink-0"
                     >
-                      {a.title}
+                      Edit
                     </Link>
-                    <span className="font-headline text-[11px] text-caption/50 shrink-0">
-                      {SECTION_LABELS[a.section] ?? a.section}
-                    </span>
                   </div>
-                  <Link
-                    href={`/dashboard/articles/${a.id}/edit`}
-                    className="font-headline text-[12px] text-maroon hover:underline shrink-0"
-                  >
-                    Edit
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="font-headline text-[14px] text-caption/50 italic">

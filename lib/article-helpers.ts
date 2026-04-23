@@ -25,6 +25,16 @@ export function formatDateLong(date: Date): string {
   });
 }
 
+export function joinAuthorNames(
+  credits: { user: { id: string; name: string } }[],
+): string {
+  const names = [...new Map(credits.map((c) => [c.user.id, c.user.name])).values()];
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}
+
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
   A_AND_E: "A&E", LIONS_DEN: "Lion\u2019s Den", THE_ROUNDTABLE: "The Roundtable",
