@@ -6,7 +6,6 @@ import {
   getSectionLabel,
   getSectionHref,
   getBylineAuthors,
-  formatDateShort,
 } from "@/lib/article-helpers";
 import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
@@ -77,11 +76,6 @@ export function TextImagesPattern({
                   {" "}
                   <span className="italic">{primaryRole}</span>
                 </>
-              )}
-              {article.publishedAt && (
-                <span className="text-caption ml-2">
-                  &middot; {formatDateShort(article.publishedAt)}
-                </span>
               )}
             </div>
           </>
