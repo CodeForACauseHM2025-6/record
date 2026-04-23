@@ -151,8 +151,6 @@ async function main() {
           excerpt: a.excerpt,
           featuredImage: a.featuredImage,
           section: a.section,
-          status: a.status,
-          publishedAt: a.publishedAt,
           groupId: a.groupId,
         },
         create: {
@@ -163,8 +161,6 @@ async function main() {
           excerpt: a.excerpt,
           featuredImage: a.featuredImage,
           section: a.section,
-          status: a.status,
-          publishedAt: a.publishedAt,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
           createdById: a.createdById,

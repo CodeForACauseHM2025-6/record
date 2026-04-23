@@ -107,39 +107,6 @@ export async function updateArticle(id: string, formData: FormData) {
   redirect("/dashboard?saved=1");
 }
 
-export async function publishArticle(id: string) {
-  const session = await auth();
-  requireEditor(session);
-
-  const creditCount = await prisma.articleCredit.count({ where: { articleId: id } });
-  if (creditCount === 0) {
-    throw new Error("Cannot publish without at least one author");
-  }
-
-  await prisma.article.update({
-    where: { id },
-    data: { status: "PUBLISHED", publishedAt: new Date() },
-  });
-
-  revalidatePath("/");
-  revalidatePath("/dashboard");
-  redirect(`/dashboard/articles/${id}/edit`);
-}
-
-export async function unpublishArticle(id: string) {
-  const session = await auth();
-  requireEditor(session);
-
-  await prisma.article.update({
-    where: { id },
-    data: { status: "DRAFT" },
-  });
-
-  revalidatePath("/");
-  revalidatePath("/dashboard");
-  redirect(`/dashboard/articles/${id}/edit`);
-}
-
 export async function deleteArticle(id: string) {
   const session = await auth();
   requireEditor(session);

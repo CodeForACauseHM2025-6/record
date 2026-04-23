@@ -11,12 +11,6 @@ import {
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
 import { approveArticle, removeArticleApproval } from "@/app/dashboard/article-actions";
 
-const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-amber-50 text-amber-800",
-  PUBLISHED: "bg-green-50 text-green-800",
-  ARCHIVED: "bg-neutral-100 text-neutral-500",
-};
-
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
     month: "long",
@@ -47,6 +41,7 @@ export default async function EditArticlePage({
           include: { user: { select: { id: true, name: true, image: true } } },
           orderBy: { createdAt: "asc" as const },
         },
+        group: { select: { status: true, name: true } },
       },
     }),
     prisma.user.findMany({
@@ -97,13 +92,6 @@ export default async function EditArticlePage({
               By {article.createdBy.name} &middot; Last updated {formatDate(article.updatedAt)}
             </p>
           </div>
-          <span
-            className={`shrink-0 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase px-3 py-1.5 mt-2 ${
-              STATUS_STYLES[article.status]
-            }`}
-          >
-            {article.status}
-          </span>
         </div>
         <div className="mt-4">
           <ApprovalDisplay
@@ -119,7 +107,7 @@ export default async function EditArticlePage({
 
         {/* Action bar */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {article.status === "PUBLISHED" && (
+          {article.group?.status === "PUBLISHED" && (
             <Link
               href={`/article/${article.slug}`}
               className="font-headline font-bold text-[14px] tracking-wide border border-ink/20 px-5 py-2 hover:border-maroon hover:text-maroon transition-colors"
