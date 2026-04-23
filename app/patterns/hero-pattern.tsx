@@ -5,9 +5,10 @@ import {
   getPreviewText,
   getSectionLabel,
   getSectionHref,
-  getAuthorInfo,
+  getBylineAuthors,
   formatDateShort,
 } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
   EditableSlot,
   EditableImage,
@@ -31,7 +32,7 @@ export function HeroPattern({
 
   const article = featuredSlot?.article ?? getPlaceholderArticle();
   const heroImage = imageSlot?.mediaUrl ?? null;
-  const author = getAuthorInfo(article);
+  const { authors, primaryRole } = getBylineAuthors(article);
   const fs = featuredSlot?.scale;
 
   const imgCrop = imageSlot?.imageCrop ?? "original";
@@ -83,16 +84,14 @@ export function HeroPattern({
                 {getPreviewText(article.body, featuredSlot?.previewLength ?? 200)}
               </p>
               <div className="font-headline mt-3" style={{ fontSize: scalePx(14, fs) }}>
-                <Link
-                  href={`/profile/${author.id}`}
-                  className="text-maroon font-semibold hover:underline"
-                >
-                  {author.name}
-                </Link>
-                {author.role && (
+                <BylineAuthors
+                  authors={authors}
+                  linkClassName="text-maroon font-semibold hover:underline"
+                />
+                {primaryRole && (
                   <>
                     {" "}
-                    <span className="italic">{author.role}</span>
+                    <span className="italic">{primaryRole}</span>
                   </>
                 )}
                 {article.publishedAt && (
@@ -134,7 +133,7 @@ export function HeroPattern({
         <div className="mt-3 pt-3 border-t border-neutral-200 flex gap-4 -mb-2">
           {headlineSlots.map((slot, idx) => {
             const slotArticle = slot?.article ?? getPlaceholderArticle();
-            const hlAuthor = slot?.showByline ? getAuthorInfo(slotArticle) : null;
+            const hlByline = slot?.showByline ? getBylineAuthors(slotArticle) : null;
             return (
               <div
                 key={slot?.id ?? idx}
@@ -155,21 +154,19 @@ export function HeroPattern({
                         {slotArticle.title}
                       </Link>
                     </h4>
-                    {hlAuthor && (
+                    {hlByline && (
                       <p
                         className="font-headline mt-1"
                         style={{ fontSize: scalePx(13, slot?.scale) }}
                       >
-                        <Link
-                          href={`/profile/${hlAuthor.id}`}
-                          className="text-maroon font-semibold hover:underline"
-                        >
-                          {hlAuthor.name}
-                        </Link>
-                        {hlAuthor.role && (
+                        <BylineAuthors
+                          authors={hlByline.authors}
+                          linkClassName="text-maroon font-semibold hover:underline"
+                        />
+                        {hlByline.primaryRole && (
                           <>
                             {" "}
-                            <span className="italic">{hlAuthor.role}</span>
+                            <span className="italic">{hlByline.primaryRole}</span>
                           </>
                         )}
                       </p>

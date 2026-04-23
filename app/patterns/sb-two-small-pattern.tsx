@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
-import { getAuthorInfo } from "@/lib/article-helpers";
+import { getBylineAuthors } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
   EditableSlot,
   EditableImage,
@@ -23,7 +24,7 @@ export function SbTwoSmallPattern({
     <div className="flex gap-4">
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const author = getAuthorInfo(article);
+        const { authors, primaryRole } = getBylineAuthors(article);
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const cropRatio =
           slot?.imageCrop === "landscape"
@@ -75,16 +76,14 @@ export function SbTwoSmallPattern({
                   className="font-headline mt-1"
                   style={{ fontSize: scalePx(12, slot?.scale) }}
                 >
-                  <Link
-                    href={`/profile/${author.id}`}
-                    className="text-maroon font-semibold hover:underline"
-                  >
-                    {author.name}
-                  </Link>
-                  {author.role && (
+                  <BylineAuthors
+                    authors={authors}
+                    linkClassName="text-maroon font-semibold hover:underline"
+                  />
+                  {primaryRole && (
                     <>
                       {" "}
-                      <span className="italic">{author.role}</span>
+                      <span className="italic">{primaryRole}</span>
                     </>
                   )}
                 </p>

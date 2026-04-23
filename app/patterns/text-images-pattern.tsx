@@ -5,9 +5,10 @@ import {
   getPreviewText,
   getSectionLabel,
   getSectionHref,
-  getAuthorInfo,
+  getBylineAuthors,
   formatDateShort,
 } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
   EditableSlot,
   EditableImage,
@@ -28,7 +29,7 @@ export function TextImagesPattern({
   if (!editMode && !articleSlot?.article) return null;
 
   const article = articleSlot?.article ?? getPlaceholderArticle();
-  const author = getAuthorInfo(article);
+  const { authors, primaryRole } = getBylineAuthors(article);
   const sc = articleSlot?.scale;
 
   return (
@@ -67,16 +68,14 @@ export function TextImagesPattern({
               {getPreviewText(article.body, articleSlot?.previewLength ?? 200)}
             </p>
             <div className="font-headline mt-3" style={{ fontSize: scalePx(14, sc) }}>
-              <Link
-                href={`/profile/${author.id}`}
-                className="text-maroon font-semibold hover:underline"
-              >
-                {author.name}
-              </Link>
-              {author.role && (
+              <BylineAuthors
+                authors={authors}
+                linkClassName="text-maroon font-semibold hover:underline"
+              />
+              {primaryRole && (
                 <>
                   {" "}
-                  <span className="italic">{author.role}</span>
+                  <span className="italic">{primaryRole}</span>
                 </>
               )}
               {article.publishedAt && (

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
-import { getAuthorInfo } from "@/lib/article-helpers";
+import { getBylineAuthors } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import { EditableSlot, getPlaceholderArticle } from "@/app/patterns/editable";
 
 export function HeadlineStackPattern({
@@ -18,7 +19,7 @@ export function HeadlineStackPattern({
     <div>
       {headlineSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const author = slot?.showByline ? getAuthorInfo(article) : null;
+        const byline = slot?.showByline ? getBylineAuthors(article) : null;
         return (
           <div
             key={slot?.id ?? idx}
@@ -39,21 +40,19 @@ export function HeadlineStackPattern({
                     {article.title}
                   </Link>
                 </h3>
-                {author && (
+                {byline && (
                   <p
                     className="font-headline mt-1"
                     style={{ fontSize: scalePx(14, slot?.scale) }}
                   >
-                    <Link
-                      href={`/profile/${author.id}`}
-                      className="text-maroon font-semibold hover:underline"
-                    >
-                      {author.name}
-                    </Link>
-                    {author.role && (
+                    <BylineAuthors
+                      authors={byline.authors}
+                      linkClassName="text-maroon font-semibold hover:underline"
+                    />
+                    {byline.primaryRole && (
                       <>
                         {" "}
-                        <span className="italic">{author.role}</span>
+                        <span className="italic">{byline.primaryRole}</span>
                       </>
                     )}
                   </p>

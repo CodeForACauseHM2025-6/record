@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
-import { getPreviewText, getAuthorInfo, getSectionLabel, getSectionHref } from "@/lib/article-helpers";
+import { getPreviewText, getBylineAuthors, getSectionLabel, getSectionHref } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
   EditableSlot,
   EditableImage,
@@ -27,7 +28,7 @@ export function FourGridPattern({
       {/* Top row — headline + short excerpt, no image */}
       {topSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const author = getAuthorInfo(article);
+        const { authors, primaryRole } = getBylineAuthors(article);
         return (
           <div key={slot?.id ?? `top-${idx}`}>
             <EditableSlot slot={slot}>
@@ -65,16 +66,14 @@ export function FourGridPattern({
                   className="font-headline mt-1.5"
                   style={{ fontSize: scalePx(13, slot?.scale) }}
                 >
-                  <Link
-                    href={`/profile/${author.id}`}
-                    className="text-maroon font-semibold hover:underline"
-                  >
-                    {author.name}
-                  </Link>
-                  {author.role && (
+                  <BylineAuthors
+                    authors={authors}
+                    linkClassName="text-maroon font-semibold hover:underline"
+                  />
+                  {primaryRole && (
                     <>
                       {" "}
-                      <span className="italic">{author.role}</span>
+                      <span className="italic">{primaryRole}</span>
                     </>
                   )}
                 </p>
@@ -87,7 +86,7 @@ export function FourGridPattern({
       {/* Bottom row — small thumbnail + headline */}
       {bottomSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const author = getAuthorInfo(article);
+        const { authors, primaryRole } = getBylineAuthors(article);
         const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
         const imgSize = scalePx(60, slot?.imageScale);
         const cropRatio =
@@ -148,16 +147,14 @@ export function FourGridPattern({
                     className="font-headline mt-1"
                     style={{ fontSize: scalePx(12, slot?.scale) }}
                   >
-                    <Link
-                      href={`/profile/${author.id}`}
-                      className="text-maroon font-semibold hover:underline"
-                    >
-                      {author.name}
-                    </Link>
-                    {author.role && (
+                    <BylineAuthors
+                      authors={authors}
+                      linkClassName="text-maroon font-semibold hover:underline"
+                    />
+                    {primaryRole && (
                       <>
                         {" "}
-                        <span className="italic">{author.role}</span>
+                        <span className="italic">{primaryRole}</span>
                       </>
                     )}
                   </p>

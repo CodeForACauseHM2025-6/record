@@ -5,9 +5,10 @@ import {
   getPreviewText,
   getSectionLabel,
   getSectionHref,
-  getAuthorInfo,
+  getBylineAuthors,
   formatDateShort,
 } from "@/lib/article-helpers";
+import { BylineAuthors } from "@/app/patterns/byline-authors";
 import {
   EditableSlot,
   EditableImage,
@@ -26,7 +27,7 @@ export function SbFeaturePattern({
   if (!editMode && !slot?.article) return null;
 
   const article = slot?.article ?? getPlaceholderArticle();
-  const author = getAuthorInfo(article);
+  const { authors, primaryRole } = getBylineAuthors(article);
   const sc = slot?.scale;
 
   const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
@@ -72,16 +73,14 @@ export function SbFeaturePattern({
         {getPreviewText(article.body, slot?.previewLength ?? 150)}
       </p>
       <div className="font-headline mt-2" style={{ fontSize: scalePx(13, sc) }}>
-        <Link
-          href={`/profile/${author.id}`}
-          className="text-maroon font-semibold hover:underline"
-        >
-          {author.name}
-        </Link>
-        {author.role && (
+        <BylineAuthors
+          authors={authors}
+          linkClassName="text-maroon font-semibold hover:underline"
+        />
+        {primaryRole && (
           <>
             {" "}
-            <span className="italic">{author.role}</span>
+            <span className="italic">{primaryRole}</span>
           </>
         )}
         {article.publishedAt && (

@@ -35,6 +35,41 @@ export function joinAuthorNames(
   return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
 }
 
+// Returns every credited author, deduped by id, plus the primary role
+// (from credits[0]). Falls back to createdBy only when there are no credits.
+export function getBylineAuthors(article: {
+  credits: { creditRole: string; user: { id: string; name: string } }[];
+  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
+}): { authors: { id: string; name: string }[]; primaryRole: string | null } {
+  if (article.credits.length > 0) {
+    const seen = new Set<string>();
+    const authors: { id: string; name: string }[] = [];
+    for (const c of article.credits) {
+      if (seen.has(c.user.id)) continue;
+      seen.add(c.user.id);
+      authors.push({ id: c.user.id, name: c.user.name });
+    }
+    const role = article.credits[0].creditRole;
+    return { authors, primaryRole: role === "Reader" ? null : role };
+  }
+  const ROLE_DISPLAY: Record<string, string> = {
+    READER: "Reader",
+    WRITER: "Staff Writer",
+    DESIGNER: "Designer",
+    EDITOR: "Editor",
+    WEB_TEAM: "Web Team",
+    WEB_MASTER: "Web Master",
+  };
+  const fallback =
+    article.createdBy.displayTitle ??
+    ROLE_DISPLAY[article.createdBy.role] ??
+    article.createdBy.role;
+  return {
+    authors: [{ id: article.createdBy.id, name: article.createdBy.name }],
+    primaryRole: fallback === "Reader" ? null : fallback,
+  };
+}
+
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
   A_AND_E: "A&E", LIONS_DEN: "Lion\u2019s Den", THE_ROUNDTABLE: "The Roundtable",
