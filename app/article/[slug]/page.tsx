@@ -125,14 +125,7 @@ export default async function ArticlePage({
       <main className="flex-1 pb-20">
         {/* ============ HEADLINE + META ============ */}
         <div className="max-w-[820px] mx-auto px-4 sm:px-8 pt-10 text-center">
-          <Link
-            href={sectionHref}
-            className="font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.18em] uppercase text-maroon hover:underline"
-          >
-            {sectionLabel}
-          </Link>
-
-          <h1 className="mt-4 font-headline font-bold leading-[1.1] text-[34px] sm:text-[44px] lg:text-[54px]">
+          <h1 className="font-headline font-bold leading-[1.1] text-[34px] sm:text-[44px] lg:text-[54px]">
             {article.title}
           </h1>
 
