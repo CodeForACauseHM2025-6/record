@@ -30,7 +30,7 @@ export default async function EditUserPage({
   const session = await auth();
   const isSelf = session?.user?.id === id;
 
-  const [user, authoredCount, creditCount] = await Promise.all([
+  const [user, articleCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id },
       select: {
@@ -43,8 +43,7 @@ export default async function EditUserPage({
         createdAt: true,
       },
     }),
-    prisma.article.count({ where: { createdById: id } }),
-    prisma.articleCredit.count({ where: { userId: id } }),
+    prisma.article.count({ where: { credits: { some: { userId: id } } } }),
   ]);
 
   if (!user) notFound();
@@ -104,8 +103,7 @@ export default async function EditUserPage({
 
       {/* Stats */}
       <div className="mt-8 grid grid-cols-2 gap-4 max-w-md">
-        <Stat label="Articles Written" value={authoredCount} />
-        <Stat label="Credits" value={creditCount} />
+        <Stat label="Articles" value={articleCount} />
       </div>
 
       {/* Role */}

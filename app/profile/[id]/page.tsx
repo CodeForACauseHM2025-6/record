@@ -37,7 +37,6 @@ interface ArticleListItem {
   excerpt: string | null;
   featuredImage: string | null;
   section: string;
-  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string } }[];
   images: { url: string; altText: string }[];
   group: { publishedAt: Date | null } | null;
@@ -71,15 +70,8 @@ function joinMonth(date: Date): string {
 
 function roleOnArticle(article: ArticleListItem, userId: string): string | null {
   const credit = article.credits.find((c) => c.user.id === userId);
-  if (credit) return credit.creditRole === "Reader" ? null : credit.creditRole;
-  if (article.createdBy.id === userId) {
-    const title =
-      article.createdBy.displayTitle ??
-      ROLE_DISPLAY[article.createdBy.role] ??
-      article.createdBy.role;
-    return title === "Reader" ? null : title;
-  }
-  return null;
+  if (!credit) return null;
+  return credit.creditRole === "Reader" ? null : credit.creditRole;
 }
 
 export async function generateMetadata({
@@ -119,10 +111,7 @@ export default async function ProfilePage({
 
   const whereArticles = {
     group: { status: "PUBLISHED" as const },
-    OR: [
-      { createdById: id },
-      { credits: { some: { userId: id } } },
-    ],
+    credits: { some: { userId: id } },
   };
 
   const [articlesRaw, totalCount, firstArticle] = await Promise.all([
@@ -132,7 +121,6 @@ export default async function ProfilePage({
       skip: (currentPage - 1) * PER_PAGE,
       take: PER_PAGE,
       include: {
-        createdBy: true,
         credits: { include: { user: true } },
         images: { orderBy: { order: "asc" }, take: 1 },
         group: { select: { publishedAt: true } },
