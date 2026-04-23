@@ -173,28 +173,23 @@ export default async function ArticlePage({
           <div className="mt-8 h-[2px] bg-rule" />
         </div>
 
-        {/* ============ HERO IMAGE ============ */}
-        {heroImage && (
-          <figure className="max-w-[1000px] mx-auto px-4 sm:px-8 mt-10">
-            <img
-              src={heroImage}
-              alt={article.images[0]?.altText ?? article.title}
-              className="w-full aspect-[16/9] object-cover bg-neutral-100"
-            />
-            {(heroCaption || article.images[0]?.altText) && (
-              <figcaption className="mt-2 flex flex-col sm:flex-row sm:justify-between gap-1 text-[12px] tracking-[0.05em] text-caption">
-                {heroCaption && (
-                  <span className="uppercase font-semibold tracking-[0.08em]">
-                    {heroCaption}
-                  </span>
-                )}
-              </figcaption>
-            )}
-          </figure>
-        )}
+        {/* ============ BODY (hero image floats inside, text wraps) ============ */}
+        <article className="max-w-[780px] mx-auto px-4 sm:px-8 mt-12 article-body featured-excerpt">
+          {heroImage && (
+            <figure className="mb-5 sm:float-right sm:ml-8 sm:w-[55%] sm:max-w-[420px]">
+              <img
+                src={heroImage}
+                alt={article.images[0]?.altText ?? article.title}
+                className="w-full aspect-[4/3] object-cover bg-neutral-100"
+              />
+              {heroCaption && (
+                <figcaption className="mt-2 text-[12px] tracking-[0.05em] uppercase font-semibold text-caption">
+                  {heroCaption}
+                </figcaption>
+              )}
+            </figure>
+          )}
 
-        {/* ============ BODY ============ */}
-        <article className="max-w-[680px] mx-auto px-4 sm:px-8 mt-12 article-body">
           {paragraphs.length === 0 ? (
             <p className="font-body text-[18px] leading-[1.75] text-caption italic">
               This article has no content yet.
@@ -210,9 +205,9 @@ export default async function ArticlePage({
             ))
           )}
 
-          {/* Inline images after first (featured image is already above) */}
+          {/* Inline images after the featured one — stacked full-width */}
           {article.images.slice(1).map((img, i) => (
-            <figure key={i} className="mt-10">
+            <figure key={i} className="clear-both mt-10">
               <img
                 src={img.url}
                 alt={img.altText}
