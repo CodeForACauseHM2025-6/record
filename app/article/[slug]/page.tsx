@@ -31,7 +31,7 @@ interface ArticleData {
   section: string;
   groupId: string;
   createdBy: { id: string; name: string; role: string; image: string | null; displayTitle: string | null };
-  credits: { creditRole: string; user: { id: string; name: string } }[];
+  credits: { creditRole: string; user: { id: string; name: string; image: string | null } }[];
   images: { url: string; caption: string | null; altText: string }[];
   group: { issueNumber: string | null; publishedAt: Date | null; status: string } | null;
 }
@@ -102,8 +102,16 @@ export default async function ArticlePage({
   // Author list: all credits if any, otherwise createdBy
   const authors =
     article.credits.length > 0
-      ? article.credits.map((c) => ({ id: c.user.id, name: c.user.name }))
-      : [{ id: article.createdBy.id, name: article.createdBy.name }];
+      ? article.credits.map((c) => ({
+          id: c.user.id,
+          name: c.user.name,
+          image: c.user.image ?? null,
+        }))
+      : [{
+          id: article.createdBy.id,
+          name: article.createdBy.name,
+          image: article.createdBy.image ?? null,
+        }];
   const primaryRole = resolvePrimaryRole(article);
 
   const heroImage = article.featuredImage ?? article.images[0]?.url ?? null;
@@ -135,7 +143,31 @@ export default async function ArticlePage({
             </p>
           )}
 
-          <div className="mt-7 font-headline text-[15px]">
+          {/* Stacked author avatars — overlap when more than one */}
+          <div className="mt-7 flex justify-center -space-x-3">
+            {authors.map((a) => (
+              <Link
+                key={a.id}
+                href={`/profile/${a.id}`}
+                aria-label={a.name}
+                className="block w-10 h-10 rounded-full ring-2 ring-white overflow-hidden hover:z-10 transition-transform hover:scale-105"
+              >
+                {a.image ? (
+                  <img
+                    src={a.image}
+                    alt={a.name}
+                    className="w-full h-full object-cover bg-neutral-200"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-maroon text-white flex items-center justify-center font-headline font-bold text-[15px]">
+                    {a.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-3 font-headline text-[15px]">
             <span>
               By{" "}
               {authors.map((a, i) => (
