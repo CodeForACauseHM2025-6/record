@@ -33,6 +33,7 @@ const SECTION_LABELS: Record<string, string> = {
   A_AND_E: "A&E",
   LIONS_DEN: "Lion\u2019s Den",
   THE_ROUNDTABLE: "The Roundtable",
+  MD_ALUMNI: "MD/Alumni",
 };
 
 export const PLACEHOLDER_BODY =

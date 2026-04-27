@@ -6,6 +6,7 @@ import { assignToBlockSlot, assignMediaToBlockSlot, clearBlockSlot } from "@/app
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
   A_AND_E: "A&E", LIONS_DEN: "Lion\u2019s Den", THE_ROUNDTABLE: "The Roundtable",
+  MD_ALUMNI: "MD/Alumni",
 };
 
 interface BlockSlotAssignerProps {

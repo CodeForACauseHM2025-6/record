@@ -9,6 +9,7 @@ const SECTIONS = [
   { value: "A_AND_E", label: "A&E" },
   { value: "LIONS_DEN", label: "Lion\u2019s Den" },
   { value: "THE_ROUNDTABLE", label: "The Roundtable" },
+  { value: "MD_ALUMNI", label: "MD/Alumni" },
 ];
 
 export interface AuthorCredit {

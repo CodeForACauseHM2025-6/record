@@ -5,7 +5,7 @@ export const createArticleSchema = z.object({
   body: z.string().min(1).max(102400), // 100KB
   excerpt: z.string().max(500).optional(),
   featuredImage: z.string().url().optional(),
-  section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE"]),
+  section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE", "MD_ALUMNI"]),
   groupId: z.string().uuid(),
   credits: z
     .array(
@@ -30,7 +30,7 @@ export const createArticleSchema = z.object({
 export const updateArticleSchema = createArticleSchema.partial();
 
 export const listArticlesSchema = z.object({
-  section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE"]).optional(),
+  section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE", "MD_ALUMNI"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().optional(),

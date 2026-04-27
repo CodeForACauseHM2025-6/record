@@ -11,6 +11,7 @@ const SECTION_LABELS: Record<string, string> = {
   A_AND_E: "A&E",
   LIONS_DEN: "Lion\u2019s Den",
   THE_ROUNDTABLE: "The Roundtable",
+  MD_ALUMNI: "MD/Alumni",
 };
 
 const SECTION_HREFS: Record<string, string> = {
@@ -20,6 +21,7 @@ const SECTION_HREFS: Record<string, string> = {
   A_AND_E: "/section/a-and-e",
   LIONS_DEN: "/section/lions-den",
   THE_ROUNDTABLE: "/section/the-roundtable",
+  MD_ALUMNI: "/section/md-alumni",
 };
 
 interface SearchResult {

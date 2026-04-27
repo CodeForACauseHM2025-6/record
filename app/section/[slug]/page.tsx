@@ -12,6 +12,7 @@ const SLUG_TO_SECTION: Record<string, { label: string; fullLabel?: string; dbKey
   "a-and-e": { label: "A&E", fullLabel: "Arts & Entertainment", dbKey: "A_AND_E" },
   "lions-den": { label: "Lion\u2019s Den", dbKey: "LIONS_DEN" },
   "the-roundtable": { label: "The Roundtable", dbKey: "THE_ROUNDTABLE" },
+  "md-alumni": { label: "MD/Alumni", dbKey: "MD_ALUMNI" },
 };
 
 interface ArticleData {

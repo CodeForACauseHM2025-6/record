@@ -61,7 +61,7 @@ export async function createArticleInGroup(groupId: string, formData: FormData) 
       slug,
       body: sanitizeHtml(body),
       featuredImage,
-      section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
+      section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE" | "MD_ALUMNI",
       createdById: session!.user!.id,
       credits: credits.length > 0 ? { create: credits } : undefined,
       groupId,
@@ -97,7 +97,7 @@ export async function updateArticle(id: string, formData: FormData) {
       title,
       body: sanitizeHtml(body),
       featuredImage,
-      section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE",
+      section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE" | "MD_ALUMNI",
       credits: credits.length > 0 ? { create: credits } : undefined,
     },
   });

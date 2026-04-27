@@ -73,11 +73,13 @@ export function getBylineAuthors(article: {
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
   A_AND_E: "A&E", LIONS_DEN: "Lion\u2019s Den", THE_ROUNDTABLE: "The Roundtable",
+  MD_ALUMNI: "MD/Alumni",
 };
 
 const SECTION_HREFS: Record<string, string> = {
   NEWS: "/section/news", FEATURES: "/section/features", OPINIONS: "/section/opinions",
   A_AND_E: "/section/a-and-e", LIONS_DEN: "/section/lions-den", THE_ROUNDTABLE: "/section/the-roundtable",
+  MD_ALUMNI: "/section/md-alumni",
 };
 
 export function getSectionLabel(section: string): string {

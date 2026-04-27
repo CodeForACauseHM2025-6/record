@@ -22,6 +22,7 @@ enum Section {
   A_AND_E
   FEATURES
   THE_ROUNDTABLE
+  MD_ALUMNI
 }
 
 enum ArticleStatus {
