@@ -31,6 +31,12 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum RoundTableStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -44,11 +50,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  articles       Article[]
-  articleCredits ArticleCredit[]
-  accounts       Account[]
-  sessions       Session[]
-  approvals      Approval[]
+  articles            Article[]
+  articleCredits      ArticleCredit[]
+  accounts            Account[]
+  sessions            Session[]
+  approvals           Approval[]
+  roundTableSides     RoundTableSideAuthor[]
 }
 
 model Account {
@@ -139,9 +146,58 @@ model ArticleGroup {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  blocks    LayoutBlock[]
-  articles  Article[]
-  approvals Approval[]
+  blocks      LayoutBlock[]
+  articles    Article[]
+  approvals   Approval[]
+  roundTables RoundTable[]
+}
+
+model RoundTable {
+  id          String           @id @default(uuid())
+  slug        String           @unique
+  prompt      String           @db.VarChar(500)
+  status      RoundTableStatus @default(DRAFT)
+  publishedAt DateTime?
+  groupId     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  group ArticleGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  sides RoundTableSide[]
+  turns RoundTableTurn[]
+}
+
+model RoundTableSide {
+  id           String @id @default(uuid())
+  roundTableId String
+  label        String @db.VarChar(80)
+  order        Int
+
+  roundTable RoundTable             @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
+  authors    RoundTableSideAuthor[]
+  turns      RoundTableTurn[]
+}
+
+model RoundTableSideAuthor {
+  id     String @id @default(uuid())
+  sideId String
+  userId String
+
+  side RoundTableSide @relation(fields: [sideId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id])
+
+  @@unique([sideId, userId])
+}
+
+model RoundTableTurn {
+  id           String @id @default(uuid())
+  roundTableId String
+  sideId       String
+  body         String
+  order        Int
+
+  roundTable RoundTable     @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
+  side       RoundTableSide @relation(fields: [sideId], references: [id], onDelete: Cascade)
 }
 
 model LayoutBlock {

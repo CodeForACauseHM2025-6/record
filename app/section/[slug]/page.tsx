@@ -138,12 +138,33 @@ export default async function SectionPage({
 
       {/* ============ SECTION TITLE ============ */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8">
-        <h2 className="font-headline text-[32px] sm:text-[40px] font-bold leading-tight tracking-wide">
-          {sectionInfo.fullLabel ?? sectionInfo.label}
-        </h2>
-        <p className="font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] text-caption mt-1">
-          {formatDateLong(today)}
-        </p>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="font-headline text-[32px] sm:text-[40px] font-bold leading-tight tracking-wide">
+              {sectionInfo.fullLabel ?? sectionInfo.label}
+            </h2>
+            <p className="font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] text-caption mt-1">
+              {formatDateLong(today)}
+            </p>
+          </div>
+          {slug === "opinions" && (
+            <Link
+              href="/roundtable"
+              className="group shrink-0 hidden sm:flex items-center gap-2 font-headline text-[13px] font-bold tracking-[0.08em] uppercase text-maroon border border-maroon/30 px-4 py-2 hover:bg-maroon hover:text-white transition-colors"
+            >
+              The Round Table
+              <span className="transition-transform group-hover:translate-x-0.5">&rarr;</span>
+            </Link>
+          )}
+        </div>
+        {slug === "opinions" && (
+          <Link
+            href="/roundtable"
+            className="sm:hidden mt-3 inline-flex items-center gap-2 font-headline text-[12px] font-bold tracking-[0.08em] uppercase text-maroon"
+          >
+            The Round Table &rarr;
+          </Link>
+        )}
         <div className="mt-4 h-[2px] bg-rule" />
       </div>
 

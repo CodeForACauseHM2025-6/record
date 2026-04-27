@@ -126,4 +126,13 @@ export const ENCRYPTED_FIELDS: Record<string, Record<string, EncryptionMode>> = 
     caption: "random",
     altText: "random",
   },
+  RoundTable: {
+    prompt: "random",
+  },
+  RoundTableSide: {
+    label: "random",
+  },
+  RoundTableTurn: {
+    body: "random",
+  },
 };

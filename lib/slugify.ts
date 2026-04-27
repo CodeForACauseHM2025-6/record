@@ -13,3 +13,16 @@ export async function generateUniqueSlug(title: string): Promise<string> {
 
   return slug;
 }
+
+export async function generateUniqueRoundTableSlug(title: string): Promise<string> {
+  const base = slugifyLib(title, { lower: true, strict: true }) || "round-table";
+  let slug = base;
+  let suffix = 2;
+
+  while (await prisma.roundTable.findFirst({ where: { slug } })) {
+    slug = `${base}-${suffix}`;
+    suffix++;
+  }
+
+  return slug;
+}
