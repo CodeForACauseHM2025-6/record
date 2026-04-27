@@ -22,22 +22,20 @@ function requireEditor(session: { user?: { role?: string } } | null) {
   }
 }
 
-export async function createRoundTable(groupId: string, formData: FormData) {
+export async function createRoundTable(groupId: string) {
   const session = await auth();
   requireDashboardRole(session);
-
-  const prompt = (formData.get("prompt") as string)?.trim();
-  if (!prompt) throw new Error("Prompt is required");
 
   const group = await prisma.articleGroup.findUnique({ where: { id: groupId } });
   if (!group) throw new Error("Group not found");
 
-  const slug = await generateUniqueRoundTableSlug(prompt);
+  const placeholderPrompt = "Untitled Round Table";
+  const slug = await generateUniqueRoundTableSlug(placeholderPrompt);
 
   const rt = await prisma.roundTable.create({
     data: {
       slug,
-      prompt,
+      prompt: placeholderPrompt,
       groupId,
       sides: {
         create: [
@@ -100,6 +98,10 @@ export async function updateRoundTable(id: string, formData: FormData) {
     throw new Error("A round table must have exactly two sides");
   }
 
+  // A user can't be on both sides — keep them on side 0 if duplicated.
+  const sideAIds = new Set(sides[0].authorIds);
+  sides[1].authorIds = sides[1].authorIds.filter((uid) => !sideAIds.has(uid));
+
   await prisma.roundTable.update({
     where: { id },
     data: { prompt },
@@ -140,13 +142,13 @@ export async function updateRoundTable(id: string, formData: FormData) {
     }
   }
 
-  // Replace all turns
+  // Replace all turns. Strict alternation: side 0 first, then 1, 0, 1...
   await prisma.roundTableTurn.deleteMany({ where: { roundTableId: id } });
   if (turns.length > 0) {
     await prisma.roundTableTurn.createMany({
       data: turns.map((t, idx) => ({
         roundTableId: id,
-        sideId: sideIdByIndex[t.sideIndex] ?? sideIdByIndex[0],
+        sideId: sideIdByIndex[idx % 2],
         body: sanitizeHtml(t.body),
         order: idx,
       })),

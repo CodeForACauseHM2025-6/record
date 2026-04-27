@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 interface SideState {
   id: string | null;
@@ -41,47 +41,51 @@ export function RoundTableForm({
           { id: null, label: "Side B", authorIds: [] },
         ]
   );
-  const [turns, setTurns] = useState<TurnState[]>(initialTurns);
+  // Coerce any legacy turns to strict alternation: index 0 → side 0, 1 → 1, 2 → 0, ...
+  const [turns, setTurns] = useState<TurnState[]>(
+    initialTurns.map((t, i) => ({ ...t, sideIndex: i % 2 }))
+  );
 
   function updateSideLabel(i: number, label: string) {
     setSides(sides.map((s, idx) => (idx === i ? { ...s, label } : s)));
   }
 
-  function toggleSideAuthor(i: number, userId: string) {
+  function addSideAuthor(i: number, userId: string) {
     setSides(
       sides.map((s, idx) => {
         if (idx !== i) return s;
-        const has = s.authorIds.includes(userId);
-        return {
-          ...s,
-          authorIds: has ? s.authorIds.filter((u) => u !== userId) : [...s.authorIds, userId],
-        };
+        if (s.authorIds.includes(userId)) return s;
+        // Also remove from any other side (a user can only be on one side at a time)
+        return { ...s, authorIds: [...s.authorIds, userId] };
+      }).map((s, idx) => {
+        if (idx === i) return s;
+        return { ...s, authorIds: s.authorIds.filter((u) => u !== userId) };
       })
     );
   }
 
-  function addTurn(sideIndex: number) {
+  function removeSideAuthor(i: number, userId: string) {
+    setSides(
+      sides.map((s, idx) =>
+        idx === i ? { ...s, authorIds: s.authorIds.filter((u) => u !== userId) } : s
+      )
+    );
+  }
+
+  const userById = new Map(availableUsers.map((u) => [u.id, u]));
+
+  function addTurn() {
+    // Side alternates strictly: next turn's side is determined by current count.
+    const sideIndex = turns.length % 2;
     setTurns([...turns, { sideIndex, body: "" }]);
   }
 
-  function removeTurn(index: number) {
-    setTurns(turns.filter((_, i) => i !== index));
+  function removeLastTurn() {
+    setTurns(turns.slice(0, -1));
   }
 
   function updateTurnBody(index: number, body: string) {
     setTurns(turns.map((t, i) => (i === index ? { ...t, body } : t)));
-  }
-
-  function updateTurnSide(index: number, sideIndex: number) {
-    setTurns(turns.map((t, i) => (i === index ? { ...t, sideIndex } : t)));
-  }
-
-  function moveTurn(index: number, dir: -1 | 1) {
-    const next = [...turns];
-    const target = index + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    setTurns(next);
   }
 
   return (
@@ -105,62 +109,73 @@ export function RoundTableForm({
       <div>
         <h3 className="font-headline text-[18px] font-bold tracking-wide mb-3">Sides</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {sides.map((side, i) => (
-            <div key={i} className="border border-ink/10 p-5">
-              <label className="block font-headline text-[12px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
-                Side {i + 1} Label
-              </label>
-              <input
-                type="text"
-                value={side.label}
-                onChange={(e) => updateSideLabel(i, e.target.value)}
-                maxLength={80}
-                placeholder={`Side ${i + 1}`}
-                className="w-full border border-ink/20 px-3 py-2 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors"
-              />
-              <input type="hidden" name={`side_${i}_id`} value={side.id ?? ""} />
-              <input type="hidden" name={`side_${i}_label`} value={side.label} />
-              <input
-                type="hidden"
-                name={`side_${i}_authors`}
-                value={side.authorIds.join(",")}
-              />
+          {sides.map((side, i) => {
+            const takenIds = new Set(side.authorIds);
+            const otherSideIds = new Set(
+              sides.filter((_, idx) => idx !== i).flatMap((s) => s.authorIds)
+            );
+            const searchable = availableUsers.filter(
+              (u) => !takenIds.has(u.id) && !otherSideIds.has(u.id)
+            );
+            return (
+              <div key={i} className="border border-ink/10 p-5">
+                <label className="block font-headline text-[12px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
+                  Side {i + 1} Label
+                </label>
+                <input
+                  type="text"
+                  value={side.label}
+                  onChange={(e) => updateSideLabel(i, e.target.value)}
+                  maxLength={80}
+                  placeholder={`Side ${i + 1}`}
+                  className="w-full border border-ink/20 px-3 py-2 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors"
+                />
+                <input type="hidden" name={`side_${i}_id`} value={side.id ?? ""} />
+                <input type="hidden" name={`side_${i}_label`} value={side.label} />
+                <input
+                  type="hidden"
+                  name={`side_${i}_authors`}
+                  value={side.authorIds.join(",")}
+                />
 
-              <p className="mt-4 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase text-caption">
-                Authors
-              </p>
-              <div className="mt-2 max-h-56 overflow-y-auto border border-ink/10 divide-y divide-ink/10">
-                {availableUsers.length === 0 ? (
-                  <p className="px-3 py-3 font-headline text-[13px] text-caption italic">
-                    No staff users found.
-                  </p>
-                ) : (
-                  availableUsers.map((u) => {
-                    const checked = side.authorIds.includes(u.id);
-                    const otherSide = sides.find((s, idx) => idx !== i && s.authorIds.includes(u.id));
-                    return (
-                      <label
-                        key={u.id}
-                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-50 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleSideAuthor(i, u.id)}
-                        />
-                        <span className="font-headline text-[14px] tracking-wide">{u.name}</span>
-                        {otherSide && (
-                          <span className="ml-auto font-headline text-[11px] text-caption italic">
-                            on {otherSide.label}
+                <p className="mt-4 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
+                  Authors
+                </p>
+
+                {side.authorIds.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {side.authorIds.map((uid) => {
+                      const u = userById.get(uid);
+                      if (!u) return null;
+                      return (
+                        <div
+                          key={uid}
+                          className="flex items-center justify-between gap-2 bg-neutral-50 px-3 py-1.5"
+                        >
+                          <span className="font-headline text-[14px] tracking-wide">
+                            {u.name}
                           </span>
-                        )}
-                      </label>
-                    );
-                  })
+                          <button
+                            type="button"
+                            onClick={() => removeSideAuthor(i, uid)}
+                            className="cursor-pointer text-caption/40 hover:text-maroon transition-colors text-[18px] px-1"
+                            title="Remove author"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
+
+                <SideAuthorSearch
+                  users={searchable}
+                  onSelect={(u) => addSideAuthor(i, u.id)}
+                />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <input type="hidden" name="side_count" value={sides.length} />
       </div>
@@ -174,61 +189,40 @@ export function RoundTableForm({
           </p>
         </div>
 
+        <p className="mt-1 font-headline text-[12px] text-caption">
+          {sides[0].label} always goes first; sides alternate.
+        </p>
+
         {turns.length === 0 ? (
           <p className="mt-3 font-headline text-[13px] text-caption italic">
-            No arguments yet. Use the buttons below to add the first turn.
+            No arguments yet. Use the button below to add the first turn.
           </p>
         ) : (
           <div className="mt-4 space-y-4">
             {turns.map((turn, i) => {
               const side = sides[turn.sideIndex] ?? sides[0];
+              const isLast = i === turns.length - 1;
               return (
                 <div key={i} className="border border-ink/10 p-4">
                   <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <select
-                        value={turn.sideIndex}
-                        onChange={(e) => updateTurnSide(i, parseInt(e.target.value, 10))}
-                        className="border border-ink/20 px-3 py-1.5 font-headline text-[13px] font-semibold tracking-wide outline-none focus:border-ink transition-colors bg-white"
-                      >
-                        {sides.map((s, idx) => (
-                          <option key={idx} value={idx}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-headline text-[13px] font-bold tracking-[0.08em] uppercase">
+                        {side.label}
+                      </span>
                       <span className="font-headline text-[12px] text-caption">
                         Turn {i + 1}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    {isLast && (
                       <button
                         type="button"
-                        onClick={() => moveTurn(i, -1)}
-                        disabled={i === 0}
-                        className="cursor-pointer text-caption/60 hover:text-ink transition-colors disabled:opacity-20 disabled:cursor-not-allowed px-2"
-                        title="Move up"
-                      >
-                        &uarr;
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveTurn(i, 1)}
-                        disabled={i === turns.length - 1}
-                        className="cursor-pointer text-caption/60 hover:text-ink transition-colors disabled:opacity-20 disabled:cursor-not-allowed px-2"
-                        title="Move down"
-                      >
-                        &darr;
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeTurn(i)}
+                        onClick={removeLastTurn}
                         className="cursor-pointer text-caption/40 hover:text-maroon transition-colors text-[18px] px-2"
-                        title="Remove turn"
+                        title="Remove last turn"
                       >
                         &times;
                       </button>
-                    </div>
+                    )}
                   </div>
                   <textarea
                     value={turn.body}
@@ -246,17 +240,14 @@ export function RoundTableForm({
         )}
         <input type="hidden" name="turn_count" value={turns.length} />
 
-        <div className="mt-4 flex flex-wrap gap-3">
-          {sides.map((side, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => addTurn(i)}
-              className="cursor-pointer font-headline text-[13px] tracking-wide border border-ink/20 px-4 py-2 hover:border-ink hover:bg-neutral-50 transition-colors"
-            >
-              + Add {side.label} turn
-            </button>
-          ))}
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={addTurn}
+            className="cursor-pointer font-headline text-[13px] tracking-wide border border-ink/20 px-4 py-2 hover:border-ink hover:bg-neutral-50 transition-colors"
+          >
+            + Add {sides[turns.length % 2].label} turn
+          </button>
         </div>
       </div>
 
@@ -269,5 +260,62 @@ export function RoundTableForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function SideAuthorSearch({
+  users,
+  onSelect,
+}: {
+  users: AvailableUser[];
+  onSelect: (user: AvailableUser) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = query.length > 0
+    ? users.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()))
+    : users;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Search for an author to add..."
+        className="w-full border border-ink/20 px-3 py-2 font-headline text-[14px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-ink/15 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-20 max-h-48 overflow-y-auto">
+          {filtered.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onSelect(u);
+                setQuery("");
+                setOpen(false);
+              }}
+              className="cursor-pointer w-full text-left px-3 py-2 font-headline text-[14px] tracking-wide hover:bg-neutral-50 hover:text-maroon transition-colors"
+            >
+              {u.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && query.length > 0 && filtered.length === 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-ink/15 z-20 px-3 py-2 font-headline text-[13px] text-caption italic">
+          No matches.
+        </div>
+      )}
+    </div>
   );
 }

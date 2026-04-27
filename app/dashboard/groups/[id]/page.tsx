@@ -263,12 +263,20 @@ export default async function GroupEditorPage({
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-headline text-[20px] font-bold tracking-wide">Round Tables</h3>
-            <Link
-              href={`/dashboard/groups/${id}/roundtables/new`}
-              className="font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-4 py-2 hover:bg-maroon transition-colors"
+            <form
+              action={async () => {
+                "use server";
+                const { createRoundTable } = await import("@/app/dashboard/roundtable-actions");
+                await createRoundTable(id);
+              }}
             >
-              Create Round Table
-            </Link>
+              <button
+                type="submit"
+                className="cursor-pointer font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-4 py-2 hover:bg-maroon transition-colors"
+              >
+                Create Round Table
+              </button>
+            </form>
           </div>
 
           {group.roundTables.length > 0 ? (
