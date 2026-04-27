@@ -31,12 +31,6 @@ enum ArticleStatus {
   ARCHIVED
 }
 
-enum RoundTableStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -153,14 +147,12 @@ model ArticleGroup {
 }
 
 model RoundTable {
-  id          String           @id @default(uuid())
-  slug        String           @unique
-  prompt      String           @db.VarChar(500)
-  status      RoundTableStatus @default(DRAFT)
-  publishedAt DateTime?
-  groupId     String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  prompt    String   @db.VarChar(500)
+  groupId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   group ArticleGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sides RoundTableSide[]

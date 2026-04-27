@@ -8,8 +8,7 @@ interface RoundTableData {
   id: string;
   slug: string;
   prompt: string;
-  status: string;
-  publishedAt: Date | null;
+  group: { status: string; publishedAt: Date | null } | null;
   sides: {
     id: string;
     label: string;
@@ -29,6 +28,7 @@ export default async function RoundTablePage({
   const rt = (await prisma.roundTable.findUnique({
     where: { slug },
     include: {
+      group: { select: { status: true, publishedAt: true } },
       sides: {
         orderBy: { order: "asc" },
         include: { authors: { include: { user: { select: { id: true, name: true } } } } },
@@ -37,14 +37,14 @@ export default async function RoundTablePage({
     },
   })) as unknown as RoundTableData | null;
 
-  if (!rt || rt.status !== "PUBLISHED") notFound();
+  if (!rt || rt.group?.status !== "PUBLISHED") notFound();
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Round Table" badge="Round Table" />
 
       <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-12 pb-20 w-full">
-        <RoundTableDisplay data={rt} />
+        <RoundTableDisplay data={{ ...rt, publishedAt: rt.group.publishedAt }} />
       </main>
       <Footer />
     </div>

@@ -5,19 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { RoundTableForm } from "@/app/dashboard/roundtable-form";
 import { SavedToast } from "@/app/dashboard/saved-toast";
-import {
-  updateRoundTable,
-  publishRoundTable,
-  unpublishRoundTable,
-  archiveRoundTable,
-  deleteRoundTable,
-} from "@/app/dashboard/roundtable-actions";
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Draft",
-  PUBLISHED: "Published",
-  ARCHIVED: "Archived",
-};
+import { updateRoundTable, deleteRoundTable } from "@/app/dashboard/roundtable-actions";
 
 const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
@@ -42,13 +30,12 @@ export default async function EditRoundTablePage({
         include: { authors: { include: { user: true } } },
       },
       turns: { orderBy: { order: "asc" } },
-      group: { select: { id: true, name: true } },
+      group: { select: { id: true, name: true, status: true } },
     },
   });
 
   if (!rt) notFound();
 
-  // Map turn.sideId → side index (0 or 1)
   const sideIndexById: Record<string, number> = {};
   rt.sides.forEach((s, i) => {
     sideIndexById[s.id] = i;
@@ -71,32 +58,19 @@ export default async function EditRoundTablePage({
     orderBy: { name: "asc" },
   });
 
-  const canEditorize = EDITOR_ROLES.includes(session.user.role ?? "");
+  const canDelete = EDITOR_ROLES.includes(session.user.role ?? "");
 
   const updateAction = async (formData: FormData) => {
     "use server";
     await updateRoundTable(id, formData);
   };
 
-  const publishAction = async () => {
-    "use server";
-    await publishRoundTable(id);
-  };
-
-  const unpublishAction = async () => {
-    "use server";
-    await unpublishRoundTable(id);
-  };
-
-  const archiveAction = async () => {
-    "use server";
-    await archiveRoundTable(id);
-  };
-
   const deleteAction = async () => {
     "use server";
     await deleteRoundTable(id);
   };
+
+  const groupPublished = rt.group?.status === "PUBLISHED";
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -115,17 +89,9 @@ export default async function EditRoundTablePage({
           <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
             Edit Round Table
           </h2>
-          <span
-            className={`shrink-0 font-headline text-[12px] font-semibold tracking-[0.08em] uppercase px-3 py-1 ${
-              rt.status === "PUBLISHED"
-                ? "bg-green-50 text-green-800"
-                : rt.status === "ARCHIVED"
-                ? "bg-neutral-100 text-neutral-600"
-                : "bg-amber-50 text-amber-800"
-            }`}
-          >
-            {STATUS_LABELS[rt.status]}
-          </span>
+          <p className="font-headline text-[12px] text-caption">
+            Visibility follows the group
+          </p>
         </div>
         <div className="mt-3 h-[2px] bg-rule" />
 
@@ -137,61 +103,30 @@ export default async function EditRoundTablePage({
           availableUsers={staff.map((u) => ({ id: u.id, name: u.name }))}
         />
 
-        {canEditorize && (
-          <div className="mt-12 pt-8 border-t border-rule space-y-3">
-            <h3 className="font-headline text-[18px] font-bold tracking-wide">Status</h3>
-            <div className="flex flex-wrap gap-3">
-              {rt.status !== "PUBLISHED" && (
-                <form action={publishAction}>
-                  <button
-                    type="submit"
-                    className="cursor-pointer font-headline text-[14px] font-bold tracking-wide bg-green-700 text-white px-5 py-2 hover:bg-green-800 transition-colors"
-                  >
-                    Publish
-                  </button>
-                </form>
-              )}
-              {rt.status === "PUBLISHED" && (
-                <form action={unpublishAction}>
-                  <button
-                    type="submit"
-                    className="cursor-pointer font-headline text-[14px] font-bold tracking-wide bg-amber-700 text-white px-5 py-2 hover:bg-amber-800 transition-colors"
-                  >
-                    Unpublish
-                  </button>
-                </form>
-              )}
-              {rt.status !== "ARCHIVED" && (
-                <form action={archiveAction}>
-                  <button
-                    type="submit"
-                    className="cursor-pointer font-headline text-[14px] tracking-wide border border-ink/20 text-ink px-5 py-2 hover:border-ink hover:bg-neutral-50 transition-colors"
-                  >
-                    Archive
-                  </button>
-                </form>
-              )}
-              <form action={deleteAction}>
-                <button
-                  type="submit"
-                  className="cursor-pointer font-headline text-[14px] tracking-wide text-maroon hover:underline"
-                >
-                  Delete
-                </button>
-              </form>
-            </div>
-            {rt.status === "PUBLISHED" && (
-              <p className="font-headline text-[13px] text-caption">
-                <Link
-                  href={`/roundtable/${rt.slug}`}
-                  className="hover:text-maroon transition-colors"
-                >
-                  View public page &rarr;
-                </Link>
-              </p>
-            )}
-          </div>
-        )}
+        <div className="mt-12 pt-8 border-t border-rule flex items-center justify-between gap-3">
+          {groupPublished ? (
+            <Link
+              href={`/roundtable/${rt.slug}`}
+              className="font-headline text-[13px] text-caption hover:text-maroon transition-colors"
+            >
+              View public page &rarr;
+            </Link>
+          ) : (
+            <span className="font-headline text-[13px] text-caption italic">
+              Will go live when the group is published.
+            </span>
+          )}
+          {canDelete && (
+            <form action={deleteAction}>
+              <button
+                type="submit"
+                className="cursor-pointer font-headline text-[14px] tracking-wide text-maroon hover:underline"
+              >
+                Delete Round Table
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

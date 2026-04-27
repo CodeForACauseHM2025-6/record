@@ -8,7 +8,7 @@ CREATE TABLE "RoundTable" (
     "prompt" VARCHAR(500) NOT NULL,
     "status" "RoundTableStatus" NOT NULL DEFAULT 'DRAFT',
     "publishedAt" TIMESTAMP(3),
-    "groupId" TEXT NOT NULL,
+    "groupId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -52,7 +52,7 @@ CREATE UNIQUE INDEX "RoundTable_slug_key" ON "RoundTable"("slug");
 CREATE UNIQUE INDEX "RoundTableSideAuthor_sideId_userId_key" ON "RoundTableSideAuthor"("sideId", "userId");
 
 -- AddForeignKey
-ALTER TABLE "RoundTable" ADD CONSTRAINT "RoundTable_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "ArticleGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RoundTable" ADD CONSTRAINT "RoundTable_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "ArticleGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RoundTableSide" ADD CONSTRAINT "RoundTableSide_roundTableId_fkey" FOREIGN KEY ("roundTableId") REFERENCES "RoundTable"("id") ON DELETE CASCADE ON UPDATE CASCADE;

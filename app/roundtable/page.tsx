@@ -8,8 +8,7 @@ interface RoundTableData {
   id: string;
   slug: string;
   prompt: string;
-  status: string;
-  publishedAt: Date | null;
+  group: { publishedAt: Date | null } | null;
   sides: {
     id: string;
     label: string;
@@ -29,9 +28,10 @@ function formatDateShort(date: Date): string {
 
 export default async function RoundTableIndexPage() {
   const published = (await prisma.roundTable.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    where: { group: { status: "PUBLISHED" } },
+    orderBy: [{ group: { publishedAt: "desc" } }, { updatedAt: "desc" }],
     include: {
+      group: { select: { publishedAt: true } },
       sides: {
         orderBy: { order: "asc" },
         include: { authors: { include: { user: { select: { id: true, name: true } } } } },
@@ -50,7 +50,7 @@ export default async function RoundTableIndexPage() {
       <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-12 pb-20 w-full">
         {latest ? (
           <>
-            <RoundTableDisplay data={latest} />
+            <RoundTableDisplay data={{ ...latest, publishedAt: latest.group?.publishedAt ?? null }} />
 
             {archive.length > 0 && (
               <section className="mt-24 max-w-[820px] mx-auto">
@@ -69,8 +69,8 @@ export default async function RoundTableIndexPage() {
                           {rt.prompt}
                         </p>
                         <p className="mt-1 font-headline text-[12px] text-caption">
-                          {rt.publishedAt && formatDateShort(rt.publishedAt)}
-                          {rt.publishedAt && " · "}
+                          {rt.group?.publishedAt && formatDateShort(rt.group.publishedAt)}
+                          {rt.group?.publishedAt && " · "}
                           {rt.sides
                             .map((s) =>
                               s.authors.map((a) => a.user.name).join(", ") || "(no authors)"

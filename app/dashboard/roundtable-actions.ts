@@ -29,6 +29,11 @@ export async function createRoundTable(groupId: string) {
   const group = await prisma.articleGroup.findUnique({ where: { id: groupId } });
   if (!group) throw new Error("Group not found");
 
+  const existing = await prisma.roundTable.findUnique({ where: { groupId } });
+  if (existing) {
+    redirect(`/dashboard/roundtables/${existing.id}/edit`);
+  }
+
   const placeholderPrompt = "Untitled Round Table";
   const slug = await generateUniqueRoundTableSlug(placeholderPrompt);
 
@@ -56,7 +61,6 @@ interface SidePayload {
 }
 
 interface TurnPayload {
-  sideIndex: number;
   body: string;
 }
 
@@ -77,9 +81,8 @@ function parseTurns(formData: FormData): TurnPayload[] {
   const count = parseInt((formData.get("turn_count") as string) ?? "0", 10) || 0;
   const turns: TurnPayload[] = [];
   for (let i = 0; i < count; i++) {
-    const sideIndex = parseInt((formData.get(`turn_${i}_side`) as string) ?? "0", 10) || 0;
     const body = ((formData.get(`turn_${i}_body`) as string) ?? "").trim();
-    if (body) turns.push({ sideIndex, body });
+    if (body) turns.push({ body });
   }
   return turns;
 }
@@ -102,9 +105,10 @@ export async function updateRoundTable(id: string, formData: FormData) {
   const sideAIds = new Set(sides[0].authorIds);
   sides[1].authorIds = sides[1].authorIds.filter((uid) => !sideAIds.has(uid));
 
-  await prisma.roundTable.update({
+  const existing = await prisma.roundTable.update({
     where: { id },
     data: { prompt },
+    select: { groupId: true },
   });
 
   // Update sides: keep stable IDs, update label, replace authors
@@ -115,21 +119,20 @@ export async function updateRoundTable(id: string, formData: FormData) {
 
   const sideIdByIndex: string[] = [];
   for (let i = 0; i < sides.length; i++) {
-    const existing = existingSides[i];
+    const existingSide = existingSides[i];
     const payload = sides[i];
-    if (existing) {
+    if (existingSide) {
       await prisma.roundTableSide.update({
-        where: { id: existing.id },
+        where: { id: existingSide.id },
         data: { label: payload.label, order: i },
       });
-      sideIdByIndex.push(existing.id);
+      sideIdByIndex.push(existingSide.id);
     } else {
       const created = await prisma.roundTableSide.create({
         data: { roundTableId: id, label: payload.label, order: i },
       });
       sideIdByIndex.push(created.id);
     }
-    // Replace authors
     await prisma.roundTableSideAuthor.deleteMany({ where: { sideId: sideIdByIndex[i] } });
     if (payload.authorIds.length > 0) {
       await prisma.roundTableSideAuthor.createMany({
@@ -156,67 +159,20 @@ export async function updateRoundTable(id: string, formData: FormData) {
   }
 
   revalidatePath(`/dashboard/roundtables/${id}/edit`);
-  const updatedGroupId = (await prisma.roundTable.findUnique({
-    where: { id },
-    select: { groupId: true },
-  }))?.groupId;
-  if (updatedGroupId) revalidatePath(`/dashboard/groups/${updatedGroupId}`);
+  revalidatePath(`/dashboard/groups/${existing.groupId}`);
   revalidatePath("/roundtable");
   redirect(`/dashboard/roundtables/${id}/edit?saved=1`);
-}
-
-async function getRoundTableGroupId(id: string): Promise<string | null> {
-  const rt = await prisma.roundTable.findUnique({
-    where: { id },
-    select: { groupId: true },
-  });
-  return rt?.groupId ?? null;
-}
-
-export async function publishRoundTable(id: string) {
-  const session = await auth();
-  requireEditor(session);
-  const groupId = await getRoundTableGroupId(id);
-  await prisma.roundTable.update({
-    where: { id },
-    data: { status: "PUBLISHED", publishedAt: new Date() },
-  });
-  revalidatePath("/roundtable");
-  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
-  revalidatePath(`/dashboard/roundtables/${id}/edit`);
-}
-
-export async function unpublishRoundTable(id: string) {
-  const session = await auth();
-  requireEditor(session);
-  const groupId = await getRoundTableGroupId(id);
-  await prisma.roundTable.update({
-    where: { id },
-    data: { status: "DRAFT", publishedAt: null },
-  });
-  revalidatePath("/roundtable");
-  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
-  revalidatePath(`/dashboard/roundtables/${id}/edit`);
-}
-
-export async function archiveRoundTable(id: string) {
-  const session = await auth();
-  requireEditor(session);
-  const groupId = await getRoundTableGroupId(id);
-  await prisma.roundTable.update({
-    where: { id },
-    data: { status: "ARCHIVED" },
-  });
-  revalidatePath("/roundtable");
-  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
 }
 
 export async function deleteRoundTable(id: string) {
   const session = await auth();
   requireEditor(session);
-  const groupId = await getRoundTableGroupId(id);
+  const rt = await prisma.roundTable.findUnique({
+    where: { id },
+    select: { groupId: true },
+  });
   await prisma.roundTable.delete({ where: { id } });
   revalidatePath("/roundtable");
-  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
-  redirect(groupId ? `/dashboard/groups/${groupId}` : "/dashboard");
+  if (rt) revalidatePath(`/dashboard/groups/${rt.groupId}`);
+  redirect(rt ? `/dashboard/groups/${rt.groupId}` : "/dashboard");
 }
