@@ -18,30 +18,20 @@ interface AvailableUser {
   name: string;
 }
 
-interface AvailableGroup {
-  id: string;
-  name: string;
-  status: string;
-}
-
 interface RoundTableFormProps {
   action: (formData: FormData) => Promise<void>;
   defaultPrompt: string;
-  defaultGroupId: string | null;
   initialSides: SideState[];
   initialTurns: TurnState[];
   availableUsers: AvailableUser[];
-  availableGroups: AvailableGroup[];
 }
 
 export function RoundTableForm({
   action,
   defaultPrompt,
-  defaultGroupId,
   initialSides,
   initialTurns,
   availableUsers,
-  availableGroups,
 }: RoundTableFormProps) {
   const [sides, setSides] = useState<SideState[]>(
     initialSides.length === 2
@@ -109,25 +99,6 @@ export function RoundTableForm({
           defaultValue={defaultPrompt}
           className="w-full border border-ink/20 px-4 py-3 font-headline text-[18px] leading-snug placeholder:text-caption/30 outline-none focus:border-ink transition-colors resize-y"
         />
-      </div>
-
-      {/* Group */}
-      <div>
-        <label className="block font-headline text-[13px] font-semibold tracking-[0.08em] uppercase text-caption mb-2">
-          Group (optional)
-        </label>
-        <select
-          name="groupId"
-          defaultValue={defaultGroupId ?? ""}
-          className="w-full border border-ink/20 px-4 py-3 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors bg-white"
-        >
-          <option value="">&mdash; None &mdash;</option>
-          {availableGroups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name} ({g.status.toLowerCase()})
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Sides */}

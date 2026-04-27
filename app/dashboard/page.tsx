@@ -105,23 +105,6 @@ export default async function DashboardPage({
           </p>
         )}
 
-        {/* ============ ROUND TABLES SECTION ============ */}
-        <div className="mt-16 flex items-baseline justify-between gap-4">
-          <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
-            Round Tables
-          </h2>
-          <Link
-            href="/dashboard/roundtables"
-            className="font-headline text-[13px] tracking-wide text-maroon hover:underline"
-          >
-            Manage &rarr;
-          </Link>
-        </div>
-        <div className="mt-3 h-[2px] bg-rule" />
-        <p className="mt-4 font-headline text-[14px] text-caption">
-          Weekly back-and-forth debates between staff. Build, publish, and archive round tables.
-        </p>
-
       </div>
     </div>
   );

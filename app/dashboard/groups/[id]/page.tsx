@@ -48,6 +48,23 @@ export default async function GroupEditorPage({
         },
         orderBy: { createdAt: "desc" },
       },
+      roundTables: {
+        select: {
+          id: true,
+          slug: true,
+          prompt: true,
+          status: true,
+          sides: {
+            orderBy: { order: "asc" },
+            select: {
+              label: true,
+              authors: { select: { user: { select: { name: true } } } },
+            },
+          },
+          turns: { select: { id: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
       blocks: {
         orderBy: { order: "asc" },
         include: {
@@ -237,6 +254,74 @@ export default async function GroupEditorPage({
           ) : (
             <p className="font-headline text-[14px] text-caption/50 italic">
               No articles yet. Create one above.
+            </p>
+          )}
+        </div>
+        <div className="mt-6 h-[2px] bg-rule" />
+
+        {/* Round Tables */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline text-[20px] font-bold tracking-wide">Round Tables</h3>
+            <Link
+              href={`/dashboard/groups/${id}/roundtables/new`}
+              className="font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-4 py-2 hover:bg-maroon transition-colors"
+            >
+              Create Round Table
+            </Link>
+          </div>
+
+          {group.roundTables.length > 0 ? (
+            <div className="space-y-1.5">
+              {group.roundTables.map((rt) => {
+                const sideSummary = rt.sides
+                  .map((s) => {
+                    const names = s.authors.map((a) => a.user.name).join(", ") || "(no authors)";
+                    return `${s.label}: ${names}`;
+                  })
+                  .join("  vs  ");
+                return (
+                  <div
+                    key={rt.id}
+                    className="flex items-center justify-between gap-2 border border-ink/10 px-3 py-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <Link
+                          href={`/dashboard/roundtables/${rt.id}/edit`}
+                          className="font-headline text-[14px] font-semibold truncate hover:text-maroon transition-colors"
+                        >
+                          {rt.prompt}
+                        </Link>
+                        <span
+                          className={`font-headline text-[10px] font-semibold tracking-[0.08em] uppercase shrink-0 px-2 py-0.5 ${
+                            rt.status === "PUBLISHED"
+                              ? "bg-green-50 text-green-800"
+                              : rt.status === "ARCHIVED"
+                              ? "bg-neutral-100 text-neutral-600"
+                              : "bg-amber-50 text-amber-800"
+                          }`}
+                        >
+                          {rt.status}
+                        </span>
+                      </div>
+                      <p className="font-headline text-[12px] text-caption mt-0.5 truncate">
+                        {sideSummary} &middot; {rt.turns.length} turns
+                      </p>
+                    </div>
+                    <Link
+                      href={`/dashboard/roundtables/${rt.id}/edit`}
+                      className="font-headline text-[12px] text-maroon hover:underline shrink-0"
+                    >
+                      Edit
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-headline text-[14px] text-caption/50 italic">
+              No round tables yet. Create one above.
             </p>
           )}
         </div>

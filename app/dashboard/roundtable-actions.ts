@@ -22,12 +22,15 @@ function requireEditor(session: { user?: { role?: string } } | null) {
   }
 }
 
-export async function createRoundTable(formData: FormData) {
+export async function createRoundTable(groupId: string, formData: FormData) {
   const session = await auth();
   requireDashboardRole(session);
 
   const prompt = (formData.get("prompt") as string)?.trim();
   if (!prompt) throw new Error("Prompt is required");
+
+  const group = await prisma.articleGroup.findUnique({ where: { id: groupId } });
+  if (!group) throw new Error("Group not found");
 
   const slug = await generateUniqueRoundTableSlug(prompt);
 
@@ -35,6 +38,7 @@ export async function createRoundTable(formData: FormData) {
     data: {
       slug,
       prompt,
+      groupId,
       sides: {
         create: [
           { label: "Side A", order: 0 },
@@ -89,7 +93,6 @@ export async function updateRoundTable(id: string, formData: FormData) {
   const prompt = ((formData.get("prompt") as string) ?? "").trim();
   if (!prompt) throw new Error("Prompt is required");
 
-  const groupId = ((formData.get("groupId") as string) ?? "").trim() || null;
   const sides = parseSides(formData);
   const turns = parseTurns(formData);
 
@@ -99,7 +102,7 @@ export async function updateRoundTable(id: string, formData: FormData) {
 
   await prisma.roundTable.update({
     where: { id },
-    data: { prompt, groupId },
+    data: { prompt },
   });
 
   // Update sides: keep stable IDs, update label, replace authors
@@ -151,51 +154,67 @@ export async function updateRoundTable(id: string, formData: FormData) {
   }
 
   revalidatePath(`/dashboard/roundtables/${id}/edit`);
-  revalidatePath("/dashboard/roundtables");
+  const updatedGroupId = (await prisma.roundTable.findUnique({
+    where: { id },
+    select: { groupId: true },
+  }))?.groupId;
+  if (updatedGroupId) revalidatePath(`/dashboard/groups/${updatedGroupId}`);
   revalidatePath("/roundtable");
   redirect(`/dashboard/roundtables/${id}/edit?saved=1`);
+}
+
+async function getRoundTableGroupId(id: string): Promise<string | null> {
+  const rt = await prisma.roundTable.findUnique({
+    where: { id },
+    select: { groupId: true },
+  });
+  return rt?.groupId ?? null;
 }
 
 export async function publishRoundTable(id: string) {
   const session = await auth();
   requireEditor(session);
+  const groupId = await getRoundTableGroupId(id);
   await prisma.roundTable.update({
     where: { id },
     data: { status: "PUBLISHED", publishedAt: new Date() },
   });
   revalidatePath("/roundtable");
-  revalidatePath("/dashboard/roundtables");
+  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/roundtables/${id}/edit`);
 }
 
 export async function unpublishRoundTable(id: string) {
   const session = await auth();
   requireEditor(session);
+  const groupId = await getRoundTableGroupId(id);
   await prisma.roundTable.update({
     where: { id },
     data: { status: "DRAFT", publishedAt: null },
   });
   revalidatePath("/roundtable");
-  revalidatePath("/dashboard/roundtables");
+  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/roundtables/${id}/edit`);
 }
 
 export async function archiveRoundTable(id: string) {
   const session = await auth();
   requireEditor(session);
+  const groupId = await getRoundTableGroupId(id);
   await prisma.roundTable.update({
     where: { id },
     data: { status: "ARCHIVED" },
   });
   revalidatePath("/roundtable");
-  revalidatePath("/dashboard/roundtables");
+  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
 }
 
 export async function deleteRoundTable(id: string) {
   const session = await auth();
   requireEditor(session);
+  const groupId = await getRoundTableGroupId(id);
   await prisma.roundTable.delete({ where: { id } });
   revalidatePath("/roundtable");
-  revalidatePath("/dashboard/roundtables");
-  redirect("/dashboard/roundtables");
+  if (groupId) revalidatePath(`/dashboard/groups/${groupId}`);
+  redirect(groupId ? `/dashboard/groups/${groupId}` : "/dashboard");
 }

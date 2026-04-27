@@ -158,11 +158,11 @@ model RoundTable {
   prompt      String           @db.VarChar(500)
   status      RoundTableStatus @default(DRAFT)
   publishedAt DateTime?
-  groupId     String?
+  groupId     String
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  group ArticleGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  group ArticleGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sides RoundTableSide[]
   turns RoundTableTurn[]
 }

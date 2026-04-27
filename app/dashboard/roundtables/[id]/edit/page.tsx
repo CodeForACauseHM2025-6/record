@@ -65,17 +65,11 @@ export default async function EditRoundTablePage({
     body: t.body,
   }));
 
-  const [staff, groups] = await Promise.all([
-    prisma.user.findMany({
-      where: { role: { not: "READER" } },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.articleGroup.findMany({
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, name: true, status: true },
-    }),
-  ]);
+  const staff = await prisma.user.findMany({
+    where: { role: { not: "READER" } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   const canEditorize = EDITOR_ROLES.includes(session.user.role ?? "");
 
@@ -111,10 +105,10 @@ export default async function EditRoundTablePage({
 
       <div className="max-w-[900px] mx-auto px-4 sm:px-8 pt-8 pb-16 w-full">
         <Link
-          href="/dashboard/roundtables"
+          href={`/dashboard/groups/${rt.groupId}`}
           className="font-headline text-[13px] tracking-wide text-caption hover:text-maroon transition-colors"
         >
-          &larr; Round Tables
+          &larr; {rt.group?.name ?? "Group"}
         </Link>
 
         <div className="mt-3 flex items-baseline justify-between gap-4">
@@ -138,15 +132,9 @@ export default async function EditRoundTablePage({
         <RoundTableForm
           action={updateAction}
           defaultPrompt={rt.prompt}
-          defaultGroupId={rt.groupId}
           initialSides={initialSides}
           initialTurns={initialTurns}
           availableUsers={staff.map((u) => ({ id: u.id, name: u.name }))}
-          availableGroups={groups.map((g) => ({
-            id: g.id,
-            name: g.name,
-            status: g.status,
-          }))}
         />
 
         {canEditorize && (
