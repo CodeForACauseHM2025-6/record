@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface IntroAuthor {
   id: string;
@@ -115,10 +116,11 @@ export function RoundTableSpinIntro({
   }
 
   if (phase !== "playing") return null;
+  if (typeof document === "undefined") return null;
 
   // Distribute authors around the rim
   const total = authors.length || 1;
-  return (
+  const overlay = (
     <>
       <style>{`
         @keyframes rt-spin {
@@ -284,4 +286,6 @@ export function RoundTableSpinIntro({
       </div>
     </>
   );
+
+  return createPortal(overlay, document.body);
 }

@@ -4,8 +4,7 @@ import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import { RoundTableDisplay } from "@/app/roundtable/round-table-display";
 import { RoundTableSpinIntro } from "@/app/roundtable/round-table-spin-intro";
-import { PastRoundTablesSidebar } from "@/app/roundtable/past-roundtables-sidebar";
-import { IntroControls } from "@/app/roundtable/intro-controls";
+import { PastRoundTablesPanel } from "@/app/roundtable/past-roundtables-panel";
 
 interface RoundTableData {
   id: string;
@@ -21,7 +20,7 @@ interface RoundTableData {
   turns: { id: string; sideId: string; body: string; order: number }[];
 }
 
-interface SidebarItem {
+interface ArchiveItem {
   id: string;
   slug: string;
   prompt: string;
@@ -70,7 +69,7 @@ export default async function RoundTablePage({
           },
         },
       },
-    }) as unknown as Promise<SidebarItem[]>,
+    }) as unknown as Promise<ArchiveItem[]>,
   ]);
 
   if (!rt || rt.group?.status !== "PUBLISHED") notFound();
@@ -88,22 +87,16 @@ export default async function RoundTablePage({
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="Round Table" badge="Round Table" />
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-12 pb-20 w-full flex-1">
+      <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-8 pb-20 w-full flex-1">
         <RoundTableSpinIntro slug={rt.slug} authors={introAuthors} prompt={rt.prompt} />
 
-        <div className="flex flex-col lg:flex-row gap-10 lg:gap-12">
-          <div className="lg:flex-1 min-w-0">
-            <RoundTableDisplay
-              data={{ ...rt, publishedAt: rt.group.publishedAt }}
-            />
-          </div>
-          <div className="lg:w-[300px] shrink-0 lg:sticky lg:top-6 lg:self-start">
-            {archive.length > 0 && (
-              <PastRoundTablesSidebar items={archive} currentSlug={rt.slug} />
-            )}
-            <IntroControls />
-          </div>
+        <div className="flex justify-end mb-6">
+          <PastRoundTablesPanel items={archive} currentSlug={rt.slug} />
         </div>
+
+        <RoundTableDisplay
+          data={{ ...rt, publishedAt: rt.group.publishedAt }}
+        />
       </main>
       <Footer />
     </div>
