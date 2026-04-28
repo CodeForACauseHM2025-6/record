@@ -12,7 +12,7 @@ interface IntroAuthor {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.18)" },
-  { text: "#1F4E79", soft: "rgba(31, 78, 121, 0.18)" },
+  { text: "#1A1A1A", soft: "rgba(26, 26, 26, 0.22)" },
 ];
 
 function initials(name: string): string {
@@ -50,6 +50,8 @@ export function RoundTableSpinIntro({
   //   "done"      → animation finished or skipped, parent reveals content
   const [phase, setPhase] = useState<"checking" | "playing" | "done">("checking");
   const [exiting, setExiting] = useState(false);
+  const [bgVisible, setBgVisible] = useState(false);
+  const [showCta, setShowCta] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -57,6 +59,7 @@ export function RoundTableSpinIntro({
 
     function startPlayback() {
       setExiting(false);
+      setShowCta(false);
       setPhase("playing");
     }
 
@@ -72,47 +75,49 @@ export function RoundTableSpinIntro({
 
     if (shouldPlay()) {
       startPlayback();
+      // Trigger the backdrop fade-in on the next frame so the transition runs
+      requestAnimationFrame(() => setBgVisible(true));
     } else {
       setPhase("done");
       window.dispatchEvent(new CustomEvent("rt-intro-finished"));
     }
 
     function onReplay() {
+      setBgVisible(false);
       startPlayback();
+      requestAnimationFrame(() => setBgVisible(true));
     }
     window.addEventListener(REPLAY_EVENT, onReplay);
     return () => window.removeEventListener(REPLAY_EVENT, onReplay);
   }, [slug]);
 
-  // Schedule the exit + finish whenever we (re-)enter the "playing" phase.
+  // After the spin animation (2400ms) wraps up, give the reader 1s of quiet
+  // before nudging them with a "Click to continue" CTA.
   useEffect(() => {
-    if (phase !== "playing" || typeof window === "undefined") return;
-    const t1 = window.setTimeout(() => setExiting(true), 2400);
-    const t2 = window.setTimeout(() => {
-      try {
-        window.localStorage.setItem(SEEN_PREFIX + slug, "1");
-      } catch {
-        /* ignore */
-      }
-      setPhase("done");
-      window.dispatchEvent(new CustomEvent("rt-intro-finished"));
-    }, 2900);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
-  }, [phase, slug]);
+    if (phase !== "playing") return;
+    const id = window.setTimeout(() => setShowCta(true), 3400);
+    return () => window.clearTimeout(id);
+  }, [phase]);
 
+  // The intro never dismisses on its own — the spin animation finishes and
+  // the overlay sits at rest with the prompt readable until the user clicks.
   function skip() {
-    if (typeof window !== "undefined") {
+    if (exiting) return;
+    setExiting(true);
+    setBgVisible(false);
+    if (typeof window === "undefined") {
+      setPhase("done");
+      return;
+    }
+    window.setTimeout(() => {
       try {
         window.localStorage.setItem(SEEN_PREFIX + slug, "1");
       } catch {
         /* ignore */
       }
       window.dispatchEvent(new CustomEvent("rt-intro-finished"));
-    }
-    setPhase("done");
+      setPhase("done");
+    }, 500);
   }
 
   if (phase !== "playing") return null;
@@ -136,16 +141,26 @@ export function RoundTableSpinIntro({
           70%  { transform: rotateZ(-900deg); }
           100% { transform: rotateZ(-1080deg); }
         }
-        @keyframes rt-prompt-pop {
-          0%   { opacity: 0; transform: scale(0.6); }
-          15%  { opacity: 1; transform: scale(1.04); }
-          25%  { transform: scale(1); }
-          100% { opacity: 1; transform: scale(1); }
+        @keyframes rt-wordmark-in-out {
+          0%   { opacity: 0; transform: scale(0.7); }
+          12%  { opacity: 1; transform: scale(1); }
+          50%  { opacity: 1; transform: scale(1); }
+          62%  { opacity: 0; transform: scale(0.85); }
+          100% { opacity: 0; transform: scale(0.85); }
         }
-        @keyframes rt-bg-pulse {
-          0%   { opacity: 0; }
-          15%  { opacity: 1; }
-          100% { opacity: 1; }
+        @keyframes rt-prompt-pop {
+          0%, 55%  { opacity: 0; transform: scale(0.7); }
+          72%      { opacity: 1; transform: scale(1.06); }
+          82%      { transform: scale(1); }
+          100%     { opacity: 1; transform: scale(1); }
+        }
+        @keyframes rt-cta-in {
+          0%   { opacity: 0; transform: translateY(12px) scale(0.96); }
+          100% { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        @keyframes rt-cta-pulse {
+          0%, 100% { transform: scale(1); }
+          50%      { transform: scale(1.04); }
         }
       `}</style>
       <div
@@ -159,10 +174,9 @@ export function RoundTableSpinIntro({
         className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden cursor-pointer"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.22) 0%, rgba(31, 78, 121, 0.18) 40%, rgba(0,0,0,0.92) 100%)",
-          opacity: exiting ? 0 : 1,
+            "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.30) 0%, rgba(26, 26, 26, 0.55) 45%, rgba(0,0,0,0.95) 100%)",
+          opacity: bgVisible && !exiting ? 1 : 0,
           transition: "opacity 500ms ease",
-          animation: "rt-bg-pulse 2400ms cubic-bezier(0.5, 0, 0.5, 1) both",
         }}
       >
         <p
@@ -172,7 +186,7 @@ export function RoundTableSpinIntro({
           The Round Table · This Week’s Discussion
         </p>
         <span className="absolute top-6 right-6 font-headline text-[11px] font-semibold tracking-[0.16em] uppercase text-white/55 pointer-events-none">
-          Click to skip
+          Click to continue
         </span>
 
         <div
@@ -189,10 +203,10 @@ export function RoundTableSpinIntro({
             className="absolute inset-0 rounded-full"
             style={{
               background:
-                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #1F4E79 180deg, #8B1A1A 360deg)",
-              border: "3px solid rgba(255,255,255,0.18)",
+                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #1A1A1A 180deg, #8B1A1A 360deg)",
+              border: "3px solid rgba(255,255,255,0.22)",
               boxShadow:
-                "0 30px 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.4)",
+                "0 30px 80px rgba(0,0,0,0.55), inset 0 0 60px rgba(0,0,0,0.45)",
             }}
           />
 
@@ -259,26 +273,68 @@ export function RoundTableSpinIntro({
             );
           })}
 
-          {/* Center prompt — counter-rotates so it stays upright while the table spins */}
+          {/* Center stack — counter-rotates as a unit so text stays upright.
+              The wordmark plays first, then fades out as the prompt fades in bigger. */}
           <div
-            className="absolute inset-0 flex items-center justify-center px-[14%]"
+            className="absolute inset-0 flex items-center justify-center px-[12%]"
             style={{
               animation:
                 "rt-counter-spin 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
             }}
           >
-            <p
-              className="font-headline text-white font-bold text-center leading-[1.12]"
-              style={{
-                fontSize: "clamp(20px, 4.4vmin, 44px)",
-                textShadow: "0 2px 18px rgba(0,0,0,0.7)",
-                animation: "rt-prompt-pop 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
-              }}
-            >
-              {prompt || "—"}
-            </p>
+            <div className="relative w-full text-center">
+              {/* Wordmark — visible early, fades out around halfway */}
+              <p
+                className="absolute inset-0 flex items-center justify-center font-headline font-bold uppercase tracking-[0.32em] text-white leading-[1.05]"
+                style={{
+                  fontSize: "clamp(14px, 2.2vmin, 22px)",
+                  textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+                  animation:
+                    "rt-wordmark-in-out 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
+                }}
+              >
+                The Round Table
+              </p>
+
+              {/* Prompt — fades in bigger after the wordmark exits */}
+              <p
+                className="font-headline text-white font-bold text-center leading-[1.12]"
+                style={{
+                  fontSize: "clamp(22px, 4.6vmin, 46px)",
+                  textShadow: "0 2px 18px rgba(0,0,0,0.7)",
+                  animation:
+                    "rt-prompt-pop 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
+                }}
+              >
+                {prompt || "—"}
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Prominent CTA — appears 1s after the spin animation finishes */}
+        {showCta && (
+          <div
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{ animation: "rt-cta-in 500ms cubic-bezier(0.32,0,0.2,1) both" }}
+          >
+            <div
+              className="inline-flex items-center gap-3 px-6 py-3 rounded-full"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1.5px solid rgba(255,255,255,0.55)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                animation: "rt-cta-pulse 1800ms ease-in-out 500ms infinite",
+              }}
+            >
+              <span className="font-headline text-white text-[14px] sm:text-[15px] font-bold tracking-[0.16em] uppercase">
+                Click to continue
+              </span>
+              <span className="font-headline text-white text-[16px]">&rarr;</span>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -7,7 +7,7 @@ function sideName(label: string, idx: number): string {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.08)" },
-  { text: "#1F4E79", soft: "rgba(31, 78, 121, 0.08)" },
+  { text: "#1A1A1A", soft: "rgba(26, 26, 26, 0.07)" },
 ];
 
 export function RoundTableFullPattern({
@@ -34,7 +34,7 @@ export function RoundTableFullPattern({
   return (
     <Link
       href="/roundtable"
-      className="group block rounded-sm border border-maroon/30 bg-gradient-to-br from-[rgba(139,26,26,0.06)] via-white to-[rgba(31,78,121,0.06)] px-6 py-8 sm:px-12 sm:py-12 hover:border-maroon transition-colors"
+      className="group block rounded-sm border border-maroon/30 bg-gradient-to-br from-[rgba(139,26,26,0.06)] via-white to-[rgba(26,26,26,0.05)] px-6 py-8 sm:px-12 sm:py-12 hover:border-maroon transition-colors"
     >
       <div className="text-center">
         <p className="font-headline text-[11px] sm:text-[12px] font-bold tracking-[0.22em] uppercase text-maroon">
