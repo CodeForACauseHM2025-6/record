@@ -13,7 +13,7 @@ interface RoundTableData {
     id: string;
     label: string;
     order: number;
-    authors: { user: { id: string; name: string } }[];
+    authors: { user: { id: string; name: string; image: string | null } }[];
   }[];
   turns: { id: string; sideId: string; body: string; order: number }[];
 }
@@ -34,7 +34,7 @@ export default async function RoundTableIndexPage() {
       group: { select: { publishedAt: true } },
       sides: {
         orderBy: { order: "asc" },
-        include: { authors: { include: { user: { select: { id: true, name: true } } } } },
+        include: { authors: { include: { user: { select: { id: true, name: true, image: true } } } } },
       },
       turns: { orderBy: { order: "asc" } },
     },

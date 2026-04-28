@@ -85,14 +85,9 @@ export default async function EditRoundTablePage({
           &larr; {rt.group?.name ?? "Group"}
         </Link>
 
-        <div className="mt-3 flex items-baseline justify-between gap-4">
-          <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
-            Edit Round Table
-          </h2>
-          <p className="font-headline text-[12px] text-caption">
-            Visibility follows the group
-          </p>
-        </div>
+        <h2 className="mt-3 font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
+          Edit Round Table
+        </h2>
         <div className="mt-3 h-[2px] bg-rule" />
 
         <RoundTableForm

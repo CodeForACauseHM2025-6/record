@@ -37,8 +37,8 @@ export function RoundTableForm({
     initialSides.length === 2
       ? initialSides
       : [
-          { id: null, label: "Side A", authorIds: [] },
-          { id: null, label: "Side B", authorIds: [] },
+          { id: null, label: "", authorIds: [] },
+          { id: null, label: "", authorIds: [] },
         ]
   );
   // Coerce any legacy turns to strict alternation: index 0 → side 0, 1 → 1, 2 → 0, ...
@@ -73,6 +73,10 @@ export function RoundTableForm({
   }
 
   const userById = new Map(availableUsers.map((u) => [u.id, u]));
+
+  function sideName(idx: number): string {
+    return sides[idx]?.label?.trim() || `Side ${idx + 1}`;
+  }
 
   function addTurn() {
     // Side alternates strictly: next turn's side is determined by current count.
@@ -127,7 +131,6 @@ export function RoundTableForm({
                   value={side.label}
                   onChange={(e) => updateSideLabel(i, e.target.value)}
                   maxLength={80}
-                  placeholder={`Side ${i + 1}`}
                   className="w-full border border-ink/20 px-3 py-2 font-headline text-[15px] tracking-wide outline-none focus:border-ink transition-colors"
                 />
                 <input type="hidden" name={`side_${i}_id`} value={side.id ?? ""} />
@@ -190,7 +193,7 @@ export function RoundTableForm({
         </div>
 
         <p className="mt-1 font-headline text-[12px] text-caption">
-          {sides[0].label} always goes first; sides alternate.
+          {sideName(0)} always goes first; sides alternate.
         </p>
 
         {turns.length === 0 ? (
@@ -207,7 +210,7 @@ export function RoundTableForm({
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-baseline gap-3">
                       <span className="font-headline text-[13px] font-bold tracking-[0.08em] uppercase">
-                        {side.label}
+                        {sideName(turn.sideIndex)}
                       </span>
                       <span className="font-headline text-[12px] text-caption">
                         Turn {i + 1}
@@ -228,7 +231,6 @@ export function RoundTableForm({
                     value={turn.body}
                     onChange={(e) => updateTurnBody(i, e.target.value)}
                     rows={4}
-                    placeholder={`What does ${side.label} say?`}
                     className="w-full border border-ink/20 px-3 py-2 font-body text-[15px] leading-relaxed placeholder:text-caption/30 outline-none focus:border-ink transition-colors resize-y"
                   />
                   <input type="hidden" name={`turn_${i}_side`} value={turn.sideIndex} />
@@ -246,7 +248,7 @@ export function RoundTableForm({
             onClick={addTurn}
             className="cursor-pointer font-headline text-[13px] tracking-wide border border-ink/20 px-4 py-2 hover:border-ink hover:bg-neutral-50 transition-colors"
           >
-            + Add {sides[turns.length % 2].label} turn
+            + Add {sideName(turns.length % 2)} turn
           </button>
         </div>
       </div>

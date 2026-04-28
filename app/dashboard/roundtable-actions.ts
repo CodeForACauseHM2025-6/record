@@ -34,18 +34,17 @@ export async function createRoundTable(groupId: string) {
     redirect(`/dashboard/roundtables/${existing.id}/edit`);
   }
 
-  const placeholderPrompt = "Untitled Round Table";
-  const slug = await generateUniqueRoundTableSlug(placeholderPrompt);
+  const slug = await generateUniqueRoundTableSlug("");
 
   const rt = await prisma.roundTable.create({
     data: {
       slug,
-      prompt: placeholderPrompt,
+      prompt: "",
       groupId,
       sides: {
         create: [
-          { label: "Side A", order: 0 },
-          { label: "Side B", order: 1 },
+          { label: "", order: 0 },
+          { label: "", order: 1 },
         ],
       },
     },
@@ -69,7 +68,7 @@ function parseSides(formData: FormData): SidePayload[] {
   const sides: SidePayload[] = [];
   for (let i = 0; i < count; i++) {
     const id = (formData.get(`side_${i}_id`) as string) || null;
-    const label = ((formData.get(`side_${i}_label`) as string) ?? "").trim() || `Side ${i + 1}`;
+    const label = ((formData.get(`side_${i}_label`) as string) ?? "").trim();
     const authorsStr = (formData.get(`side_${i}_authors`) as string) ?? "";
     const authorIds = authorsStr.split(",").map((s) => s.trim()).filter(Boolean);
     sides.push({ id, label, authorIds });
