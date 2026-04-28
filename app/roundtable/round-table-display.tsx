@@ -90,6 +90,47 @@ function Avatar({
   );
 }
 
+function SidePanel({ side, idx }: { side: SideData; idx: number }) {
+  const theme = SIDE_THEMES[idx] ?? SIDE_THEMES[0];
+  return (
+    <div
+      className="rounded-xl px-4 py-3 sm:px-5 sm:py-3.5"
+      style={{
+        backgroundColor: theme.softer,
+        boxShadow: `inset 0 0 0 1px ${theme.text}25`,
+      }}
+    >
+      <p
+        className="font-headline text-[11px] font-bold tracking-[0.18em] uppercase"
+        style={{ color: theme.text }}
+      >
+        {sideName(side, idx)}
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {side.authors.length === 0 ? (
+          <span className="font-headline text-[12px] italic text-caption">No authors</span>
+        ) : (
+          side.authors.map((a) => (
+            <Link
+              key={a.user.id}
+              href={`/profile/${a.user.id}`}
+              className="flex items-center gap-2 group"
+            >
+              <Avatar user={a.user} size={32} ring={theme.text} />
+              <span
+                className="font-headline text-[13px] sm:text-[14px] font-semibold tracking-wide group-hover:underline"
+                style={{ color: theme.text }}
+              >
+                {a.user.name}
+              </span>
+            </Link>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function RoundTableDisplay({ data }: { data: RoundTableData }) {
   const sortedSides = [...data.sides].sort((a, b) => a.order - b.order);
   const sideIndexById: Record<string, number> = {};
@@ -104,7 +145,6 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
   const [animating, setAnimating] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  // The ring rotates by -activeIdx * slotAngle so the active card sits at angle 0 (top).
   const ringRotation = -activeIdx * slotAngle;
 
   function navigate(delta: 1 | -1) {
@@ -132,7 +172,6 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
   const activeSide = activeTurn ? sortedSides[activeSideIdx] : undefined;
   const activeTheme = SIDE_THEMES[activeSideIdx] ?? SIDE_THEMES[0];
 
-  // Measure the ring stage so we can size the orbit responsively.
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [stage, setStage] = useState({ w: 1024, h: 600 });
   useEffect(() => {
@@ -147,21 +186,25 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
     return () => ro.disconnect();
   }, []);
 
-  // Ring radius: large enough that the visible top arc fills the stage.
-  // Ring diameter ~= 1.7 * stage height. Cards orbit on this radius.
-  const radius = Math.max(stage.h * 0.95, 380);
-  // Ring center sits below the bottom edge of the stage so we see only the top.
-  const centerOffsetBelow = radius - stage.h * 0.78;
+  // The table is a giant disc whose CENTER sits near the bottom of the stage.
+  // We see the top arc rising up from the bottom; the rest of the disc extends below.
+  const radius = Math.max(stage.h * 1.0, 440);
+  // Vertical position (from stage top) of the table's center — just inside the bottom.
+  const tableCenterFromTop = stage.h * 0.95;
+  // Cards orbit on a smaller circle inside the disc.
+  const orbit = Math.min(stage.h * 0.55, stage.w * 0.42);
 
-  const cardW = Math.min(stage.w * 0.34, 320);
-  const cardH = Math.min(stage.h * 0.42, 220);
+  const activeW = Math.min(stage.w * 0.55, 520);
+  const activeH = Math.min(stage.h * 0.55, 360);
+  const inactiveW = Math.min(stage.w * 0.20, 200);
+  const inactiveH = Math.min(stage.h * 0.24, 140);
 
   return (
     <div className="h-full w-full flex flex-col px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4">
       {/* Header */}
-      <header className="text-center max-w-[820px] mx-auto w-full shrink-0">
+      <header className="max-w-[960px] mx-auto w-full shrink-0">
         <p
-          className="font-headline text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] uppercase"
+          className="text-center font-headline text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] uppercase"
           style={{ color: SIDE_THEMES[0].text }}
         >
           The Round Table
@@ -171,119 +214,62 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
             </span>
           )}
         </p>
-        <h1 className="mt-1.5 font-headline text-[20px] sm:text-[26px] lg:text-[30px] font-bold leading-tight">
+        <h1 className="mt-1.5 text-center font-headline text-[20px] sm:text-[26px] lg:text-[30px] font-bold leading-tight">
           {data.prompt || "—"}
         </h1>
-        <div className="mt-2 mx-auto flex items-center justify-center gap-2">
-          {sortedSides.map((side, i) => {
-            const theme = SIDE_THEMES[i] ?? SIDE_THEMES[0];
-            return (
-              <div key={side.id} className="flex items-center gap-1.5">
-                <span className="h-[3px] w-6 rounded" style={{ backgroundColor: theme.text }} />
-                <span
-                  className="font-headline text-[10px] font-semibold tracking-[0.16em] uppercase"
-                  style={{ color: theme.text }}
-                >
-                  {sideName(side, i)}
-                </span>
-                {i === 0 && (
-                  <span className="font-headline text-[10px] font-semibold tracking-[0.16em] uppercase text-caption mx-1">
-                    vs
-                  </span>
-                )}
-              </div>
-            );
-          })}
+
+        {/* Sides + authors */}
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {sortedSides.map((side, i) => (
+            <SidePanel key={side.id} side={side} idx={i} />
+          ))}
         </div>
       </header>
 
-      {/* Stage — the visible area where the ring orbits */}
+      {/* Stage */}
       <div
         ref={stageRef}
         className="flex-1 min-h-0 w-full mt-3 relative overflow-hidden"
       >
         {N > 0 && (
           <>
-            {/* Table backdrop — big circle whose center is below the stage */}
+            {/* Table backdrop — its CENTER is positioned at tableCenterFromTop (below the stage). */}
             <div
-              className="absolute pointer-events-none rounded-full transition-colors"
+              className="absolute pointer-events-none rounded-full"
               style={{
                 width: radius * 2,
                 height: radius * 2,
                 left: "50%",
-                bottom: -centerOffsetBelow * 2 + radius * 0,
-                transform: "translateX(-50%)",
-                background: `radial-gradient(circle at 50% calc(100% - ${radius - centerOffsetBelow}px), ${activeTheme.soft} 0%, ${activeTheme.softer} 50%, transparent 75%)`,
+                top: tableCenterFromTop,
+                transform: "translate(-50%, -50%)",
+                background: `radial-gradient(circle, ${activeTheme.soft} 0%, ${activeTheme.softer} 55%, transparent 78%)`,
                 border: `2px dashed ${activeTheme.text}30`,
-                top: "auto",
-                transitionProperty: "background, border-color",
-                transitionDuration: "600ms",
+                transition: "background 600ms ease, border-color 600ms ease",
               }}
             />
 
-            {/* Ring container — its origin is at the table center (below stage); rotating it orbits all children. */}
+            {/* Ring — same center; rotates as a unit. */}
             <div
               className="absolute"
               style={{
                 width: radius * 2,
                 height: radius * 2,
                 left: "50%",
-                bottom: -centerOffsetBelow,
-                transform: `translateX(-50%) rotate(${ringRotation}deg)`,
+                top: tableCenterFromTop,
+                transform: `translate(-50%, -50%) rotate(${ringRotation}deg)`,
                 transformOrigin: "50% 50%",
                 transition: `transform ${ANIM_MS}ms ${EASE}`,
               }}
             >
-              {/* Author avatars positioned around the perimeter — they ROTATE WITH the table */}
-              {sortedSides.map((side, sIdx) => {
-                const theme = SIDE_THEMES[sIdx] ?? SIDE_THEMES[0];
-                // Side 0 occupies one half of the ring, side 1 the other. Place around the visible top.
-                const isLeft = sIdx === 0;
-                return side.authors.map((a, j) => {
-                  const total = side.authors.length;
-                  // arc on each side, kept within the visible top arc (-80°..+80°)
-                  const arcStart = isLeft ? -80 : 25;
-                  const arcEnd = isLeft ? -25 : 80;
-                  const t = total === 1 ? 0.5 : j / (total - 1);
-                  const aDeg = arcStart + (arcEnd - arcStart) * t;
-                  const avatarSize = Math.max(40, Math.min(56, stage.h * 0.085));
-                  return (
-                    <div
-                      key={a.user.id}
-                      className="absolute"
-                      style={{
-                        left: "50%",
-                        top: "50%",
-                        // Place at radius*0.94 from ring center, at angle aDeg
-                        transform: `rotate(${aDeg}deg) translateY(-${radius * 0.92}px) rotate(${-aDeg - ringRotation}deg)`,
-                        transformOrigin: "0 0",
-                        transition: `transform ${ANIM_MS}ms ${EASE}`,
-                      }}
-                    >
-                      <div
-                        className="flex flex-col items-center gap-1"
-                        style={{ transform: "translate(-50%, -50%)" }}
-                      >
-                        <Avatar user={a.user} size={avatarSize} ring={theme.text} />
-                        <Link
-                          href={`/profile/${a.user.id}`}
-                          className="font-headline text-[10px] sm:text-[11px] font-semibold tracking-wide hover:underline whitespace-nowrap"
-                          style={{ color: theme.text }}
-                        >
-                          {a.user.name}
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                });
-              })}
-
-              {/* Turn cards arranged around the ring at base angles */}
               {sortedTurns.map((turn, i) => {
                 const sIdx = sideIndexById[turn.sideId] ?? 0;
                 const theme = SIDE_THEMES[sIdx] ?? SIDE_THEMES[0];
                 const baseAngle = i * slotAngle;
                 const isActive = i === activeIdx;
+                const w = isActive ? activeW : inactiveW;
+                const h = isActive ? activeH : inactiveH;
+                const orbitOffset = orbit;
+
                 return (
                   <div
                     key={turn.id}
@@ -291,9 +277,7 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
                     style={{
                       left: "50%",
                       top: "50%",
-                      // Place at distance (radius * 0.55) from ring center, at angle baseAngle.
-                      // Counter-rotate so card content stays upright as the ring spins.
-                      transform: `rotate(${baseAngle}deg) translateY(-${radius * 0.55}px) rotate(${-baseAngle - ringRotation}deg)`,
+                      transform: `rotate(${baseAngle}deg) translateY(-${orbitOffset}px) rotate(${-baseAngle - ringRotation}deg)`,
                       transformOrigin: "0 0",
                       transition: `transform ${ANIM_MS}ms ${EASE}`,
                       zIndex: isActive ? 10 : 1,
@@ -302,21 +286,20 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
                     <div
                       className="rounded-2xl bg-white"
                       style={{
-                        width: cardW,
-                        height: cardH,
-                        // Center the card on the orbit point
+                        width: w,
+                        height: h,
                         transform: "translate(-50%, -50%)",
                         boxShadow: isActive
-                          ? `0 14px 40px ${theme.text}40, 0 0 0 2.5px ${theme.text}`
+                          ? `0 18px 48px ${theme.text}45, 0 0 0 3px ${theme.text}`
                           : `0 6px 20px rgba(0,0,0,0.08), 0 0 0 1px ${theme.text}30`,
-                        opacity: isActive ? 1 : 0.65,
-                        transition: `box-shadow ${ANIM_MS}ms ${EASE}, opacity ${ANIM_MS}ms ${EASE}`,
+                        opacity: isActive ? 1 : 0.7,
+                        transition: `box-shadow ${ANIM_MS}ms ${EASE}, opacity ${ANIM_MS}ms ${EASE}, width ${ANIM_MS}ms ${EASE}, height ${ANIM_MS}ms ${EASE}`,
                       }}
                     >
-                      <div className="h-full flex flex-col px-4 py-3 sm:px-5 sm:py-4">
+                      <div className={`h-full flex flex-col ${isActive ? "px-6 py-5 sm:px-8 sm:py-6" : "px-4 py-3"}`}>
                         <div className="flex items-center justify-between gap-3 shrink-0">
                           <p
-                            className="font-headline text-[10px] font-bold tracking-[0.2em] uppercase"
+                            className={`font-headline font-bold tracking-[0.2em] uppercase ${isActive ? "text-[12px] sm:text-[13px]" : "text-[10px]"}`}
                             style={{ color: theme.text }}
                           >
                             {sideName(sortedSides[sIdx], sIdx)}
@@ -332,17 +315,17 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
                               className="cursor-pointer text-caption hover:text-ink transition-colors p-1 -mr-1"
                               title="Expand"
                             >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
                           )}
                         </div>
                         <div
-                          className="mt-2 flex-1 min-h-0 font-body text-[13px] sm:text-[14px] leading-[1.5] whitespace-pre-wrap text-ink overflow-hidden"
+                          className={`mt-3 flex-1 min-h-0 font-body whitespace-pre-wrap text-ink overflow-hidden ${isActive ? "text-[15px] sm:text-[17px] leading-[1.65]" : "text-[12px] leading-[1.45]"}`}
                           style={{
-                            maskImage: "linear-gradient(to bottom, black 78%, transparent 100%)",
-                            WebkitMaskImage: "linear-gradient(to bottom, black 78%, transparent 100%)",
+                            maskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
+                            WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
                           }}
                         >
                           {turn.body}
@@ -353,8 +336,6 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
                 );
               })}
             </div>
-
-            {/* Speaker spotlight (small "x of N" indicator at the very top, above active card) */}
           </>
         )}
 
