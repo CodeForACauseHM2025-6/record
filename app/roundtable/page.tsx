@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
-import { Footer } from "@/app/footer";
 import { RoundTableDisplay } from "@/app/roundtable/round-table-display";
 
 interface RoundTableData {
@@ -18,16 +16,8 @@ interface RoundTableData {
   turns: { id: string; sideId: string; body: string; order: number }[];
 }
 
-function formatDateShort(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export default async function RoundTableIndexPage() {
-  const published = (await prisma.roundTable.findMany({
+  const latest = (await prisma.roundTable.findFirst({
     where: { group: { status: "PUBLISHED" } },
     orderBy: [{ group: { publishedAt: "desc" } }, { updatedAt: "desc" }],
     include: {
@@ -38,54 +28,17 @@ export default async function RoundTableIndexPage() {
       },
       turns: { orderBy: { order: "asc" } },
     },
-  })) as unknown as RoundTableData[];
-
-  const latest = published[0] ?? null;
-  const archive = published.slice(1);
+  })) as unknown as RoundTableData | null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
+    <div className="h-[100dvh] flex flex-col bg-white font-body page-enter overflow-hidden">
       <SubpageHeader pageLabel="Round Table" badge="Round Table" />
 
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-12 pb-20 w-full">
+      <main className="flex-1 min-h-0 w-full">
         {latest ? (
-          <>
-            <RoundTableDisplay data={{ ...latest, publishedAt: latest.group?.publishedAt ?? null }} />
-
-            {archive.length > 0 && (
-              <section className="mt-24 max-w-[820px] mx-auto">
-                <h3 className="font-headline text-[11px] font-semibold tracking-[0.16em] uppercase text-caption">
-                  Previous Round Tables
-                </h3>
-                <div className="mt-4 h-px bg-rule" />
-                <ul className="mt-4 divide-y divide-neutral-200">
-                  {archive.map((rt) => (
-                    <li key={rt.id} className="py-4">
-                      <Link
-                        href={`/roundtable/${rt.slug}`}
-                        className="block group"
-                      >
-                        <p className="font-headline text-[18px] font-bold leading-snug group-hover:text-maroon transition-colors">
-                          {rt.prompt}
-                        </p>
-                        <p className="mt-1 font-headline text-[12px] text-caption">
-                          {rt.group?.publishedAt && formatDateShort(rt.group.publishedAt)}
-                          {rt.group?.publishedAt && " · "}
-                          {rt.sides
-                            .map((s) =>
-                              s.authors.map((a) => a.user.name).join(", ") || "(no authors)"
-                            )
-                            .join("  vs  ")}
-                        </p>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </>
+          <RoundTableDisplay data={{ ...latest, publishedAt: latest.group?.publishedAt ?? null }} />
         ) : (
-          <div className="text-center py-24">
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <p className="font-headline text-[11px] font-semibold tracking-[0.18em] uppercase text-maroon">
               The Round Table
             </p>
@@ -98,7 +51,6 @@ export default async function RoundTableIndexPage() {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 }

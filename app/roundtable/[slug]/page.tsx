@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
-import { Footer } from "@/app/footer";
 import { RoundTableDisplay } from "@/app/roundtable/round-table-display";
 
 interface RoundTableData {
@@ -40,13 +39,11 @@ export default async function RoundTablePage({
   if (!rt || rt.group?.status !== "PUBLISHED") notFound();
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-body page-enter">
+    <div className="h-[100dvh] flex flex-col bg-white font-body page-enter overflow-hidden">
       <SubpageHeader pageLabel="Round Table" badge="Round Table" />
-
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-12 pb-20 w-full">
+      <main className="flex-1 min-h-0 w-full">
         <RoundTableDisplay data={{ ...rt, publishedAt: rt.group.publishedAt }} />
       </main>
-      <Footer />
     </div>
   );
 }
