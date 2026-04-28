@@ -10,7 +10,8 @@ export default async function NewGroupPage() {
   if (!session?.user || !EDITOR_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
   const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "";
+  const rawVolume = (volSetting as { value?: string } | null)?.value ?? "";
+  const defaultVolume = /^[0-9]+$/.test(rawVolume) ? rawVolume : "";
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -21,21 +22,25 @@ export default async function NewGroupPage() {
           New Issue
         </h2>
         <p className="font-headline text-[13px] text-caption mt-1 tracking-wide">
-          Volume is set automatically. Pick the issue number, then add articles and build the layout.
+          Volume defaults to the current admin setting; override it if needed.
         </p>
         <div className="mt-4 h-[2px] bg-rule" />
 
         <form action={createGroupWithArticles} className="mt-8 space-y-6">
           <div className="flex gap-3">
-            <div className="w-40">
+            <div className="w-32">
               <label className="block font-headline text-[12px] font-semibold tracking-[0.06em] uppercase text-caption mb-1">
-                Volume
+                Volume #
               </label>
               <input
-                value={volumeNumber || "—"}
-                readOnly
-                className="w-full border border-ink/10 bg-neutral-50 px-3 py-2 font-headline text-[16px] tracking-wide text-caption"
-                aria-label="Volume number (auto-filled)"
+                name="volumeNumber"
+                type="number"
+                min="1"
+                step="1"
+                defaultValue={defaultVolume}
+                placeholder="#"
+                required
+                className="w-full border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors text-center"
               />
             </div>
             <div className="w-32">

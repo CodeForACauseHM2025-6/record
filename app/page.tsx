@@ -46,7 +46,7 @@ export default async function HomePage({
 
   const totalPages = groups.length;
   const currentGroup = groups[currentPage - 1] ?? null;
-  const volumeNumber = (currentGroup as { volumeNumber?: string | null } | null)?.volumeNumber ?? "";
+  const volumeNumber = (currentGroup as { volumeNumber?: number | null } | null)?.volumeNumber ?? null;
 
   let mainBlocks: BlockData[] = [];
   let sidebarBlocks: BlockData[] = [];

@@ -3,7 +3,7 @@ export function stripHtml(html: string): string {
 }
 
 export function formatIssueTitle(group: {
-  volumeNumber?: string | null;
+  volumeNumber?: number | null;
   issueNumber?: number | null;
   name?: string | null;
 }): string {

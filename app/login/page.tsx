@@ -29,7 +29,8 @@ export default async function LoginPage({
     : null;
 
   const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "CXXIII";
+  const rawVolume = (volSetting as { value?: string } | null)?.value ?? "";
+  const volumeNumber = /^[0-9]+$/.test(rawVolume) ? rawVolume : "";
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -49,7 +50,7 @@ export default async function LoginPage({
       <div className="w-full max-w-lg text-center">
         {/* Volume / Date line — classic broadsheet element */}
         <p className="reveal reveal-delay-1 font-headline font-semibold text-[11px] sm:text-[12px] tracking-[0.15em] uppercase text-caption mb-6">
-          Vol. {volumeNumber} &middot; {today}
+          {volumeNumber && <>Vol. {volumeNumber} &middot; </>}{today}
         </p>
 
         {/* Top double rule */}

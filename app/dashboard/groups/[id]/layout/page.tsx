@@ -71,7 +71,7 @@ export default async function LayoutEditorPage({
 
   if (!group) notFound();
 
-  const volumeNumber = (group as any).volumeNumber ?? "";
+  const volumeNumber = (group as any).volumeNumber ?? null;
   const issueNumber = (group as any).issueNumber ?? null;
   const groupDate = group.publishedAt ?? group.createdAt;
 

@@ -133,7 +133,7 @@ model SiteSetting {
 model ArticleGroup {
   id           String    @id @default(uuid())
   name         String?   @db.VarChar(200)
-  volumeNumber String?   @db.VarChar(50)
+  volumeNumber Int?
   issueNumber  Int?
   status       ArticleStatus @default(DRAFT)
   scheduledAt  DateTime?

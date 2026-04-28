@@ -150,13 +150,16 @@ export default async function GroupEditorPage({
           <form action={boundUpdate} className="mt-4 flex gap-3 items-end">
             <div>
               <label className="block font-headline text-[11px] font-semibold tracking-[0.08em] uppercase text-caption mb-1">
-                Volume
+                Volume #
               </label>
               <input
-                value={(group as any).volumeNumber ?? "—"}
-                readOnly
-                className="w-32 border border-ink/10 bg-neutral-50 px-3 py-2 font-headline text-[16px] tracking-wide text-caption"
-                aria-label="Volume number (auto-filled)"
+                name="volumeNumber"
+                type="number"
+                min="1"
+                step="1"
+                defaultValue={(group as any).volumeNumber ?? ""}
+                placeholder="#"
+                className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
               />
             </div>
             <div>

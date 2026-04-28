@@ -27,16 +27,18 @@ export default async function AdminSettingsPage({
           Volume Number
         </h2>
         <p className="font-headline text-[13px] text-caption mt-1">
-          Appears in the homepage masthead (e.g., &ldquo;Vol. CXXIII&rdquo;). Roman numerals are conventional.
+          Default volume for new issues (e.g., 123). Editors can override per issue.
         </p>
         <div className="mt-3 h-px bg-rule" />
 
         <form action={updateVolumeNumber} className="mt-5 flex flex-wrap items-center gap-3">
           <input
             name="volumeNumber"
-            defaultValue={volumeNumber}
-            placeholder="CXXIII"
-            maxLength={20}
+            type="number"
+            min="1"
+            step="1"
+            defaultValue={/^[0-9]+$/.test(volumeNumber) ? volumeNumber : ""}
+            placeholder="123"
             className="border border-ink/20 px-3 py-2 font-body text-[14px] outline-none focus:border-ink w-full sm:w-[220px] tracking-wider"
           />
           <button

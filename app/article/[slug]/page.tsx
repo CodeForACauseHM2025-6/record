@@ -33,7 +33,7 @@ interface ArticleData {
   createdBy: { id: string; name: string; role: string; image: string | null; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string; image: string | null } }[];
   images: { url: string; caption: string | null; altText: string }[];
-  group: { issueNumber: number | null; volumeNumber: string | null; publishedAt: Date | null; status: string } | null;
+  group: { issueNumber: number | null; volumeNumber: number | null; publishedAt: Date | null; status: string } | null;
 }
 
 async function loadArticle(slug: string): Promise<ArticleData | null> {
@@ -119,7 +119,7 @@ export default async function ArticlePage({
 
   const paragraphs = splitParagraphs(article.body);
 
-  const volumeNumber = article.group?.volumeNumber ?? "";
+  const volumeNumber = article.group?.volumeNumber ?? null;
   const issueNumber = article.group?.issueNumber ?? null;
 
   const primaryAuthor = authors[0];

@@ -55,7 +55,10 @@ export async function updateUserDisplayTitle(userId: string, formData: FormData)
 export async function updateVolumeNumber(formData: FormData) {
   await requireWebMaster();
 
-  const value = ((formData.get("volumeNumber") as string | null) ?? "").trim();
+  const raw = ((formData.get("volumeNumber") as string | null) ?? "").trim();
+  // Only store positive integers; reject anything else.
+  const n = parseInt(raw, 10);
+  const value = Number.isFinite(n) && n > 0 ? String(n) : "";
 
   await prisma.siteSetting.upsert({
     where: { key: "volumeNumber" },
