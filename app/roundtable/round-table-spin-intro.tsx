@@ -19,7 +19,20 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "?") + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
-const STORAGE_PREFIX = "record:rt-seen:";
+const SEEN_PREFIX = "record:rt-seen:";
+export const ONCE_ONLY_KEY = "record:rt-once-only";
+export const REPLAY_EVENT = "rt-intro-replay";
+
+// Tri-state helper: read the once-only setting. Defaults to false (always replay)
+// so it's easy to QA the animation. Users can flip it on from the sidebar toggle.
+function readOnceOnly(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(ONCE_ONLY_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export function RoundTableSpinIntro({
   slug,
@@ -34,51 +47,65 @@ export function RoundTableSpinIntro({
   //   "checking"  → SSR + first client render, before we know what localStorage says
   //   "playing"   → animation visible, content under it should still be hidden by parent
   //   "done"      → animation finished or skipped, parent reveals content
-  // We default to "checking" so SSR HTML matches the first client paint, then update.
   const [phase, setPhase] = useState<"checking" | "playing" | "done">("checking");
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const key = STORAGE_PREFIX + slug;
-    let seen = false;
-    try {
-      seen = window.localStorage.getItem(key) === "1";
-    } catch {
-      // localStorage disabled — just skip the intro
-      seen = true;
+    const seenKey = SEEN_PREFIX + slug;
+
+    function startPlayback() {
+      setExiting(false);
+      setPhase("playing");
     }
-    if (seen) {
+
+    function shouldPlay(): boolean {
+      const onceOnly = readOnceOnly();
+      if (!onceOnly) return true;
+      try {
+        return window.localStorage.getItem(seenKey) !== "1";
+      } catch {
+        return true;
+      }
+    }
+
+    if (shouldPlay()) {
+      startPlayback();
+    } else {
       setPhase("done");
       window.dispatchEvent(new CustomEvent("rt-intro-finished"));
-      return;
     }
 
-    setPhase("playing");
+    function onReplay() {
+      startPlayback();
+    }
+    window.addEventListener(REPLAY_EVENT, onReplay);
+    return () => window.removeEventListener(REPLAY_EVENT, onReplay);
+  }, [slug]);
 
-    // After the spin animation (~2.6s) start the exit fade
+  // Schedule the exit + finish whenever we (re-)enter the "playing" phase.
+  useEffect(() => {
+    if (phase !== "playing" || typeof window === "undefined") return;
     const t1 = window.setTimeout(() => setExiting(true), 2400);
-    // After the exit fade (~500ms) finish
     const t2 = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(key, "1");
+        window.localStorage.setItem(SEEN_PREFIX + slug, "1");
       } catch {
         /* ignore */
       }
       setPhase("done");
       window.dispatchEvent(new CustomEvent("rt-intro-finished"));
     }, 2900);
-
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [slug]);
+  }, [phase, slug]);
 
   function skip() {
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(STORAGE_PREFIX + slug, "1");
+        window.localStorage.setItem(SEEN_PREFIX + slug, "1");
       } catch {
         /* ignore */
       }

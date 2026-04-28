@@ -5,6 +5,7 @@ import { Footer } from "@/app/footer";
 import { RoundTableDisplay } from "@/app/roundtable/round-table-display";
 import { RoundTableSpinIntro } from "@/app/roundtable/round-table-spin-intro";
 import { PastRoundTablesSidebar } from "@/app/roundtable/past-roundtables-sidebar";
+import { IntroControls } from "@/app/roundtable/intro-controls";
 
 interface RoundTableData {
   id: string;
@@ -96,11 +97,12 @@ export default async function RoundTablePage({
               data={{ ...rt, publishedAt: rt.group.publishedAt }}
             />
           </div>
-          {archive.length > 0 && (
-            <div className="lg:w-[300px] shrink-0 lg:sticky lg:top-6 lg:self-start">
+          <div className="lg:w-[300px] shrink-0 lg:sticky lg:top-6 lg:self-start">
+            {archive.length > 0 && (
               <PastRoundTablesSidebar items={archive} currentSlug={rt.slug} />
-            </div>
-          )}
+            )}
+            <IntroControls />
+          </div>
         </div>
       </main>
       <Footer />
