@@ -14,7 +14,7 @@ interface SidebarRoundTable {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A" },
-  { text: "#3F3F3F" },
+  { text: "#555555" },
 ];
 
 function formatDateShort(date: Date): string {

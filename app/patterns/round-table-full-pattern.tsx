@@ -7,7 +7,7 @@ function sideName(label: string, idx: number): string {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.08)" },
-  { text: "#3F3F3F", soft: "rgba(63, 63, 63, 0.10)" },
+  { text: "#555555", soft: "rgba(85, 85, 85, 0.12)" },
 ];
 
 export function RoundTableFullPattern({

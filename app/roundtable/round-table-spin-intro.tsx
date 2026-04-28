@@ -12,7 +12,7 @@ interface IntroAuthor {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.18)" },
-  { text: "#3A3A3A", soft: "rgba(58, 58, 58, 0.22)" },
+  { text: "#5A5A5A", soft: "rgba(90, 90, 90, 0.28)" },
 ];
 
 function initials(name: string): string {
@@ -170,7 +170,7 @@ export function RoundTableSpinIntro({
         className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden cursor-pointer"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.28) 0%, rgba(58, 58, 58, 0.65) 45%, rgba(0,0,0,0.95) 100%)",
+            "radial-gradient(circle at 50% 50%, rgba(80, 80, 80, 0.92) 0%, rgba(38, 38, 38, 0.97) 45%, rgba(0,0,0,1) 100%)",
           opacity: bgVisible && !exiting ? 1 : 0,
           transition: "opacity 500ms ease",
         }}
@@ -199,7 +199,7 @@ export function RoundTableSpinIntro({
             className="absolute inset-0 rounded-full"
             style={{
               background:
-                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #4A4A4A 180deg, #8B1A1A 360deg)",
+                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #707070 180deg, #8B1A1A 360deg)",
               border: "3px solid rgba(255,255,255,0.22)",
               boxShadow:
                 "0 30px 80px rgba(0,0,0,0.55), inset 0 0 60px rgba(0,0,0,0.45)",
@@ -224,7 +224,9 @@ export function RoundTableSpinIntro({
               so they stay upright while the table spins. */}
           {authors.map((a, i) => {
             const angleDeg = (360 / total) * i - 90; // start from top, clockwise
-            const radius = 47; // % from center
+            // Place every avatar OUTSIDE the rim, at the same distance, so they
+            // sit around the table consistently like seats at a conference.
+            const radius = 56; // % from center (rim is at 50%)
             const angleRad = (angleDeg * Math.PI) / 180;
             const x = 50 + radius * Math.cos(angleRad);
             const y = 50 + radius * Math.sin(angleRad);

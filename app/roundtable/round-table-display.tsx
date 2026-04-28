@@ -23,7 +23,7 @@ interface RoundTableData {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.07)", border: "rgba(139, 26, 26, 0.30)" },
-  { text: "#3F3F3F", soft: "rgba(63, 63, 63, 0.08)", border: "rgba(63, 63, 63, 0.40)" },
+  { text: "#555555", soft: "rgba(85, 85, 85, 0.10)", border: "rgba(85, 85, 85, 0.45)" },
 ];
 
 function formatDateLong(date: Date): string {
