@@ -12,7 +12,7 @@ import {
 } from "@/app/dashboard/group-actions";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
-import { joinAuthorNames } from "@/lib/article-helpers";
+import { joinAuthorNames, formatIssueTitle } from "@/lib/article-helpers";
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
@@ -107,7 +107,7 @@ export default async function GroupEditorPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
-      <SubpageHeader pageLabel="Edit Group" />
+      <SubpageHeader pageLabel="Edit Issue" />
       {saved && <SavedToast />}
 
       <div className="max-w-[900px] mx-auto px-4 sm:px-8 pt-8 pb-16">
@@ -115,7 +115,7 @@ export default async function GroupEditorPage({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide leading-tight">
-              {group.name}
+              {formatIssueTitle(group)}
             </h2>
             <p className="font-headline text-[13px] text-caption mt-1">
               {group.blocks.length} blocks &middot; {totalSlots} slots
@@ -145,21 +145,34 @@ export default async function GroupEditorPage({
           />
         </div>
 
-        {/* Name + Issue # (EDITOR+ only) */}
+        {/* Volume (locked) + Issue # (EDITOR+ only) */}
         {canManage && (
-          <form action={boundUpdate} className="mt-4 flex gap-3">
-            <input
-              name="name"
-              defaultValue={group.name}
-              placeholder="Group name..."
-              className="flex-1 border border-ink/20 px-4 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors"
-            />
-            <input
-              name="issueNumber"
-              defaultValue={(group as any).issueNumber ?? ""}
-              placeholder="Issue #"
-              className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
-            />
+          <form action={boundUpdate} className="mt-4 flex gap-3 items-end">
+            <div>
+              <label className="block font-headline text-[11px] font-semibold tracking-[0.08em] uppercase text-caption mb-1">
+                Volume
+              </label>
+              <input
+                value={(group as any).volumeNumber ?? "—"}
+                readOnly
+                className="w-32 border border-ink/10 bg-neutral-50 px-3 py-2 font-headline text-[16px] tracking-wide text-caption"
+                aria-label="Volume number (auto-filled)"
+              />
+            </div>
+            <div>
+              <label className="block font-headline text-[11px] font-semibold tracking-[0.08em] uppercase text-caption mb-1">
+                Issue #
+              </label>
+              <input
+                name="issueNumber"
+                type="number"
+                min="1"
+                step="1"
+                defaultValue={(group as any).issueNumber ?? ""}
+                placeholder="#"
+                className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
+              />
+            </div>
             <button type="submit" className="cursor-pointer font-headline font-bold text-[13px] tracking-wide bg-ink text-white px-5 py-2 hover:bg-maroon transition-colors">
               Save
             </button>
@@ -198,7 +211,7 @@ export default async function GroupEditorPage({
           {canManage && (
             <form action={boundDelete} className="ml-auto">
               <button type="submit" className="cursor-pointer font-headline text-[13px] tracking-wide text-caption/50 hover:text-maroon transition-colors">
-                Delete Group
+                Delete Issue
               </button>
             </form>
           )}

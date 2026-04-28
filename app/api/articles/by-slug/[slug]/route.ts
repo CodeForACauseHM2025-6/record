@@ -18,7 +18,7 @@ export async function GET(
       images: {
         orderBy: { order: "asc" },
       },
-      group: { select: { publishedAt: true, issueNumber: true, status: true } },
+      group: { select: { publishedAt: true, volumeNumber: true, issueNumber: true, status: true } },
     },
   });
 

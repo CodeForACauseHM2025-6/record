@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
         createdBy: true,
         credits: { include: { user: true } },
         images: { orderBy: { order: "asc" } },
-        group: { select: { publishedAt: true, issueNumber: true, status: true } },
+        group: { select: { publishedAt: true, volumeNumber: true, issueNumber: true, status: true } },
       },
     }),
     prisma.article.count({ where }),

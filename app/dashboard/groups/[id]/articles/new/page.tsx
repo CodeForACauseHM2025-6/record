@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import { createArticleInGroup } from "@/app/dashboard/article-actions";
+import { formatIssueTitle } from "@/lib/article-helpers";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
@@ -20,7 +21,7 @@ export default async function NewArticleInGroupPage({
   const [group, rawUsers] = await Promise.all([
     prisma.articleGroup.findUnique({
       where: { id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, volumeNumber: true, issueNumber: true },
     }),
     prisma.user.findMany({
       select: { id: true, name: true, role: true, displayTitle: true },
@@ -56,7 +57,7 @@ export default async function NewArticleInGroupPage({
           New Article
         </h2>
         <p className="font-headline text-[14px] text-caption mt-1 tracking-wide">
-          Adding to <span className="font-semibold">{group.name}</span>
+          Adding to <span className="font-semibold">{formatIssueTitle(group)}</span>
         </p>
         <div className="mt-4 h-[2px] bg-rule" />
 

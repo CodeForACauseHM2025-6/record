@@ -33,7 +33,7 @@ interface ArticleData {
   createdBy: { id: string; name: string; role: string; image: string | null; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string; image: string | null } }[];
   images: { url: string; caption: string | null; altText: string }[];
-  group: { issueNumber: string | null; publishedAt: Date | null; status: string } | null;
+  group: { issueNumber: number | null; volumeNumber: string | null; publishedAt: Date | null; status: string } | null;
 }
 
 async function loadArticle(slug: string): Promise<ArticleData | null> {
@@ -119,8 +119,7 @@ export default async function ArticlePage({
 
   const paragraphs = splitParagraphs(article.body);
 
-  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "";
+  const volumeNumber = article.group?.volumeNumber ?? "";
   const issueNumber = article.group?.issueNumber ?? null;
 
   const primaryAuthor = authors[0];

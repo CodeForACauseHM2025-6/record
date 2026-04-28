@@ -2,6 +2,20 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
+export function formatIssueTitle(group: {
+  volumeNumber?: string | null;
+  issueNumber?: number | null;
+  name?: string | null;
+}): string {
+  const parts: string[] = [];
+  if (group.volumeNumber) parts.push(`Vol. ${group.volumeNumber}`);
+  if (group.issueNumber !== null && group.issueNumber !== undefined) {
+    parts.push(`Issue ${group.issueNumber}`);
+  }
+  if (parts.length > 0) return parts.join(" · ");
+  return group.name?.trim() || "Untitled Issue";
+}
+
 export function getPreviewText(body: string, maxLen = 200): string {
   const plain = stripHtml(body);
   if (plain.length <= maxLen) return plain;

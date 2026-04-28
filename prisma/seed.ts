@@ -44,7 +44,7 @@ async function main() {
 
   // Create sample group
   const group = await prisma.articleGroup.create({
-    data: { name: "Sample Edition", issueNumber: "1" },
+    data: { volumeNumber: "CXXIII", issueNumber: 1 },
   });
 
   // Create sample articles

@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Footer } from "@/app/footer";
 import { LayoutEditorWrapper } from "@/app/dashboard/layout-editor-wrapper";
+import { formatIssueTitle } from "@/lib/article-helpers";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
@@ -33,7 +34,7 @@ export default async function LayoutEditorPage({
 
   const { id } = await params;
 
-  const [group, volSetting, staffMembers] = await Promise.all([
+  const [group, staffMembers] = await Promise.all([
     prisma.articleGroup.findUnique({
       where: { id },
       include: {
@@ -61,7 +62,6 @@ export default async function LayoutEditorPage({
         },
       },
     }),
-    prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } }),
     prisma.user.findMany({
       where: { role: { in: ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"] } },
       select: { id: true, name: true },
@@ -71,7 +71,7 @@ export default async function LayoutEditorPage({
 
   if (!group) notFound();
 
-  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "";
+  const volumeNumber = (group as any).volumeNumber ?? "";
   const issueNumber = (group as any).issueNumber ?? null;
   const groupDate = group.publishedAt ?? group.createdAt;
 
@@ -140,7 +140,7 @@ export default async function LayoutEditorPage({
       <main className="max-w-[1200px] mx-auto px-4 sm:px-8 pt-8 pb-16 flex-1 w-full">
         <LayoutEditorWrapper
           groupId={id}
-          groupName={group.name}
+          groupName={formatIssueTitle(group as any)}
           mainBlocks={mainBlocks as any}
           sidebarBlocks={sidebarBlocks as any}
           availableArticles={availableArticles as { id: string; title: string; section: string }[]}

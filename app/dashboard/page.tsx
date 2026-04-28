@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { SavedToast } from "@/app/dashboard/saved-toast";
+import { formatIssueTitle } from "@/lib/article-helpers";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -29,7 +30,11 @@ export default async function DashboardPage({
   const { saved } = await searchParams;
 
   const groups = await prisma.articleGroup.findMany({
-    orderBy: { updatedAt: "desc" },
+    orderBy: [
+      { volumeNumber: "desc" },
+      { issueNumber: "desc" },
+      { createdAt: "desc" },
+    ],
     include: {
       blocks: {
         include: { slots: { select: { articleId: true } } },
@@ -49,14 +54,14 @@ export default async function DashboardPage({
         {/* ============ GROUPS SECTION ============ */}
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
-            Groups
+            Issues
           </h2>
           {canManage && (
             <Link
               href="/dashboard/groups/new"
               className="font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2.5 hover:bg-maroon transition-colors"
             >
-              New Group
+              New Issue
             </Link>
           )}
         </div>
@@ -77,10 +82,13 @@ export default async function DashboardPage({
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="font-headline text-[17px] font-bold">{group.name}</h3>
+                      <h3 className="font-headline text-[17px] font-bold">{formatIssueTitle(group)}</h3>
                       <p className="font-headline text-[13px] text-caption mt-0.5">
                         {group.blocks.length} blocks &middot; {filledCount}/{slotCount} slots filled
-                        {group.scheduledAt && (
+                        {group.publishedAt && (
+                          <span> &middot; Published {formatDate(group.publishedAt)}</span>
+                        )}
+                        {!group.publishedAt && group.scheduledAt && (
                           <span> &middot; Scheduled: {formatDate(group.scheduledAt)}</span>
                         )}
                       </p>

@@ -34,18 +34,19 @@ export default async function HomePage({
   const { page: pageParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
-  // Fetch published groups and volume number
-  const [groups, volSetting] = await Promise.all([
-    prisma.articleGroup.findMany({
-      where: { status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-    }),
-    prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } }),
-  ]);
-  const volumeNumber = (volSetting as { value?: string } | null)?.value ?? "";
+  // Fetch published issues, sorted by vol/issue desc (most recent first).
+  const groups = await prisma.articleGroup.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: [
+      { volumeNumber: "desc" },
+      { issueNumber: "desc" },
+      { publishedAt: "desc" },
+    ],
+  });
 
   const totalPages = groups.length;
   const currentGroup = groups[currentPage - 1] ?? null;
+  const volumeNumber = (currentGroup as { volumeNumber?: string | null } | null)?.volumeNumber ?? "";
 
   let mainBlocks: BlockData[] = [];
   let sidebarBlocks: BlockData[] = [];

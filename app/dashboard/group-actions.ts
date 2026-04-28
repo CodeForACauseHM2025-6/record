@@ -21,15 +21,29 @@ function requireEditor(session: { user?: { role?: string } } | null) {
   }
 }
 
+async function getCurrentVolumeNumber(): Promise<string | null> {
+  const setting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
+  const value = (setting as { value?: string } | null)?.value;
+  return value && value.trim().length > 0 ? value : null;
+}
+
+function parseIssueNumber(raw: FormDataEntryValue | null): number | null {
+  if (raw === null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export async function createGroup(formData: FormData) {
   const session = await auth();
   requireEditor(session);
 
-  const name = formData.get("name") as string;
-  if (!name) throw new Error("Name is required");
+  const issueNumber = parseIssueNumber(formData.get("issueNumber"));
+  const volumeNumber = await getCurrentVolumeNumber();
 
   const group = await prisma.articleGroup.create({
-    data: { name },
+    data: { volumeNumber, issueNumber },
   });
 
   redirect(`/dashboard/groups/${group.id}`);
@@ -39,13 +53,12 @@ export async function updateGroup(id: string, formData: FormData) {
   const session = await auth();
   requireEditor(session);
 
-  const name = formData.get("name") as string;
-  const issueNumber = (formData.get("issueNumber") as string) || null;
-  if (!name) throw new Error("Name is required");
+  const issueNumber = parseIssueNumber(formData.get("issueNumber"));
 
+  // volumeNumber is locked once the issue is created; we never update it here.
   await prisma.articleGroup.update({
     where: { id },
-    data: { name, issueNumber },
+    data: { issueNumber },
   });
 
   revalidatePath(`/dashboard/groups/${id}`);
@@ -138,15 +151,13 @@ export async function createGroupWithArticles(formData: FormData) {
   const session = await auth();
   requireEditor(session);
 
-  const name = formData.get("name") as string;
-  const issueNumber = (formData.get("issueNumber") as string) || null;
+  const issueNumber = parseIssueNumber(formData.get("issueNumber"));
+  const volumeNumber = await getCurrentVolumeNumber();
   const articleIds = formData.getAll("articleIds") as string[];
-
-  if (!name) throw new Error("Name is required");
 
   const group = await prisma.articleGroup.create({
     data: {
-      name,
+      volumeNumber,
       issueNumber,
       articles: articleIds.length > 0
         ? { connect: articleIds.map((id) => ({ id })) }
