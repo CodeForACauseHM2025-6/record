@@ -34,6 +34,9 @@ export default async function GroupEditorPage({
   const { id } = await params;
   const { saved } = await searchParams;
 
+  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
+  const adminVolume = (volSetting as { value?: string } | null)?.value ?? "";
+
   const group = await prisma.articleGroup.findUnique({
     where: { id },
     include: {
@@ -158,7 +161,7 @@ export default async function GroupEditorPage({
                 min="1"
                 step="1"
                 defaultValue={(group as any).volumeNumber ?? ""}
-                placeholder="#"
+                placeholder={adminVolume || "—"}
                 className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
               />
             </div>

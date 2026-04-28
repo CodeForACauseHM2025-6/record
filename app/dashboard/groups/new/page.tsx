@@ -38,7 +38,7 @@ export default async function NewGroupPage() {
                 min="1"
                 step="1"
                 defaultValue={defaultVolume}
-                placeholder="#"
+                placeholder={rawVolume || "—"}
                 required
                 className="w-full border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors text-center"
               />
