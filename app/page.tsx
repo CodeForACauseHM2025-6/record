@@ -6,6 +6,13 @@ import { HamburgerButton } from "@/app/sidebar-menu";
 import { Footer } from "@/app/footer";
 import { PatternRenderer } from "@/app/patterns/pattern-renderer";
 import { BlockData } from "@/app/patterns/types";
+import {
+  getAuthorInfo,
+  getSectionLabel,
+  getSectionHref,
+  formatDateShort,
+  getPreviewText,
+} from "@/lib/article-helpers";
 
 const NAV_SECTIONS = [
   { label: "News", href: "/section/news" },
@@ -23,6 +30,20 @@ function formatDateLong(date: Date): string {
     month: "long",
     day: "numeric",
   });
+}
+
+interface MoreArticle {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  excerpt: string | null;
+  featuredImage: string | null;
+  section: string;
+  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
+  credits: { creditRole: string; user: { id: string; name: string } }[];
+  images: { url: string; caption: string | null; altText: string }[];
+  group: { publishedAt: Date | null } | null;
 }
 
 export default async function HomePage({
@@ -92,6 +113,59 @@ export default async function HomePage({
   }
 
   const issueNumber = (currentGroup as any)?.issueNumber ?? null;
+
+  // Collect article IDs already shown on this page so we don't duplicate them in the rails.
+  const assignedIds = new Set<string>();
+  for (const block of [...mainBlocks, ...sidebarBlocks]) {
+    for (const slot of block.slots ?? []) {
+      const art = (slot as { article?: { id?: string } | null }).article;
+      if (art?.id) assignedIds.add(art.id);
+    }
+  }
+
+  // Latest published round table — surfaced as a teaser on the homepage.
+  const latestRoundTable = (await prisma.roundTable.findFirst({
+    where: { group: { status: "PUBLISHED" } },
+    orderBy: [
+      { group: { publishedAt: "desc" } },
+      { updatedAt: "desc" },
+    ],
+    include: {
+      sides: {
+        orderBy: { order: "asc" },
+        include: {
+          authors: { include: { user: { select: { id: true, name: true } } } },
+        },
+      },
+    },
+  })) as unknown as {
+    slug: string;
+    prompt: string;
+    sides: {
+      label: string;
+      order: number;
+      authors: { user: { id: string; name: string } }[];
+    }[];
+  } | null;
+
+  // Recent articles across all published issues, excluding the ones already on this page.
+  const moreArticles = (await prisma.article.findMany({
+    where: {
+      group: { status: "PUBLISHED" },
+      ...(assignedIds.size > 0 ? { id: { notIn: Array.from(assignedIds) } } : {}),
+    },
+    include: {
+      createdBy: true,
+      credits: { include: { user: true } },
+      images: { orderBy: { order: "asc" }, take: 1 },
+      group: { select: { publishedAt: true } },
+    },
+    orderBy: [
+      { group: { publishedAt: "desc" } },
+      { createdAt: "desc" },
+    ],
+    take: 9,
+  })) as unknown as MoreArticle[];
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -186,6 +260,135 @@ export default async function HomePage({
               {currentGroup ? "This edition has no content yet." : "No editions published yet."}
             </p>
           </div>
+        )}
+
+        {/* ---- ROUND TABLE TEASER ---- */}
+        {latestRoundTable && (
+          <section className="mt-16">
+            <Link
+              href="/roundtable"
+              className="group block rounded-sm border border-maroon/30 bg-gradient-to-br from-[rgba(139,26,26,0.06)] via-[rgba(139,26,26,0.03)] to-white px-6 py-7 sm:px-10 sm:py-9 hover:border-maroon transition-colors"
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                <div className="lg:flex-1 min-w-0">
+                  <p className="font-headline text-[11px] sm:text-[12px] font-bold tracking-[0.2em] uppercase text-maroon">
+                    The Round Table
+                  </p>
+                  <h2 className="mt-2 font-headline text-[24px] sm:text-[30px] lg:text-[34px] font-bold leading-tight">
+                    {latestRoundTable.prompt || "This week’s discussion"}
+                  </h2>
+                  <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 font-headline text-[13px]">
+                    {latestRoundTable.sides.map((side, i) => {
+                      const names = side.authors.map((a) => a.user.name).join(", ");
+                      return (
+                        <div key={side.order} className="flex items-baseline gap-2">
+                          <span className="font-bold tracking-[0.12em] uppercase text-[11px] text-maroon">
+                            {side.label?.trim() || `Side ${i + 1}`}
+                          </span>
+                          <span className="italic text-caption">
+                            {names || "(no authors)"}
+                          </span>
+                          {i === 0 && latestRoundTable.sides.length > 1 && (
+                            <span className="hidden sm:inline font-bold tracking-[0.18em] uppercase text-[10px] text-caption/60 mx-1">
+                              vs
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="shrink-0 self-start lg:self-center">
+                  <span className="inline-flex items-center gap-2 font-headline text-[13px] font-bold tracking-[0.06em] uppercase text-maroon group-hover:underline">
+                    Read the discussion
+                    <span className="transition-transform group-hover:translate-x-0.5">&rarr;</span>
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </section>
+        )}
+
+        {/* ---- MORE FROM THE RECORD ---- */}
+        {moreArticles.length > 0 && (
+          <section className="mt-16">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-[2px] bg-rule" />
+              <h2 className="font-headline font-bold text-[14px] sm:text-[16px] tracking-[0.18em] uppercase">
+                More from The Record
+              </h2>
+              <div className="flex-1 h-[2px] bg-rule" />
+            </div>
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+              {moreArticles.map((article) => {
+                const author = getAuthorInfo(article);
+                const heroImage = article.featuredImage ?? article.images[0]?.url ?? null;
+                const heroAlt = article.images[0]?.altText ?? article.title;
+                const preview = article.excerpt
+                  ? article.excerpt
+                  : getPreviewText(article.body, 140);
+                return (
+                  <article key={article.id} className="flex flex-col">
+                    <Link href={`/article/${article.slug}`} className="block group">
+                      {heroImage ? (
+                        <div className="aspect-[3/2] overflow-hidden bg-neutral-100">
+                          <img
+                            src={heroImage}
+                            alt={heroAlt}
+                            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-[3/2] bg-gradient-to-br from-neutral-100 to-neutral-50 flex items-center justify-center">
+                          <span className="font-masthead text-[36px] text-neutral-300">R</span>
+                        </div>
+                      )}
+                    </Link>
+                    <div className="mt-3">
+                      <Link
+                        href={getSectionHref(article.section)}
+                        className="inline-block font-headline text-[10px] font-bold tracking-[0.16em] uppercase text-maroon hover:underline"
+                      >
+                        {getSectionLabel(article.section)}
+                      </Link>
+                      <h3 className="mt-1.5 font-headline text-[19px] sm:text-[20px] font-bold leading-snug">
+                        <Link
+                          href={`/article/${article.slug}`}
+                          className="hover:text-maroon transition-colors"
+                        >
+                          {article.title}
+                        </Link>
+                      </h3>
+                      {preview && (
+                        <p className="mt-2 font-body text-[14px] leading-[1.55] text-caption">
+                          {preview}
+                        </p>
+                      )}
+                      <div className="mt-3 font-headline text-[12px] tracking-wide">
+                        <Link
+                          href={`/profile/${author.id}`}
+                          className="text-maroon hover:underline"
+                        >
+                          {author.name}
+                        </Link>
+                        {author.role && (
+                          <>
+                            {" "}
+                            <span className="italic text-caption">{author.role}</span>
+                          </>
+                        )}
+                        {article.group?.publishedAt && (
+                          <span className="text-caption/70 ml-2">
+                            &middot; {formatDateShort(article.group.publishedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* ---- PAGINATION ---- */}
