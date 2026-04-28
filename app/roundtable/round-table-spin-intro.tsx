@@ -12,7 +12,7 @@ interface IntroAuthor {
 
 const SIDE_THEMES = [
   { text: "#8B1A1A", soft: "rgba(139, 26, 26, 0.18)" },
-  { text: "#1A1A1A", soft: "rgba(26, 26, 26, 0.22)" },
+  { text: "#3A3A3A", soft: "rgba(58, 58, 58, 0.22)" },
 ];
 
 function initials(name: string): string {
@@ -155,12 +155,8 @@ export function RoundTableSpinIntro({
           100%     { opacity: 1; transform: scale(1); }
         }
         @keyframes rt-cta-in {
-          0%   { opacity: 0; transform: translateY(12px) scale(0.96); }
-          100% { opacity: 1; transform: translateY(0)    scale(1); }
-        }
-        @keyframes rt-cta-pulse {
-          0%, 100% { transform: scale(1); }
-          50%      { transform: scale(1.04); }
+          0%   { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <div
@@ -174,7 +170,7 @@ export function RoundTableSpinIntro({
         className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden cursor-pointer"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.30) 0%, rgba(26, 26, 26, 0.55) 45%, rgba(0,0,0,0.95) 100%)",
+            "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.28) 0%, rgba(58, 58, 58, 0.65) 45%, rgba(0,0,0,0.95) 100%)",
           opacity: bgVisible && !exiting ? 1 : 0,
           transition: "opacity 500ms ease",
         }}
@@ -203,7 +199,7 @@ export function RoundTableSpinIntro({
             className="absolute inset-0 rounded-full"
             style={{
               background:
-                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #1A1A1A 180deg, #8B1A1A 360deg)",
+                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 70%), conic-gradient(from 0deg, #8B1A1A 0deg, #4A4A4A 180deg, #8B1A1A 360deg)",
               border: "3px solid rgba(255,255,255,0.22)",
               boxShadow:
                 "0 30px 80px rgba(0,0,0,0.55), inset 0 0 60px rgba(0,0,0,0.45)",
@@ -308,33 +304,22 @@ export function RoundTableSpinIntro({
               >
                 {prompt || "—"}
               </p>
+
+              {/* Discreet CTA right under the prompt — appears 1s after the spin */}
+              {showCta && (
+                <p
+                  className="mt-4 font-headline text-white/65 text-[11px] sm:text-[12px] tracking-[0.18em] uppercase pointer-events-none"
+                  style={{
+                    animation:
+                      "rt-cta-in 500ms cubic-bezier(0.32,0,0.2,1) both",
+                  }}
+                >
+                  Click to continue &rarr;
+                </p>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Prominent CTA — appears 1s after the spin animation finishes */}
-        {showCta && (
-          <div
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-none"
-            style={{ animation: "rt-cta-in 500ms cubic-bezier(0.32,0,0.2,1) both" }}
-          >
-            <div
-              className="inline-flex items-center gap-3 px-6 py-3 rounded-full"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1.5px solid rgba(255,255,255,0.55)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                animation: "rt-cta-pulse 1800ms ease-in-out 500ms infinite",
-              }}
-            >
-              <span className="font-headline text-white text-[14px] sm:text-[15px] font-bold tracking-[0.16em] uppercase">
-                Click to continue
-              </span>
-              <span className="font-headline text-white text-[16px]">&rarr;</span>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
