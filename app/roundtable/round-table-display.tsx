@@ -144,6 +144,28 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [renderModal, setRenderModal] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Two-phase mount/unmount so the modal can animate in and out.
+  useEffect(() => {
+    if (expanded) {
+      setRenderModal(true);
+      // Wait two frames so the initial closed styles paint, then animate to open.
+      let id2 = 0;
+      const id1 = requestAnimationFrame(() => {
+        id2 = requestAnimationFrame(() => setModalOpen(true));
+      });
+      return () => {
+        cancelAnimationFrame(id1);
+        if (id2) cancelAnimationFrame(id2);
+      };
+    } else if (renderModal) {
+      setModalOpen(false);
+      const t = window.setTimeout(() => setRenderModal(false), 380);
+      return () => clearTimeout(t);
+    }
+  }, [expanded, renderModal]);
 
   const ringRotation = -activeIdx * slotAngle;
 
@@ -158,14 +180,18 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (expanded) return;
+      if (e.key === "Escape" && (renderModal || expanded)) {
+        setExpanded(false);
+        return;
+      }
+      if (renderModal || expanded) return;
       if (e.key === "ArrowRight") navigate(1);
       if (e.key === "ArrowLeft") navigate(-1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx, animating, expanded]);
+  }, [activeIdx, animating, expanded, renderModal]);
 
   const activeTurn = sortedTurns[activeIdx];
   const activeSideIdx = activeTurn ? sideIndexById[activeTurn.sideId] ?? 0 : 0;
@@ -407,14 +433,26 @@ export function RoundTableDisplay({ data }: { data: RoundTableData }) {
       )}
 
       {/* Expand modal */}
-      {expanded && activeTurn && (
+      {renderModal && activeTurn && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
           onClick={() => setExpanded(false)}
+          style={{
+            backgroundColor: modalOpen ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
+            backdropFilter: modalOpen ? "blur(4px)" : "blur(0px)",
+            WebkitBackdropFilter: modalOpen ? "blur(4px)" : "blur(0px)",
+            transition: "background-color 360ms ease, backdrop-filter 360ms ease, -webkit-backdrop-filter 360ms ease",
+          }}
         >
           <div
             className="bg-white rounded-2xl max-w-[760px] w-full max-h-[88vh] flex flex-col"
-            style={{ boxShadow: `0 20px 60px ${activeTheme.text}50, 0 0 0 2px ${activeTheme.text}` }}
+            style={{
+              boxShadow: `0 20px 60px ${activeTheme.text}50, 0 0 0 2px ${activeTheme.text}`,
+              transform: modalOpen ? "scale(1) translateY(0)" : "scale(0.55) translateY(-12vh)",
+              opacity: modalOpen ? 1 : 0,
+              transformOrigin: "50% 30%",
+              transition: "transform 380ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 280ms ease",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-neutral-200">
