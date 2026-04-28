@@ -7,10 +7,10 @@ import {
   updateDividerStyle,
   reorderBlocks,
 } from "@/app/dashboard/group-actions";
-import { PATTERNS, getMainPatterns, getSidebarPatterns } from "@/lib/patterns";
+import { PATTERNS, getMainPatterns, getSidebarPatterns, getFullPatterns } from "@/lib/patterns";
 import { EditorProvider } from "@/app/patterns/editor-context";
 import { PatternRenderer } from "@/app/patterns/pattern-renderer";
-import { BlockData, PopulatedSlot } from "@/app/patterns/types";
+import { BlockData, PopulatedSlot, RoundTableSummary } from "@/app/patterns/types";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -59,6 +59,8 @@ interface LayoutBuilderProps {
   groupId: string;
   mainBlocks: BlockWithSlots[];
   sidebarBlocks: BlockWithSlots[];
+  fullBlocks: BlockWithSlots[];
+  roundTable: RoundTableSummary | null;
   availableArticles: { id: string; title: string; section: string }[];
   staffMembers: { id: string; name: string }[];
   placeholderOpacity?: number;
@@ -68,12 +70,17 @@ interface LayoutBuilderProps {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function toBlockData(block: BlockWithSlots): BlockData {
+function toBlockData(block: BlockWithSlots, roundTable: RoundTableSummary | null): BlockData {
+  const isRoundTable =
+    block.pattern === "round-table" ||
+    block.pattern === "sb-round-table" ||
+    block.pattern === "round-table-full";
   return {
     id: block.id,
     pattern: block.pattern,
     order: block.order,
     dividerStyle: block.dividerStyle,
+    roundTable: isRoundTable ? roundTable : undefined,
     slots: block.slots.map(
       (s): PopulatedSlot => ({
         id: s.id,
@@ -116,14 +123,19 @@ function toBlockData(block: BlockWithSlots): BlockData {
  * renders identically to the real block once added (its EditableSlot
  * wrappers will fill empties with getPlaceholderArticle() in editMode).
  */
-function placeholderBlockData(patternId: string): BlockData | null {
+function placeholderBlockData(patternId: string, roundTable: RoundTableSummary | null): BlockData | null {
   const def = PATTERNS[patternId];
   if (!def) return null;
+  const isRoundTable =
+    patternId === "round-table" ||
+    patternId === "sb-round-table" ||
+    patternId === "round-table-full";
   return {
     id: `preview-${patternId}`,
     pattern: patternId,
     order: 0,
     dividerStyle: "none",
+    roundTable: isRoundTable ? roundTable : undefined,
     slots: def.slots.map(
       (s, i): PopulatedSlot => ({
         id: `preview-${patternId}-${i}`,
@@ -156,11 +168,13 @@ export function LayoutBuilder({
   groupId,
   mainBlocks,
   sidebarBlocks,
+  fullBlocks,
+  roundTable,
   availableArticles,
   staffMembers,
   placeholderOpacity = 0.6,
 }: LayoutBuilderProps) {
-  const [pickingColumn, setPickingColumn] = useState<"main" | "sidebar" | null>(null);
+  const [pickingColumn, setPickingColumn] = useState<"main" | "sidebar" | "full" | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   async function handleSelect(patternId: string) {
@@ -186,7 +200,6 @@ export function LayoutBuilder({
       }}
     >
       <div
-        className="flex flex-col lg:flex-row"
         // Block in-pattern Link clicks from navigating away while editing
         onClickCapture={(e) => {
           const target = e.target as HTMLElement;
@@ -195,45 +208,98 @@ export function LayoutBuilder({
           }
         }}
       >
-        {/* Main column */}
-        <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
-          {pickingColumn === "sidebar" ? (
-            <PatternList
-              column="sidebar"
-              onHover={setPreviewId}
-              onSelect={handleSelect}
-              onCancel={handleCancel}
-            />
-          ) : (
-            <ColumnView
-              groupId={groupId}
-              column="main"
-              blocks={mainBlocks}
-              onStartPick={() => setPickingColumn("main")}
-              isPicking={pickingColumn === "main"}
-              previewId={pickingColumn === "main" ? previewId : null}
-            />
-          )}
+        <div className="flex flex-col lg:flex-row">
+          {/* Main column */}
+          <div className="lg:flex-[2] lg:border-r lg:border-neutral-200 lg:pr-8">
+            {pickingColumn === "sidebar" ? (
+              <PatternList
+                column="sidebar"
+                onHover={setPreviewId}
+                onSelect={handleSelect}
+                onCancel={handleCancel}
+                roundTable={roundTable}
+              />
+            ) : (
+              <ColumnView
+                groupId={groupId}
+                column="main"
+                blocks={mainBlocks}
+                roundTable={roundTable}
+                onStartPick={() => setPickingColumn("main")}
+                isPicking={pickingColumn === "main"}
+                previewId={pickingColumn === "main" ? previewId : null}
+              />
+            )}
+          </div>
+
+          {/* Sidebar column */}
+          <div className="lg:flex-[1] lg:pl-8 mt-8 lg:mt-0 border-t lg:border-t-0 border-neutral-200 pt-8 lg:pt-0">
+            {pickingColumn === "main" ? (
+              <PatternList
+                column="main"
+                onHover={setPreviewId}
+                onSelect={handleSelect}
+                onCancel={handleCancel}
+                roundTable={roundTable}
+              />
+            ) : (
+              <ColumnView
+                groupId={groupId}
+                column="sidebar"
+                blocks={sidebarBlocks}
+                roundTable={roundTable}
+                onStartPick={() => setPickingColumn("sidebar")}
+                isPicking={pickingColumn === "sidebar"}
+                previewId={pickingColumn === "sidebar" ? previewId : null}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Sidebar column */}
-        <div className="lg:flex-[1] lg:pl-8 mt-8 lg:mt-0 border-t lg:border-t-0 border-neutral-200 pt-8 lg:pt-0">
-          {pickingColumn === "main" ? (
+        {/* Full Row section — spans the entire width below main + sidebar */}
+        <div className="mt-12 border-t-2 border-neutral-200 pt-8">
+          <p className="font-headline text-[12px] font-semibold tracking-[0.12em] uppercase text-caption mb-4">
+            Full Row
+          </p>
+          {pickingColumn === "full" ? (
             <PatternList
-              column="main"
+              column="full"
               onHover={setPreviewId}
               onSelect={handleSelect}
               onCancel={handleCancel}
+              roundTable={roundTable}
             />
           ) : (
             <ColumnView
               groupId={groupId}
-              column="sidebar"
-              blocks={sidebarBlocks}
-              onStartPick={() => setPickingColumn("sidebar")}
-              isPicking={pickingColumn === "sidebar"}
-              previewId={pickingColumn === "sidebar" ? previewId : null}
+              column="full"
+              blocks={fullBlocks}
+              roundTable={roundTable}
+              onStartPick={() => setPickingColumn("full")}
+              isPicking={false}
+              previewId={null}
             />
+          )}
+          {pickingColumn === "full" && previewId && (() => {
+            const previewBlock = placeholderBlockData(previewId, roundTable);
+            if (!previewBlock) return null;
+            return (
+              <div className="mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4 min-h-[300px]">
+                <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
+                  Preview: {PATTERNS[previewId]?.name}
+                </p>
+                <div className="pointer-events-none">
+                  <PatternRenderer block={previewBlock} editMode />
+                </div>
+              </div>
+            );
+          })()}
+          {pickingColumn === "full" && !previewId && (
+            <div className="mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center min-h-[300px]">
+              <p className="font-headline text-[12px] text-neutral-400">
+                Hover a pattern to preview it here
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -249,18 +315,20 @@ function ColumnView({
   groupId,
   column,
   blocks,
+  roundTable,
   onStartPick,
   isPicking,
   previewId,
 }: {
   groupId: string;
-  column: "main" | "sidebar";
+  column: "main" | "sidebar" | "full";
   blocks: BlockWithSlots[];
+  roundTable: RoundTableSummary | null;
   onStartPick: () => void;
   isPicking: boolean;
   previewId: string | null;
 }) {
-  const isSidebar = column === "sidebar";
+  const columnLabel = column === "sidebar" ? "sidebar" : column === "full" ? "full row" : "main";
 
   return (
     <div>
@@ -273,7 +341,7 @@ function ColumnView({
           >
             <span className="block text-neutral-400 text-[24px] text-center">+</span>
             <span className="block font-headline text-[13px] text-neutral-400 mt-1">
-              Add a {isSidebar ? "sidebar" : "main"} block
+              Add a {columnLabel} block
             </span>
           </button>
         </div>
@@ -287,6 +355,7 @@ function ColumnView({
             column={column}
             allBlocks={blocks}
             index={i}
+            roundTable={roundTable}
           />
           {i < blocks.length - 1 && block.dividerStyle !== "none" && (
             <div
@@ -298,26 +367,18 @@ function ColumnView({
         </div>
       ))}
 
-      {/* Preview area has a fixed min-height so swapping patterns can't
-          change the column height. Without this, hovering a taller pattern
-          reflows the flex row, the picker buttons shift under the cursor,
-          and spurious mouseenter events leave the preview stuck on the
-          wrong pattern. Same min-height on both states keeps the area
-          stable from the moment the picker opens. */}
-      {isPicking && previewId && (() => {
-        const previewBlock = placeholderBlockData(previewId);
+      {isPicking && previewId && column !== "full" && (() => {
+        const previewBlock = placeholderBlockData(previewId, roundTable);
         if (!previewBlock) return null;
         return (
           <div
             className={`mt-4 border-2 border-dashed border-maroon/30 bg-maroon/5 p-4 ${
-              isSidebar ? "min-h-[250px]" : "min-h-[500px]"
+              column === "sidebar" ? "min-h-[250px]" : "min-h-[500px]"
             }`}
           >
             <p className="font-headline text-[10px] tracking-[0.08em] uppercase text-maroon/60 mb-2">
               Preview: {PATTERNS[previewId]?.name}
             </p>
-            {/* pointer-events-none so the preview is purely visual:
-                no slot popups, no hover chrome firing inside it. */}
             <div className="pointer-events-none">
               <PatternRenderer block={previewBlock} editMode />
             </div>
@@ -325,10 +386,10 @@ function ColumnView({
         );
       })()}
 
-      {isPicking && !previewId && (
+      {isPicking && !previewId && column !== "full" && (
         <div
           className={`mt-4 border-2 border-dashed border-neutral-200 p-6 flex items-center justify-center ${
-            isSidebar ? "min-h-[250px]" : "min-h-[500px]"
+            column === "sidebar" ? "min-h-[250px]" : "min-h-[500px]"
           }`}
         >
           <p className="font-headline text-[12px] text-neutral-400">
@@ -361,19 +422,29 @@ function PatternList({
   onHover,
   onSelect,
   onCancel,
+  roundTable: _roundTable,
 }: {
-  column: "main" | "sidebar";
+  column: "main" | "sidebar" | "full";
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
   onCancel: () => void;
+  roundTable: RoundTableSummary | null;
 }) {
-  const patterns = column === "main" ? getMainPatterns() : getSidebarPatterns();
+  const patterns =
+    column === "main"
+      ? getMainPatterns()
+      : column === "sidebar"
+      ? getSidebarPatterns()
+      : getFullPatterns();
+
+  const label =
+    column === "main" ? "main" : column === "sidebar" ? "sidebar" : "full row";
 
   return (
     <div className="sticky top-12 z-30 bg-white pt-3 pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <p className="font-headline text-[14px] font-semibold tracking-wide">
-          Choose a {column === "main" ? "main" : "sidebar"} pattern
+          Choose a {label} pattern
         </p>
         <button
           type="button"
@@ -417,12 +488,14 @@ function BlockView({
   column,
   allBlocks,
   index,
+  roundTable,
 }: {
   block: BlockWithSlots;
   groupId: string;
-  column: "main" | "sidebar";
+  column: "main" | "sidebar" | "full";
   allBlocks: BlockWithSlots[];
   index: number;
+  roundTable: RoundTableSummary | null;
 }) {
   const [hovered, setHovered] = useState(false);
   const isFirst = index === 0;
@@ -493,7 +566,7 @@ function BlockView({
         </div>
       )}
 
-      <PatternRenderer block={toBlockData(block)} editMode />
+      <PatternRenderer block={toBlockData(block, roundTable)} editMode />
     </div>
   );
 }

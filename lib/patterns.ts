@@ -6,7 +6,7 @@ export interface SlotDefinition {
 export interface PatternDefinition {
   id: string;
   name: string;
-  column: "main" | "sidebar";
+  column: "main" | "sidebar" | "full";
   slots: SlotDefinition[];
   description: string;
 }
@@ -118,6 +118,27 @@ export const PATTERNS: Record<string, PatternDefinition> = {
       { role: "article", label: "Article 3" },
     ],
   },
+  "round-table": {
+    id: "round-table",
+    name: "Round Table",
+    column: "main",
+    description: "This issue's Round Table debate, with prompt and sides",
+    slots: [],
+  },
+  "sb-round-table": {
+    id: "sb-round-table",
+    name: "Round Table",
+    column: "sidebar",
+    description: "Compact Round Table teaser",
+    slots: [],
+  },
+  "round-table-full": {
+    id: "round-table-full",
+    name: "Round Table — Full Row",
+    column: "full",
+    description: "Round Table debate spanning the full width of the page",
+    slots: [],
+  },
 };
 
 export function getMainPatterns(): PatternDefinition[] {
@@ -126,4 +147,8 @@ export function getMainPatterns(): PatternDefinition[] {
 
 export function getSidebarPatterns(): PatternDefinition[] {
   return Object.values(PATTERNS).filter((p) => p.column === "sidebar");
+}
+
+export function getFullPatterns(): PatternDefinition[] {
+  return Object.values(PATTERNS).filter((p) => p.column === "full");
 }

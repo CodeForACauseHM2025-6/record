@@ -71,30 +71,56 @@ export default async function HomePage({
 
   let mainBlocks: BlockData[] = [];
   let sidebarBlocks: BlockData[] = [];
+  let fullBlocks: BlockData[] = [];
   let groupDate = new Date();
+  let groupRoundTable: import("@/app/patterns/types").RoundTableSummary | null = null;
 
   if (currentGroup) {
-    const fullGroup = await prisma.articleGroup.findUnique({
-      where: { id: currentGroup.id },
-      include: {
-        blocks: {
-          orderBy: { order: "asc" },
-          include: {
-            slots: {
-              orderBy: { order: "asc" },
-              include: {
-                article: {
-                  include: {
-                    createdBy: true,
-                    credits: { include: { user: true } },
+    const [fullGroup, currentRoundTable] = await Promise.all([
+      prisma.articleGroup.findUnique({
+        where: { id: currentGroup.id },
+        include: {
+          blocks: {
+            orderBy: { order: "asc" },
+            include: {
+              slots: {
+                orderBy: { order: "asc" },
+                include: {
+                  article: {
+                    include: {
+                      createdBy: true,
+                      credits: { include: { user: true } },
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      }),
+      prisma.roundTable.findUnique({
+        where: { groupId: currentGroup.id },
+        include: {
+          sides: {
+            orderBy: { order: "asc" },
+            include: { authors: { include: { user: { select: { id: true, name: true } } } } },
+          },
+        },
+      }),
+    ]);
+
+    groupRoundTable = currentRoundTable
+      ? {
+          slug: currentRoundTable.slug,
+          prompt: currentRoundTable.prompt,
+          sides: currentRoundTable.sides.map((s) => ({
+            label: s.label,
+            order: s.order,
+            authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name } })),
+          })),
+        }
+      : null;
+
     const allBlocks = (fullGroup?.blocks ?? []) as unknown as (BlockData & { column: string })[];
     // Articles no longer carry their own publishedAt; expose the group's
     // publishedAt to patterns under the same field name so existing pattern
@@ -106,9 +132,14 @@ export default async function HomePage({
           (slot.article as { publishedAt: Date | null }).publishedAt = groupPublishedAt;
         }
       }
+      // Round-table patterns get the group's round table attached.
+      if (block.pattern === "round-table" || block.pattern === "sb-round-table" || block.pattern === "round-table-full") {
+        block.roundTable = groupRoundTable;
+      }
     }
     mainBlocks = allBlocks.filter((b) => b.column === "main");
     sidebarBlocks = allBlocks.filter((b) => b.column === "sidebar");
+    fullBlocks = allBlocks.filter((b) => b.column === "full");
     groupDate = currentGroup.publishedAt ?? currentGroup.createdAt;
   }
 
@@ -166,6 +197,12 @@ export default async function HomePage({
     ],
     take: 9,
   })) as unknown as MoreArticle[];
+
+  // If the editor placed a round-table pattern in the layout, suppress the
+  // bottom-of-page teaser so the round table doesn't appear twice.
+  const layoutHasRoundTable = [...mainBlocks, ...sidebarBlocks, ...fullBlocks].some(
+    (b) => b.pattern === "round-table" || b.pattern === "sb-round-table" || b.pattern === "round-table-full",
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -262,8 +299,22 @@ export default async function HomePage({
           </div>
         )}
 
+        {/* ---- FULL ROW BLOCKS ---- */}
+        {fullBlocks.length > 0 && (
+          <div className="mt-12 space-y-8">
+            {fullBlocks.map((block, i) => (
+              <div key={block.id}>
+                <PatternRenderer block={block} />
+                {i < fullBlocks.length - 1 && block.dividerStyle !== "none" && (
+                  <div className={`mt-8 ${block.dividerStyle === "bold" ? "h-[2px] bg-ink" : "h-px bg-neutral-200"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ---- ROUND TABLE TEASER ---- */}
-        {latestRoundTable && (
+        {latestRoundTable && !layoutHasRoundTable && (
           <section className="mt-16">
             <Link
               href="/roundtable"

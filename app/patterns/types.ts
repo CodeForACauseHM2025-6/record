@@ -30,10 +30,21 @@ export interface PopulatedSlot {
   imageCropCustom: string | null;
 }
 
+export interface RoundTableSummary {
+  slug: string;
+  prompt: string;
+  sides: {
+    label: string;
+    order: number;
+    authors: { user: { id: string; name: string } }[];
+  }[];
+}
+
 export interface BlockData {
   id: string;
   pattern: string;
   order: number;
   dividerStyle: string;
   slots: PopulatedSlot[];
+  roundTable?: RoundTableSummary | null;
 }

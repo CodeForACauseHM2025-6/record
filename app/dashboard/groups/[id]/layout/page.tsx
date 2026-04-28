@@ -34,7 +34,7 @@ export default async function LayoutEditorPage({
 
   const { id } = await params;
 
-  const [group, staffMembers] = await Promise.all([
+  const [group, staffMembers, roundTable] = await Promise.all([
     prisma.articleGroup.findUnique({
       where: { id },
       include: {
@@ -67,9 +67,30 @@ export default async function LayoutEditorPage({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.roundTable.findUnique({
+      where: { groupId: id },
+      include: {
+        sides: {
+          orderBy: { order: "asc" },
+          include: { authors: { include: { user: { select: { id: true, name: true } } } } },
+        },
+      },
+    }),
   ]);
 
   if (!group) notFound();
+
+  const groupRoundTable = roundTable
+    ? {
+        slug: roundTable.slug,
+        prompt: roundTable.prompt,
+        sides: roundTable.sides.map((s) => ({
+          label: s.label,
+          order: s.order,
+          authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name } })),
+        })),
+      }
+    : null;
 
   const volumeNumber = (group as any).volumeNumber ?? null;
   const issueNumber = (group as any).issueNumber ?? null;
@@ -77,6 +98,7 @@ export default async function LayoutEditorPage({
 
   const mainBlocks = group.blocks.filter((b: (typeof group.blocks)[number]) => b.column === "main");
   const sidebarBlocks = group.blocks.filter((b: (typeof group.blocks)[number]) => b.column === "sidebar");
+  const fullBlocks = group.blocks.filter((b: (typeof group.blocks)[number]) => b.column === "full");
 
   const assignedIds = new Set(
     group.blocks.flatMap((b: (typeof group.blocks)[number]) =>
@@ -143,6 +165,8 @@ export default async function LayoutEditorPage({
           groupName={formatIssueTitle(group as any)}
           mainBlocks={mainBlocks as any}
           sidebarBlocks={sidebarBlocks as any}
+          fullBlocks={fullBlocks as any}
+          roundTable={groupRoundTable}
           availableArticles={availableArticles as { id: string; title: string; section: string }[]}
           staffMembers={staffMembers as { id: string; name: string }[]}
         />
