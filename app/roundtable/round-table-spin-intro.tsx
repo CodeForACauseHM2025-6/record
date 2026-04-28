@@ -136,9 +136,11 @@ export function RoundTableSpinIntro({
           70%  { transform: rotateZ(-900deg); }
           100% { transform: rotateZ(-1080deg); }
         }
-        @keyframes rt-prompt-fade {
-          0%, 60% { opacity: 0; transform: translateY(8px); }
-          100% { opacity: 1; transform: translateY(0); }
+        @keyframes rt-prompt-pop {
+          0%   { opacity: 0; transform: scale(0.6); }
+          15%  { opacity: 1; transform: scale(1.04); }
+          25%  { transform: scale(1); }
+          100% { opacity: 1; transform: scale(1); }
         }
         @keyframes rt-bg-pulse {
           0%   { opacity: 0; }
@@ -147,7 +149,14 @@ export function RoundTableSpinIntro({
         }
       `}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
+        role="button"
+        tabIndex={0}
+        onClick={skip}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") skip();
+        }}
+        aria-label="Skip intro"
+        className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden cursor-pointer"
         style={{
           background:
             "radial-gradient(circle at 50% 50%, rgba(139, 26, 26, 0.22) 0%, rgba(31, 78, 121, 0.18) 40%, rgba(0,0,0,0.92) 100%)",
@@ -156,19 +165,21 @@ export function RoundTableSpinIntro({
           animation: "rt-bg-pulse 2400ms cubic-bezier(0.5, 0, 0.5, 1) both",
         }}
       >
-        <button
-          type="button"
-          onClick={skip}
-          className="absolute top-6 right-6 cursor-pointer font-headline text-[11px] font-semibold tracking-[0.16em] uppercase text-white/60 hover:text-white transition-colors"
+        <p
+          className="absolute top-6 left-1/2 -translate-x-1/2 font-headline text-[11px] sm:text-[12px] font-bold tracking-[0.32em] uppercase text-white/85"
+          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}
         >
-          Skip &rarr;
-        </button>
+          The Round Table · This Week’s Discussion
+        </p>
+        <span className="absolute top-6 right-6 font-headline text-[11px] font-semibold tracking-[0.16em] uppercase text-white/55 pointer-events-none">
+          Click to skip
+        </span>
 
         <div
           className="relative"
           style={{
-            width: "min(78vmin, 640px)",
-            height: "min(78vmin, 640px)",
+            width: "min(82vmin, 720px)",
+            height: "min(82vmin, 720px)",
             animation: "rt-spin 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
             transformStyle: "preserve-3d",
           }}
@@ -248,40 +259,25 @@ export function RoundTableSpinIntro({
             );
           })}
 
-          {/* Center wordmark */}
+          {/* Center prompt — counter-rotates so it stays upright while the table spins */}
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center px-[14%]"
             style={{
               animation:
                 "rt-counter-spin 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
             }}
           >
             <p
-              className="font-headline text-white text-[12px] sm:text-[14px] font-bold tracking-[0.32em] uppercase text-center"
-              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}
+              className="font-headline text-white font-bold text-center leading-[1.12]"
+              style={{
+                fontSize: "clamp(20px, 4.4vmin, 44px)",
+                textShadow: "0 2px 18px rgba(0,0,0,0.7)",
+                animation: "rt-prompt-pop 2400ms cubic-bezier(0.32, 0, 0.2, 1) both",
+              }}
             >
-              The
-              <br />
-              Round
-              <br />
-              Table
+              {prompt || "—"}
             </p>
           </div>
-        </div>
-
-        {/* Prompt fades in below */}
-        <div
-          className="absolute bottom-12 left-0 right-0 text-center px-6"
-          style={{
-            animation: "rt-prompt-fade 2400ms ease both",
-          }}
-        >
-          <p className="font-headline text-white/80 text-[13px] tracking-[0.18em] uppercase font-semibold mb-2">
-            This week’s discussion
-          </p>
-          <p className="font-headline text-white text-[18px] sm:text-[22px] max-w-[760px] mx-auto leading-snug">
-            {prompt || "—"}
-          </p>
         </div>
       </div>
     </>
