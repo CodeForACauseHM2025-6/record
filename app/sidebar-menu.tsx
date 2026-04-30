@@ -12,14 +12,35 @@ const SECTIONS = [
   { label: "MD/Alumni", href: "/section/md-alumni" },
 ];
 
-const PAGES = [
-  { label: "Home", href: "/" },
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Account", href: "/account" },
+const DASHBOARD_ROLES = [
+  "WRITER",
+  "DESIGNER",
+  "PHOTOGRAPHER",
+  "ART_TEAM",
+  "EDITOR",
+  "CHIEF_EDITOR",
+  "WEB_TEAM",
+  "WEB_MASTER",
 ];
 
-export function HamburgerButton() {
+export function HamburgerButton({
+  isAuthenticated = false,
+  userRole,
+}: {
+  isAuthenticated?: boolean;
+  userRole?: string;
+}) {
   const [open, setOpen] = useState(false);
+
+  const pages: { label: string; href: string }[] = [{ label: "Home", href: "/" }];
+  if (isAuthenticated) {
+    if (userRole && DASHBOARD_ROLES.includes(userRole)) {
+      pages.push({ label: "Dashboard", href: "/dashboard" });
+    }
+    pages.push({ label: "Account", href: "/account" });
+  } else {
+    pages.push({ label: "Sign In", href: "/login" });
+  }
 
   return (
     <>
@@ -112,7 +133,7 @@ export function HamburgerButton() {
 
         {/* Pages */}
         <div className="px-6">
-          {PAGES.map((p, i) => (
+          {pages.map((p, i) => (
             <Link
               key={p.href}
               href={p.href}

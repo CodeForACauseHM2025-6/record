@@ -210,7 +210,10 @@ export default async function HomePage({
       <header className="px-4 sm:px-8 pt-4 pb-2">
         <div className="max-w-[1200px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex items-center gap-4 sm:gap-5 font-headline text-base">
-            <HamburgerButton />
+            <HamburgerButton
+              isAuthenticated={!!session?.user}
+              userRole={session?.user?.role}
+            />
           </div>
           <div className="text-center">
             <Link href="/">
@@ -224,14 +227,23 @@ export default async function HomePage({
           </div>
           <div className="flex items-center justify-end gap-4 sm:gap-5 font-headline text-base">
             <Link href="/about" className="hidden sm:inline font-bold tracking-wide">About</Link>
-            <div className="hidden md:block">
-              <AccountDropdown
-                userName={session?.user?.name}
-                userEmail={session?.user?.email}
-                userImage={session?.user?.image}
-                userRole={session?.user?.role ?? "READER"}
-              />
-            </div>
+            {session?.user ? (
+              <div className="hidden md:block">
+                <AccountDropdown
+                  userName={session.user.name}
+                  userEmail={session.user.email}
+                  userImage={session.user.image}
+                  userRole={session.user.role ?? "READER"}
+                />
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden md:inline font-bold tracking-wide hover:text-maroon transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
             <Link href="/search" aria-label="Search" className="p-1">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
