@@ -11,10 +11,13 @@ jobs:
     steps:
       - name: Deploy to Linode
         uses: appleboy/ssh-action@v1
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         with:
           host: ${{ secrets.LINODE_HOST }}
           username: ${{ secrets.LINODE_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
+          envs: ENCRYPTION_KEY
           script: |
             cd /var/www/record
             git fetch --tags
@@ -23,4 +26,6 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
             npm run build
-            pm2 restart record
+            sed -i '/^ENCRYPTION_KEY=/d' .env
+            echo "ENCRYPTION_KEY=$ENCRYPTION_KEY" >> .env
+            pm2 restart record --update-env
