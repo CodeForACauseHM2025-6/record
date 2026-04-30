@@ -33,13 +33,17 @@ export default auth((req) => {
     }
   }
 
-  const role = req.auth?.user?.role;
-
-  // Dashboard routes require a dashboard role (login enforced by layout too)
-  if (pathname.startsWith("/dashboard")) {
+  // All non-API, non-login pages require authentication
+  if (!pathname.startsWith("/api") && pathname !== "/login" && pathname !== "/auth-error") {
     if (!req.auth?.user) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
+  }
+
+  const role = req.auth?.user?.role;
+
+  // Dashboard routes require a dashboard role
+  if (pathname.startsWith("/dashboard")) {
     if (!role || !DASHBOARD_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
@@ -54,9 +58,6 @@ export default auth((req) => {
 
   // Admin routes require web team
   if (pathname.startsWith("/admin")) {
-    if (!req.auth?.user) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
     if (!role || !ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
