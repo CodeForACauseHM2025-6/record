@@ -6,6 +6,7 @@ import { formatDateShort } from "@/lib/article-helpers";
 import {
   updateUserRole,
   updateUserDisplayTitle,
+  updateUserPriority,
 } from "@/app/admin/admin-actions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -43,6 +44,7 @@ export default async function EditUserPage({
         image: true,
         role: true,
         displayTitle: true,
+        priority: true,
         createdAt: true,
       },
     }),
@@ -53,6 +55,7 @@ export default async function EditUserPage({
 
   const roleAction = updateUserRole.bind(null, id);
   const titleAction = updateUserDisplayTitle.bind(null, id);
+  const priorityAction = updateUserPriority.bind(null, id);
 
   return (
     <div>
@@ -164,6 +167,33 @@ export default async function EditUserPage({
             className="cursor-pointer font-headline text-[14px] tracking-wide font-bold border border-ink/20 px-5 py-2 hover:border-maroon hover:text-maroon transition-colors"
           >
             Save Title
+          </button>
+        </form>
+      </section>
+
+      {/* Priority */}
+      <section className="mt-12">
+        <h2 className="font-headline text-[20px] font-bold tracking-wide">
+          Priority
+        </h2>
+        <p className="font-headline text-[13px] text-caption mt-1">
+          Controls staff order on the About page. Higher numbers appear first within each row; ties are broken alphabetically.
+        </p>
+        <div className="mt-3 h-px bg-rule" />
+
+        <form action={priorityAction} className="mt-5 flex flex-wrap items-center gap-3">
+          <input
+            name="priority"
+            type="number"
+            step="1"
+            defaultValue={user.priority ?? 0}
+            className="border border-ink/20 px-3 py-2 font-body text-[14px] outline-none focus:border-ink w-full sm:w-[160px]"
+          />
+          <button
+            type="submit"
+            className="cursor-pointer font-headline text-[14px] tracking-wide font-bold border border-ink/20 px-5 py-2 hover:border-maroon hover:text-maroon transition-colors"
+          >
+            Save Priority
           </button>
         </form>
       </section>

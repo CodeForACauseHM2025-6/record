@@ -74,6 +74,23 @@ export async function updateUserDisplayTitle(userId: string, formData: FormData)
   redirect(`/admin/users/${userId}?saved=1`);
 }
 
+export async function updateUserPriority(userId: string, formData: FormData) {
+  await requireWebMaster();
+
+  const raw = ((formData.get("priority") as string | null) ?? "").trim();
+  const n = parseInt(raw, 10);
+  const priority = Number.isFinite(n) ? n : 0;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { priority },
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/about");
+  redirect(`/admin/users/${userId}?saved=1`);
+}
+
 export async function updateVolumeNumber(formData: FormData) {
   await requireWebMaster();
 

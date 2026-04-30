@@ -34,6 +34,7 @@ interface StaffUser {
   name: string;
   role: string;
   displayTitle: string | null;
+  priority: number;
   image: string | null;
   googleImage: string | null;
 }
@@ -48,10 +49,10 @@ export default async function AboutPage() {
       name: true,
       role: true,
       displayTitle: true,
+      priority: true,
       image: true,
       googleImage: true,
     },
-    orderBy: { name: "asc" },
   })) as unknown as StaffUser[];
 
   const grouped: Record<string, StaffUser[]> = {};
@@ -59,9 +60,7 @@ export default async function AboutPage() {
     grouped[row.title] = users
       .filter((u) => row.roles.includes(u.role))
       .sort((a, b) => {
-        // For multi-role rows (Web Team), preserve role order from row.roles
-        const roleDiff = row.roles.indexOf(a.role) - row.roles.indexOf(b.role);
-        if (roleDiff !== 0) return roleDiff;
+        if (a.priority !== b.priority) return b.priority - a.priority;
         return a.name.localeCompare(b.name);
       });
   }
