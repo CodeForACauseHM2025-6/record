@@ -96,7 +96,7 @@ export default async function AboutPage() {
                     <h4 className="font-headline text-[12px] font-semibold tracking-[0.14em] uppercase text-caption mb-6">
                       {row.title}
                     </h4>
-                    <ul className="flex flex-wrap gap-x-8 gap-y-10">
+                    <ul className="flex flex-wrap justify-center gap-x-8 gap-y-10">
                       {members.map((u) => (
                         <StaffCard key={u.id} user={u} />
                       ))}
