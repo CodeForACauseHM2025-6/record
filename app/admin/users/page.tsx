@@ -6,12 +6,15 @@ const ROLE_LABELS: Record<string, string> = {
   READER: "Reader",
   WRITER: "Staff Writer",
   DESIGNER: "Designer",
+  PHOTOGRAPHER: "Photographer",
+  ART_TEAM: "Art Team",
   EDITOR: "Editor",
+  CHIEF_EDITOR: "Chief Editor",
   WEB_TEAM: "Web Team",
   WEB_MASTER: "Web Master",
 };
 
-const ROLE_FILTERS = ["ALL", "READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
+const ROLE_FILTERS = ["ALL", "READER", "WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
 type RoleFilter = (typeof ROLE_FILTERS)[number];
 
 const PER_PAGE = 25;

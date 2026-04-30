@@ -6,47 +6,70 @@ import Link from "next/link";
 const ROLE_LABELS: Record<string, string> = {
   WRITER: "Staff Writer",
   DESIGNER: "Designer",
+  PHOTOGRAPHER: "Photographer",
+  ART_TEAM: "Art Team",
   EDITOR: "Editor",
+  CHIEF_EDITOR: "Chief Editor",
   WEB_TEAM: "Web Team",
   WEB_MASTER: "Web Master",
 };
 
-const ROLE_GROUP_TITLES: Record<string, string> = {
-  EDITOR: "Editors",
-  WRITER: "Writers",
-  DESIGNER: "Designers",
-  WEB_MASTER: "Web Master",
-  WEB_TEAM: "Web Team",
+type RowDef = {
+  title: string;
+  roles: string[];
 };
 
-const ROLE_ORDER = ["EDITOR", "WRITER", "DESIGNER", "WEB_MASTER", "WEB_TEAM"];
+const ROWS: RowDef[] = [
+  { title: "Lead Editors", roles: ["CHIEF_EDITOR"] },
+  { title: "Section Editors", roles: ["EDITOR"] },
+  { title: "Design Team", roles: ["DESIGNER"] },
+  { title: "Photographers", roles: ["PHOTOGRAPHER"] },
+  { title: "Art Team", roles: ["ART_TEAM"] },
+  { title: "Web Team", roles: ["WEB_MASTER", "WEB_TEAM"] },
+];
 
 interface StaffUser {
   id: string;
   name: string;
   role: string;
   displayTitle: string | null;
+  image: string | null;
+  googleImage: string | null;
 }
 
 export default async function AboutPage() {
+  const allRoles = ROWS.flatMap((r) => r.roles);
+
   const users = (await prisma.user.findMany({
-    where: { role: { not: "READER" } },
-    select: { id: true, name: true, role: true, displayTitle: true },
+    where: { role: { in: allRoles as never } },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      displayTitle: true,
+      image: true,
+      googleImage: true,
+    },
     orderBy: { name: "asc" },
   })) as unknown as StaffUser[];
 
   const grouped: Record<string, StaffUser[]> = {};
-  for (const role of ROLE_ORDER) grouped[role] = [];
-  for (const u of users) {
-    if (grouped[u.role]) grouped[u.role].push(u);
+  for (const row of ROWS) {
+    grouped[row.title] = users
+      .filter((u) => row.roles.includes(u.role))
+      .sort((a, b) => {
+        // For multi-role rows (Web Team), preserve role order from row.roles
+        const roleDiff = row.roles.indexOf(a.role) - row.roles.indexOf(b.role);
+        if (roleDiff !== 0) return roleDiff;
+        return a.name.localeCompare(b.name);
+      });
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
       <SubpageHeader pageLabel="About" />
 
-      <main className="max-w-[900px] mx-auto px-4 sm:px-8 pt-10 pb-16 w-full">
-        {/* Page title */}
+      <main className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-10 pb-20 w-full">
         <h2 className="font-headline text-[32px] sm:text-[40px] font-bold leading-tight tracking-wide">
           About The Record
         </h2>
@@ -55,43 +78,33 @@ export default async function AboutPage() {
         </p>
         <div className="mt-4 h-[2px] bg-rule" />
 
-        {/* Staff section */}
         <section className="mt-12">
           <h3 className="font-headline text-[24px] sm:text-[28px] font-bold tracking-wide">
             Staff
           </h3>
           <div className="mt-2 h-px bg-rule" />
 
-          <div className="mt-8 space-y-12">
-            {ROLE_ORDER.map((role) => {
-              const group = grouped[role];
-              if (!group || group.length === 0) return null;
-              return (
-                <div key={role}>
-                  <h4 className="font-headline text-[11px] font-semibold tracking-[0.12em] uppercase text-caption mb-4">
-                    {ROLE_GROUP_TITLES[role] ?? role}
-                  </h4>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                    {group.map((u) => {
-                      const title = u.displayTitle ?? ROLE_LABELS[u.role] ?? u.role;
-                      return (
-                        <li key={u.id} className="flex items-baseline justify-between gap-3 border-b border-neutral-200 pb-2">
-                          <Link
-                            href={`/profile/${u.id}`}
-                            className="font-headline text-[16px] font-semibold text-maroon hover:underline"
-                          >
-                            {u.name}
-                          </Link>
-                          <span className="font-headline text-[13px] italic text-caption text-right">
-                            {title}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })}
+          <div className="mt-10">
+            {ROWS.filter((row) => (grouped[row.title] ?? []).length > 0).map(
+              (row, i) => {
+                const members = grouped[row.title];
+                return (
+                  <div
+                    key={row.title}
+                    className={i > 0 ? "mt-14 pt-14 border-t border-ink" : ""}
+                  >
+                    <h4 className="font-headline text-[12px] font-semibold tracking-[0.14em] uppercase text-caption mb-6">
+                      {row.title}
+                    </h4>
+                    <ul className="flex flex-wrap gap-x-8 gap-y-10">
+                      {members.map((u) => (
+                        <StaffCard key={u.id} user={u} />
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+            )}
           </div>
 
           {users.length === 0 && (
@@ -103,5 +116,27 @@ export default async function AboutPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function StaffCard({ user }: { user: StaffUser }) {
+  const title = user.displayTitle ?? ROLE_LABELS[user.role] ?? user.role;
+  const avatar = user.image ?? user.googleImage;
+  return (
+    <li className="flex flex-col items-center text-center w-[140px]">
+      <Link href={`/profile/${user.id}`} className="group block">
+        <img
+          src={avatar ?? undefined}
+          alt={user.name}
+          className="w-[112px] h-[112px] rounded-full object-cover bg-neutral-200 transition-transform duration-200 group-hover:scale-[1.03]"
+        />
+        <p className="mt-3 font-headline text-[15px] font-semibold leading-tight text-ink group-hover:text-maroon transition-colors">
+          {user.name}
+        </p>
+      </Link>
+      <p className="mt-1 font-headline text-[12px] italic text-caption leading-tight">
+        {title}
+      </p>
+    </li>
   );
 }

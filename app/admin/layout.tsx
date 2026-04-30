@@ -7,7 +7,7 @@ import { Footer } from "@/app/footer";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "WEB_MASTER") redirect("/");
+  if (session.user.role !== "WEB_MASTER" && session.user.role !== "WEB_TEAM") redirect("/");
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">

@@ -11,7 +11,10 @@ const ROLE_LEVEL: Record<Role, number> = {
   READER: 0,
   WRITER: 0,
   DESIGNER: 0,
+  PHOTOGRAPHER: 0,
+  ART_TEAM: 0,
   EDITOR: 0,
+  CHIEF_EDITOR: 0,
   WEB_TEAM: 1,
   WEB_MASTER: 2,
 };

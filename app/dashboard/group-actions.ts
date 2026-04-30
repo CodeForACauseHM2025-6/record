@@ -6,8 +6,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { PATTERNS } from "@/lib/patterns";
 
-const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
-const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
+const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
+const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
 
 function requireDashboardRole(session: { user?: { role?: string } } | null) {
   if (!session?.user?.role || !DASHBOARD_ROLES.includes(session.user.role)) {

@@ -5,13 +5,35 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-type Role = "READER" | "WRITER" | "DESIGNER" | "EDITOR" | "WEB_TEAM" | "WEB_MASTER";
-const ROLES: Role[] = ["READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
+type Role =
+  | "READER"
+  | "WRITER"
+  | "DESIGNER"
+  | "PHOTOGRAPHER"
+  | "ART_TEAM"
+  | "EDITOR"
+  | "CHIEF_EDITOR"
+  | "WEB_TEAM"
+  | "WEB_MASTER";
+const ROLES: Role[] = [
+  "READER",
+  "WRITER",
+  "DESIGNER",
+  "PHOTOGRAPHER",
+  "ART_TEAM",
+  "EDITOR",
+  "CHIEF_EDITOR",
+  "WEB_TEAM",
+  "WEB_MASTER",
+];
+const ADMIN_ROLES = ["WEB_MASTER", "WEB_TEAM"] as const;
 
 async function requireWebMaster() {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
-  if (session.user.role !== "WEB_MASTER") throw new Error("Forbidden");
+  if (!(ADMIN_ROLES as readonly string[]).includes(session.user.role)) {
+    throw new Error("Forbidden");
+  }
   return session;
 }
 

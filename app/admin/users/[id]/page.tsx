@@ -12,11 +12,14 @@ const ROLE_LABELS: Record<string, string> = {
   READER: "Reader",
   WRITER: "Staff Writer",
   DESIGNER: "Designer",
+  PHOTOGRAPHER: "Photographer",
+  ART_TEAM: "Art Team",
   EDITOR: "Editor",
+  CHIEF_EDITOR: "Chief Editor",
   WEB_TEAM: "Web Team",
   WEB_MASTER: "Web Master",
 };
-const ROLES = ["READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
+const ROLES = ["READER", "WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
 
 export default async function EditUserPage({
   params,
