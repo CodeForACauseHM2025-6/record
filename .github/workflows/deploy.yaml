@@ -26,6 +26,4 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
             npm run build
-            sed -i '/^ENCRYPTION_KEY=/d' .env
-            echo "ENCRYPTION_KEY=$ENCRYPTION_KEY" >> .env
             pm2 restart record --update-env
