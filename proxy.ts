@@ -5,6 +5,19 @@ import { rateLimit } from "@/lib/rate-limit";
 const publicLimiter = rateLimit({ maxRequests: 60, windowMs: 60000 });
 const authLimiter = rateLimit({ maxRequests: 120, windowMs: 60000 });
 
+const DASHBOARD_ROLES = [
+  "WRITER",
+  "DESIGNER",
+  "PHOTOGRAPHER",
+  "ART_TEAM",
+  "EDITOR",
+  "CHIEF_EDITOR",
+  "WEB_TEAM",
+  "WEB_MASTER",
+];
+const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
+const ADMIN_ROLES = ["WEB_MASTER", "WEB_TEAM"];
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
@@ -20,32 +33,31 @@ export default auth((req) => {
     }
   }
 
-  // All non-API, non-login pages require authentication
-  if (!pathname.startsWith("/api") && pathname !== "/login" && pathname !== "/auth-error") {
+  const role = req.auth?.user?.role;
+
+  // Dashboard routes require a dashboard role (login enforced by layout too)
+  if (pathname.startsWith("/dashboard")) {
     if (!req.auth?.user) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
-  }
-
-  // Dashboard routes require WRITER or above
-  if (pathname.startsWith("/dashboard")) {
-    const role = req.auth?.user?.role;
-    const dashboardRoles = ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"];
-    if (!role || !dashboardRoles.includes(role)) {
+    if (!role || !DASHBOARD_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  // Group creation and settings require WEB_MASTER
+  // Group creation and settings require editor or above
   if (pathname.match(/^\/dashboard\/groups\/new/) || pathname.match(/^\/dashboard\/groups\/[^/]+\/settings/)) {
-    if (req.auth?.user?.role !== "WEB_MASTER") {
+    if (!role || !EDITOR_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
 
-  // Admin routes require WEB_MASTER
+  // Admin routes require web team
   if (pathname.startsWith("/admin")) {
-    if (req.auth?.user?.role !== "WEB_MASTER") {
+    if (!req.auth?.user) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    if (!role || !ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
