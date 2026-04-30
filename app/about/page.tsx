@@ -20,12 +20,12 @@ type RowDef = {
 };
 
 const ROWS: RowDef[] = [
-  { title: "Lead Editors", roles: ["CHIEF_EDITOR"] },
-  { title: "Section Editors", roles: ["EDITOR"] },
+  { title: "Chief Editors", roles: ["CHIEF_EDITOR"] },
+  { title: "Editors", roles: ["EDITOR"] },
   { title: "Staff Writers", roles: ["WRITER"] },
-  { title: "Design Team", roles: ["DESIGNER"] },
+  { title: "Designers", roles: ["DESIGNER"] },
+  { title: "Artists", roles: ["ART_TEAM"] },
   { title: "Photographers", roles: ["PHOTOGRAPHER"] },
-  { title: "Art Team", roles: ["ART_TEAM"] },
   { title: "Web Team", roles: ["WEB_MASTER", "WEB_TEAM"] },
 ];
 
