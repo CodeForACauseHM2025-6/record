@@ -22,6 +22,7 @@ type RowDef = {
 const ROWS: RowDef[] = [
   { title: "Lead Editors", roles: ["CHIEF_EDITOR"] },
   { title: "Section Editors", roles: ["EDITOR"] },
+  { title: "Staff Writers", roles: ["WRITER"] },
   { title: "Design Team", roles: ["DESIGNER"] },
   { title: "Photographers", roles: ["PHOTOGRAPHER"] },
   { title: "Art Team", roles: ["ART_TEAM"] },
