@@ -12,8 +12,17 @@ const PREFIX = "enc:v1:";
 
 let encryptionKey: Buffer | null = null;
 let deterministicSubKey: Buffer | null = null;
+// Tracks whether instrumentation tried to initialize the key and failed. When set in production,
+// every encrypt/decrypt call throws so all DB ops fail loudly instead of silently going plaintext.
+let initFailed = false;
+
+export function markEncryptionInitFailed(reason: string): void {
+  initFailed = true;
+  console.error(`[encryption] initialization failed: ${reason}`);
+}
 
 export function initEncryption(hexKey: string): void {
+  initFailed = false;
   encryptionKey = Buffer.from(hexKey, "hex");
   if (encryptionKey.length !== 32) {
     throw new Error("Encryption key must be 32 bytes (64 hex characters)");
@@ -31,8 +40,14 @@ export function encrypt(
   plaintext: string,
   mode: "deterministic" | "random"
 ): string {
+  // Production safety: if instrumentation flagged init as failed, refuse to operate so the bug surfaces
+  // as 500s on every DB write instead of silently writing plaintext PII.
+  if (process.env.NODE_ENV === "production" && initFailed) {
+    throw new Error("Encryption not initialized; refusing to encrypt in production");
+  }
   if (!encryptionKey || !deterministicSubKey) {
-    if (process.env.NODE_ENV === "production") {
+    // Match instrumentation: real production must never fall through to plaintext.
+    if (process.env.NODE_ENV !== "development") {
       throw new Error("Encryption key not initialized in production");
     }
     return plaintext;
@@ -72,8 +87,12 @@ export function decrypt(ciphertext: string): string {
     return ciphertext;
   }
 
+  if (process.env.NODE_ENV === "production" && initFailed) {
+    throw new Error("Encryption not initialized; refusing to decrypt in production");
+  }
   if (!encryptionKey) {
-    if (process.env.NODE_ENV === "production") {
+    // Match instrumentation: real production must never silently surface ciphertext as plaintext.
+    if (process.env.NODE_ENV !== "development") {
       throw new Error("Encryption key not initialized in production");
     }
     return ciphertext;
