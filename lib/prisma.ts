@@ -298,6 +298,10 @@ async function applyEnvelopeWrite(
         if (mode === "deterministic") {
           data[`${field}Hash`] = blindIndex(plaintext);
         }
+        // Phase 5: legacy plaintext columns are dropped; remove the field so Prisma doesn't try
+        // to write to a column that no longer exists. Safe in earlier phases too — the legacy
+        // column write happened upstream via encryptFields().
+        delete data[field];
       }
 
       if (wrappedDek && kekVersion !== null) {
