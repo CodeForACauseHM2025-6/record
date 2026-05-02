@@ -42,8 +42,14 @@ export const uploadRequestSchema = z.object({
   contentLength: z.number().int().min(1).max(10 * 1024 * 1024), // 10MB
 });
 
+// Constrains delete keys to the exact shape POST /api/upload generates: uploads/<uuid>.<ext>.
+// Without this the route accepts any S3 key — a signed-in user could wipe the entire bucket.
+const UPLOAD_KEY_PATTERN = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$/;
+
 export const deleteImageSchema = z.object({
-  key: z.string().min(1),
+  key: z
+    .string()
+    .regex(UPLOAD_KEY_PATTERN, "Invalid upload key"),
 });
 
 export const updateRoleSchema = z.object({
