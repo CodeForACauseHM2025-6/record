@@ -7,16 +7,18 @@ type AuthResult =
   | { session: Session; error: undefined }
   | { session: null; error: Response };
 
+// Strictly increasing levels so checkRole(role) actually rejects roles below it.
+// Prior table had READER..CHIEF_EDITOR all at 0, so checkRole("EDITOR") admitted any signed-in user.
 const ROLE_LEVEL: Record<Role, number> = {
   READER: 0,
-  WRITER: 0,
-  DESIGNER: 0,
-  PHOTOGRAPHER: 0,
-  ART_TEAM: 0,
-  EDITOR: 0,
-  CHIEF_EDITOR: 0,
-  WEB_TEAM: 1,
-  WEB_MASTER: 2,
+  WRITER: 1,
+  DESIGNER: 1,
+  PHOTOGRAPHER: 1,
+  ART_TEAM: 1,
+  EDITOR: 2,
+  CHIEF_EDITOR: 3,
+  WEB_TEAM: 4,
+  WEB_MASTER: 5,
 };
 
 export async function checkRole(requiredRole: Role): Promise<AuthResult> {
