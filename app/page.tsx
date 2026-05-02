@@ -19,8 +19,8 @@ const NAV_SECTIONS = [
   { label: "Features", href: "/section/features" },
   { label: "Opinions", href: "/section/opinions" },
   { label: "A&E", href: "/section/a-and-e" },
-  { label: "Lion\u2019s Den", href: "/section/lions-den" },
   { label: "MD/Alumni", href: "/section/md-alumni" },
+  { label: "Lion\u2019s Den", href: "/section/lions-den" },
 ];
 
 function formatDateLong(date: Date): string {
