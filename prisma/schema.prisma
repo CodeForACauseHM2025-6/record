@@ -48,6 +48,17 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // KMS envelope encryption (Phase 1: columns added, Phase 2: dual-write,
+  // Phase 4: reads switch over, Phase 5: legacy columns above are dropped).
+  // emailHash is a blind index (HMAC) so equality lookups still work after
+  // email moves to random-IV ciphertext.
+  emailCiphertext Bytes?
+  emailHash       Bytes?  @unique
+  nameCiphertext  Bytes?
+  imageCiphertext Bytes?
+  encryptedDek    Bytes?
+  dekKekVersion   Int?
+
   articles            Article[]
   articleCredits      ArticleCredit[]
   accounts            Account[]
@@ -98,6 +109,12 @@ model Article {
 
   groupId     String
 
+  // KMS envelope encryption — see comment on User for the migration phases.
+  bodyCiphertext          Bytes?
+  featuredImageCiphertext Bytes?
+  encryptedDek            Bytes?
+  dekKekVersion           Int?
+
   createdBy  User           @relation(fields: [createdById], references: [id])
   group      ArticleGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   credits    ArticleCredit[]
@@ -112,6 +129,13 @@ model ArticleCredit {
   userId     String
   creditRole String
 
+  // KMS envelope encryption — Phase 1 columns. creditRoleHash is the blind index
+  // that will replace creditRole in the unique constraint once Phase 4 lands.
+  creditRoleCiphertext Bytes?
+  creditRoleHash       Bytes?
+  encryptedDek         Bytes?
+  dekKekVersion        Int?
+
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
 
@@ -125,6 +149,13 @@ model ArticleImage {
   caption   String?
   altText   String
   order     Int
+
+  // KMS envelope encryption — Phase 1 columns.
+  urlCiphertext     Bytes?
+  captionCiphertext Bytes?
+  altTextCiphertext Bytes?
+  encryptedDek      Bytes?
+  dekKekVersion     Int?
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }
@@ -159,6 +190,11 @@ model RoundTable {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // KMS envelope encryption — Phase 1 columns.
+  promptCiphertext Bytes?
+  encryptedDek     Bytes?
+  dekKekVersion    Int?
+
   group ArticleGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sides RoundTableSide[]
   turns RoundTableTurn[]
@@ -169,6 +205,11 @@ model RoundTableSide {
   roundTableId String
   label        String @db.VarChar(80)
   order        Int
+
+  // KMS envelope encryption — Phase 1 columns.
+  labelCiphertext Bytes?
+  encryptedDek    Bytes?
+  dekKekVersion   Int?
 
   roundTable RoundTable             @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
   authors    RoundTableSideAuthor[]
@@ -192,6 +233,11 @@ model RoundTableTurn {
   sideId       String
   body         String
   order        Int
+
+  // KMS envelope encryption — Phase 1 columns.
+  bodyCiphertext Bytes?
+  encryptedDek   Bytes?
+  dekKekVersion  Int?
 
   roundTable RoundTable     @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
   side       RoundTableSide @relation(fields: [sideId], references: [id], onDelete: Cascade)
