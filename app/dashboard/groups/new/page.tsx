@@ -1,17 +1,16 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { SubpageHeader } from "@/app/subpage-header";
 import { createGroupWithArticles } from "@/app/dashboard/group-actions";
+import { getSiteVolumeAndIssue } from "@/lib/site-volume";
 
 export default async function NewGroupPage() {
   const session = await auth();
   const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
   if (!session?.user || !EDITOR_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
-  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const rawVolume = (volSetting as { value?: string } | null)?.value ?? "";
-  const defaultVolume = /^[0-9]+$/.test(rawVolume) ? rawVolume : "";
+  const { volumeNumber: currentVolume } = await getSiteVolumeAndIssue();
+  const defaultVolume = currentVolume != null ? String(currentVolume) : "";
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -22,7 +21,7 @@ export default async function NewGroupPage() {
           New Issue
         </h2>
         <p className="font-headline text-[13px] text-caption mt-1 tracking-wide">
-          Volume defaults to the current admin setting; override it if needed.
+          Volume defaults to the current site-wide value; override it if needed.
         </p>
         <div className="mt-4 h-[2px] bg-rule" />
 
@@ -38,7 +37,7 @@ export default async function NewGroupPage() {
                 min="1"
                 step="1"
                 defaultValue={defaultVolume}
-                placeholder={rawVolume || "—"}
+                placeholder={defaultVolume || "—"}
                 required
                 className="w-full border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors text-center"
               />

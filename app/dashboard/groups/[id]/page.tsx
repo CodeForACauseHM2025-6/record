@@ -13,6 +13,7 @@ import {
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
 import { joinAuthorNames, formatIssueTitle } from "@/lib/article-helpers";
+import { getSiteVolumeAndIssue } from "@/lib/site-volume";
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News", FEATURES: "Features", OPINIONS: "Opinions",
@@ -34,8 +35,8 @@ export default async function GroupEditorPage({
   const { id } = await params;
   const { saved } = await searchParams;
 
-  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const adminVolume = (volSetting as { value?: string } | null)?.value ?? "";
+  const { volumeNumber: siteVolume } = await getSiteVolumeAndIssue();
+  const sitePlaceholder = siteVolume != null ? String(siteVolume) : "";
 
   const group = await prisma.articleGroup.findUnique({
     where: { id },
@@ -161,7 +162,7 @@ export default async function GroupEditorPage({
                 min="1"
                 step="1"
                 defaultValue={(group as any).volumeNumber ?? ""}
-                placeholder={adminVolume || "—"}
+                placeholder={sitePlaceholder || "—"}
                 className="w-24 border border-ink/20 px-3 py-2 font-headline text-[16px] tracking-wide outline-none focus:border-ink transition-colors text-center"
               />
             </div>

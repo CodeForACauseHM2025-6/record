@@ -18,7 +18,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="max-w-[1200px] mx-auto px-4 sm:px-8 py-3 flex gap-6 font-headline text-[14px] tracking-wide overflow-x-auto">
           <AdminTab href="/admin" label="Overview" />
           <AdminTab href="/admin/users" label="Users" />
-          <AdminTab href="/admin/settings" label="Settings" />
         </div>
       </nav>
 

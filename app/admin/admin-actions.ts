@@ -91,21 +91,3 @@ export async function updateUserPriority(userId: string, formData: FormData) {
   redirect(`/admin/users/${userId}?saved=1`);
 }
 
-export async function updateVolumeNumber(formData: FormData) {
-  await requireWebMaster();
-
-  const raw = ((formData.get("volumeNumber") as string | null) ?? "").trim();
-  // Only store positive integers; reject anything else.
-  const n = parseInt(raw, 10);
-  const value = Number.isFinite(n) && n > 0 ? String(n) : "";
-
-  await prisma.siteSetting.upsert({
-    where: { key: "volumeNumber" },
-    update: { value },
-    create: { key: "volumeNumber", value },
-  });
-
-  revalidatePath("/admin/settings");
-  revalidatePath("/");
-  redirect("/admin/settings?saved=1");
-}

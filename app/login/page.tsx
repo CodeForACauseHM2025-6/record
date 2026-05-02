@@ -1,7 +1,7 @@
 import { auth, signIn } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getSiteVolumeAndIssue } from "@/lib/site-volume";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "Access is restricted to @horacemann.org accounts.",
@@ -28,9 +28,7 @@ export default async function LoginPage({
     ? ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default
     : null;
 
-  const volSetting = await prisma.siteSetting.findUnique({ where: { key: "volumeNumber" } });
-  const rawVolume = (volSetting as { value?: string } | null)?.value ?? "";
-  const volumeNumber = /^[0-9]+$/.test(rawVolume) ? rawVolume : "";
+  const { volumeNumber } = await getSiteVolumeAndIssue();
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
