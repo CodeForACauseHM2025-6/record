@@ -1,6 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { encrypt, decrypt, isEncryptionEnabled, ENCRYPTED_FIELDS } from "@/lib/encryption";
+import { randomUUID } from "crypto";
+import {
+  encrypt,
+  decrypt,
+  isEncryptionEnabled,
+  ENCRYPTED_FIELDS,
+  encryptWithKey,
+  blindIndex,
+} from "@/lib/encryption";
+import { generateDek, unwrapDek, isKmsConfigured } from "@/lib/kms";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const basePrisma = new PrismaClient({ adapter });
@@ -101,15 +110,150 @@ function getModelName(model: string | undefined): string | undefined {
   return model.charAt(0).toUpperCase() + model.slice(1);
 }
 
+// Phase 2 dual-write: populate the *Ciphertext / *Hash / encryptedDek / dekKekVersion
+// columns added in the kms_envelope_phase1 migration. Legacy columns are still written by
+// the encryptFields() path below. Reads still come from legacy columns until Phase 4.
+//
+// Guarantees:
+//   - On create: a fresh DEK is generated; ciphertext columns populated for every plaintext
+//     present in args.data; encryption context is { recordType, recordId } where recordId is
+//     the UUID we explicitly assign so it matches what the row will end up with.
+//   - On update/upsert: if the row already has an encryptedDek, we unwrap it and reuse it for
+//     consistency with previously-written ciphertext on the same row. If not (row pre-dates
+//     this code), we generate a fresh DEK.
+//   - Failure path: if KMS is configured but a call fails, we log and skip envelope writes.
+//     Legacy writes still succeed; the Phase 3 backfill resolves any inconsistency.
+async function applyEnvelopeWrite(
+  modelName: string,
+  operation: string,
+  args: Record<string, unknown>,
+): Promise<void> {
+  if (!isKmsConfigured()) return;
+  const fields = ENCRYPTED_FIELDS[modelName];
+  if (!fields) return;
+
+  if (operation !== "create" && operation !== "update" && operation !== "upsert") return;
+
+  // Locate the data block we need to mutate. For upsert there are separate create/update keys.
+  const dataBlocks: Record<string, unknown>[] = [];
+  if (operation === "upsert") {
+    if (args.create && typeof args.create === "object") dataBlocks.push(args.create as Record<string, unknown>);
+    if (args.update && typeof args.update === "object") dataBlocks.push(args.update as Record<string, unknown>);
+  } else if (args.data && typeof args.data === "object") {
+    dataBlocks.push(args.data as Record<string, unknown>);
+  }
+  if (dataBlocks.length === 0) return;
+
+  for (const data of dataBlocks) {
+    try {
+      // Resolve the row id we'll bind the encryption context to.
+      let recordId: string | undefined;
+      if (typeof data.id === "string") {
+        recordId = data.id;
+      } else if (operation === "create" || (operation === "upsert" && data === (args.create as unknown))) {
+        // Generate up-front so the encryption context matches what Prisma stores.
+        recordId = randomUUID();
+        data.id = recordId;
+      } else {
+        // Update path: pull id off the where clause (only direct id targeting supported).
+        const where = args.where as Record<string, unknown> | undefined;
+        if (where && typeof where.id === "string") recordId = where.id;
+      }
+      if (!recordId) {
+        // Without a stable record id we can't bind encryption context safely. Skip envelope for
+        // this write — legacy will still cover it, backfill will sweep it later.
+        continue;
+      }
+
+      const ctx = { recordType: modelName, recordId };
+
+      // Decide whether to reuse an existing DEK or mint a new one. Update path may have an
+      // existing wrapped DEK in the row; reuse it so previously-written ciphertext on the same
+      // row stays decryptable.
+      let dek: Buffer;
+      let wrappedDek: Buffer | null = null;
+      let kekVersion: number | null = null;
+
+      if (operation === "update" && args.where) {
+        try {
+          const existing = (await (basePrisma as unknown as Record<string, { findUnique: (a: unknown) => Promise<unknown> }>)[
+            modelName.charAt(0).toLowerCase() + modelName.slice(1)
+          ].findUnique({
+            where: args.where,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any)) as Record<string, unknown> | null;
+          if (
+            existing &&
+            existing.encryptedDek instanceof Buffer &&
+            existing.encryptedDek.length > 0
+          ) {
+            dek = await unwrapDek(existing.encryptedDek as Buffer, ctx);
+            wrappedDek = existing.encryptedDek as Buffer;
+            kekVersion = (existing.dekKekVersion as number | null) ?? 1;
+          } else {
+            const fresh = await generateDek(ctx);
+            dek = fresh.dek;
+            wrappedDek = fresh.wrappedDek;
+            kekVersion = fresh.kekVersion;
+          }
+        } catch {
+          const fresh = await generateDek(ctx);
+          dek = fresh.dek;
+          wrappedDek = fresh.wrappedDek;
+          kekVersion = fresh.kekVersion;
+        }
+      } else {
+        const fresh = await generateDek(ctx);
+        dek = fresh.dek;
+        wrappedDek = fresh.wrappedDek;
+        kekVersion = fresh.kekVersion;
+      }
+
+      // Encrypt every plaintext field present in this data block.
+      for (const [field, mode] of Object.entries(fields)) {
+        const plaintext = data[field];
+        if (typeof plaintext !== "string") continue;
+        data[`${field}Ciphertext`] = encryptWithKey(plaintext, dek);
+        if (mode === "deterministic") {
+          data[`${field}Hash`] = blindIndex(plaintext);
+        }
+      }
+
+      if (wrappedDek && kekVersion !== null) {
+        // For update we only set encryptedDek if it wasn't already populated; on create we always set it.
+        const isFreshDek = !(data.encryptedDek);
+        if (isFreshDek) {
+          data.encryptedDek = wrappedDek;
+          data.dekKekVersion = kekVersion;
+        }
+      }
+
+      // Wipe the plaintext DEK from memory before this iteration ends.
+      dek.fill(0);
+    } catch (err) {
+      // Soft-fail: legacy write proceeds, backfill resolves inconsistency.
+      console.error(
+        `[prisma envelope-write] ${modelName}.${operation} skipped envelope path: ${(err as Error).message}`,
+      );
+    }
+  }
+}
+
 const encryptedPrisma = basePrisma.$extends({
   query: {
-    $allOperations({ model, operation, args, query }) {
-      if (!isEncryptionEnabled() || !model) return query(args);
+    async $allOperations({ model, operation, args, query }) {
+      if (!model) return query(args);
 
       const modelName = getModelName(model);
       if (!modelName || !ENCRYPTED_FIELDS[modelName]) return query(args);
 
       const mutableArgs = { ...args } as Record<string, unknown>;
+
+      // Phase 2 dual-write: populate envelope-encrypted columns BEFORE the legacy step
+      // mutates plaintext into legacy ciphertext. No-op when KMS is not configured.
+      await applyEnvelopeWrite(modelName, operation, mutableArgs);
+
+      if (!isEncryptionEnabled()) return query(mutableArgs);
 
       // Encrypt where clauses (deterministic fields only)
       if (mutableArgs.where) {
