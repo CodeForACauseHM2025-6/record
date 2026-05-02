@@ -9,8 +9,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { error } = await checkAdmin();
+  const { session, error } = await checkAdmin();
   if (error) return error;
+
+  // Mirror the self-id guard in /api/users/[id]/admin/route.ts and admin-actions.ts:
+  // a sole admin demoting themselves locks everyone out of the admin panel.
+  if (session.user.id === id) {
+    return errorResponse("BAD_REQUEST", "You cannot change your own role");
+  }
 
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) {

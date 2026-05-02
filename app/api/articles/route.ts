@@ -6,6 +6,16 @@ import { generateUniqueSlug } from "@/lib/slugify";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { errorResponse } from "@/lib/errors";
 
+// Public-safe projection: drop email, isAdmin, googleImage, emailVerified, createdAt, updatedAt.
+// These are unauth-readable today via createdBy: true.
+const publicUserSelect = {
+  id: true,
+  name: true,
+  image: true,
+  role: true,
+  displayTitle: true,
+} as const;
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const rawParams = {
@@ -39,8 +49,8 @@ export async function GET(req: NextRequest) {
       take: limit,
       orderBy: { group: { publishedAt: "desc" } },
       include: {
-        createdBy: true,
-        credits: { include: { user: true } },
+        createdBy: { select: publicUserSelect },
+        credits: { include: { user: { select: publicUserSelect } } },
         images: { orderBy: { order: "asc" } },
         group: { select: { publishedAt: true, volumeNumber: true, issueNumber: true, status: true } },
       },
@@ -60,7 +70,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await checkRole("EDITOR");
+  const { session, error } = await checkRole("WRITER");
   if (error) return error;
 
   let body: unknown;
@@ -98,8 +108,8 @@ export async function POST(req: NextRequest) {
         : undefined,
     },
     include: {
-      createdBy: true,
-      credits: { include: { user: true } },
+      createdBy: { select: publicUserSelect },
+      credits: { include: { user: { select: publicUserSelect } } },
       images: { orderBy: { order: "asc" } },
     },
   });

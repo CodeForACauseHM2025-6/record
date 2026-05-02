@@ -109,7 +109,22 @@ export async function updateArticle(id: string, formData: FormData) {
 
 export async function deleteArticle(id: string) {
   const session = await auth();
-  requireEditor(session);
+  requireDashboardRole(session);
+
+  const existing = await prisma.article.findUnique({
+    where: { id },
+    select: { createdById: true },
+  });
+  if (!existing) {
+    throw new Error("Article not found");
+  }
+
+  // Writers may delete their own articles; only EDITOR+ may delete others'.
+  const isOwner = existing.createdById === session!.user!.id;
+  const isEditorPlus = !!session?.user?.role && EDITOR_ROLES.includes(session.user.role);
+  if (!isOwner && !isEditorPlus) {
+    throw new Error("You can only delete your own articles");
+  }
 
   await prisma.article.delete({ where: { id } });
 
