@@ -7,6 +7,7 @@ import {
   isEncryptionEnabled,
   ENCRYPTED_FIELDS,
   encryptWithKey,
+  decryptWithKey,
   blindIndex,
 } from "@/lib/encryption";
 import { generateDek, unwrapDek, isKmsConfigured } from "@/lib/kms";
@@ -108,6 +109,86 @@ export function decryptResult(result: unknown): unknown {
 function getModelName(model: string | undefined): string | undefined {
   if (!model) return undefined;
   return model.charAt(0).toUpperCase() + model.slice(1);
+}
+
+// Phase 4: when a returned row carries a populated `encryptedDek`, decrypt the *Ciphertext
+// columns and override the legacy plaintext fields with the envelope-decrypted values. This
+// makes the envelope columns the source of truth for any row that has been backfilled (Phase 3)
+// or written under dual-write (Phase 2). Rows without `encryptedDek` keep their legacy
+// plaintext (which the legacy decryptResult path handles).
+async function applyEnvelopeRead(
+  modelName: string,
+  result: unknown,
+): Promise<void> {
+  if (!isKmsConfigured() || result == null) return;
+  const fields = ENCRYPTED_FIELDS[modelName];
+  if (!fields) return;
+
+  const rows = Array.isArray(result) ? result : [result];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const wrapped = r.encryptedDek;
+    if (!(wrapped instanceof Buffer) || wrapped.length === 0) continue;
+    const id = r.id;
+    if (typeof id !== "string") continue;
+
+    try {
+      const ctx: EncryptionContext = { recordType: modelName, recordId: id };
+      const dek = await unwrapDek(wrapped, ctx);
+      for (const field of Object.keys(fields)) {
+        const ct = r[`${field}Ciphertext`];
+        if (!(ct instanceof Buffer) || ct.length === 0) continue;
+        try {
+          r[field] = decryptWithKey(ct, dek);
+        } catch (err) {
+          console.error(
+            `[prisma envelope-read] ${modelName}.${field}/${id} decrypt failed: ${(err as Error).message}`,
+          );
+        }
+      }
+      // Note: dek is cached in lib/kms — don't fill(0) here, the cache hands out the same buffer.
+    } catch (err) {
+      console.error(
+        `[prisma envelope-read] ${modelName}/${id} unwrap failed: ${(err as Error).message}`,
+      );
+    }
+  }
+}
+
+// Imported here to avoid a forward reference; unused-var lint is satisfied because we reference
+// the type below in EncryptionContext.
+type EncryptionContext = { recordType: string; recordId: string };
+
+// Phase 4: rewrite where clauses on deterministic-encrypted fields so they match either the
+// blind-index hash (new path, populated by dual-write + backfill) OR the legacy deterministic
+// ciphertext (rows that pre-date the migration and haven't been backfilled yet). Single query;
+// both branches are unique-indexed.
+function applyEnvelopeWhere(
+  modelName: string,
+  where: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!where || !isKmsConfigured()) return where;
+  const fields = ENCRYPTED_FIELDS[modelName];
+  if (!fields) return where;
+
+  const result = { ...where };
+  for (const [key, value] of Object.entries(result)) {
+    if (fields[key] !== "deterministic") continue;
+    if (typeof value !== "string") continue;
+    // Replace `{ email: "x" }` with `{ OR: [{ emailHash: hash }, { email: "x" }] }`. The legacy
+    // branch's value will be encrypted to the deterministic ciphertext by encryptWhereClause()
+    // downstream when isEncryptionEnabled() is true.
+    const hash = blindIndex(value);
+    delete result[key];
+    const existingOr = Array.isArray(result.OR) ? (result.OR as Record<string, unknown>[]) : [];
+    result.OR = [
+      ...existingOr,
+      { [`${key}Hash`]: hash },
+      { [key]: value },
+    ];
+  }
+  return result;
 }
 
 // Phase 2 dual-write: populate the *Ciphertext / *Hash / encryptedDek / dekKekVersion
@@ -249,11 +330,24 @@ const encryptedPrisma = basePrisma.$extends({
 
       const mutableArgs = { ...args } as Record<string, unknown>;
 
+      // Phase 4: rewrite where clauses on deterministic fields to also match the blind-index
+      // hash column. Runs BEFORE the legacy where-encryption so both paths are valid.
+      if (mutableArgs.where && typeof mutableArgs.where === "object") {
+        mutableArgs.where = applyEnvelopeWhere(
+          modelName,
+          mutableArgs.where as Record<string, unknown>,
+        );
+      }
+
       // Phase 2 dual-write: populate envelope-encrypted columns BEFORE the legacy step
       // mutates plaintext into legacy ciphertext. No-op when KMS is not configured.
       await applyEnvelopeWrite(modelName, operation, mutableArgs);
 
-      if (!isEncryptionEnabled()) return query(mutableArgs);
+      if (!isEncryptionEnabled()) {
+        const result = await query(mutableArgs);
+        await applyEnvelopeRead(modelName, result);
+        return result;
+      }
 
       // Encrypt where clauses (deterministic fields only)
       if (mutableArgs.where) {
@@ -291,7 +385,11 @@ const encryptedPrisma = basePrisma.$extends({
         );
       }
 
-      return query(mutableArgs).then((result: unknown) => decryptResult(result));
+      const result = await query(mutableArgs);
+      // Envelope decryption first (overrides legacy fields when encryptedDek present),
+      // then legacy decryptResult() walks any remaining `enc:v1:` strings.
+      await applyEnvelopeRead(modelName, result);
+      return decryptResult(result);
     },
   },
 });
