@@ -33,6 +33,35 @@ export default auth((req) => {
     }
   }
 
+  // Origin/Referer check on state-changing /api/* methods. Defense-in-depth behind SameSite=Lax;
+  // skip /api/auth/* (NextAuth has its own CSRF token flow).
+  if (
+    pathname.startsWith("/api") &&
+    !pathname.startsWith("/api/auth") &&
+    (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE")
+  ) {
+    const origin = req.headers.get("origin");
+    const referer = req.headers.get("referer");
+    const expected = req.nextUrl.origin;
+    let originOk = false;
+    if (origin) {
+      originOk = origin === expected;
+    } else if (referer) {
+      try {
+        originOk = new URL(referer).origin === expected;
+      } catch {
+        originOk = false;
+      }
+    }
+    // Allow same-origin requests that send neither header (some non-browser clients).
+    if (!originOk && (origin || referer)) {
+      return NextResponse.json(
+        { error: { code: "FORBIDDEN", message: "Cross-origin request denied" } },
+        { status: 403 }
+      );
+    }
+  }
+
   // All non-API, non-login pages require authentication
   if (!pathname.startsWith("/api") && pathname !== "/login" && pathname !== "/auth-error") {
     if (!req.auth?.user) {
