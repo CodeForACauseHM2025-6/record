@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/errors";
 
+// Public-safe projection: drop email, isAdmin, googleImage, emailVerified, createdAt, updatedAt.
+// This route is unauthenticated; callers must not be able to enumerate author PII.
+const publicUserSelect = {
+  id: true,
+  name: true,
+  image: true,
+  role: true,
+  displayTitle: true,
+} as const;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -11,9 +21,9 @@ export async function GET(
   const article = await prisma.article.findFirst({
     where: { slug, group: { status: "PUBLISHED" } },
     include: {
-      createdBy: true,
+      createdBy: { select: publicUserSelect },
       credits: {
-        include: { user: true },
+        include: { user: { select: publicUserSelect } },
       },
       images: {
         orderBy: { order: "asc" },

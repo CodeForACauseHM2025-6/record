@@ -6,7 +6,7 @@ import { errorResponse } from "@/lib/errors";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
-  const { error } = await checkRole("EDITOR");
+  const { error } = await checkRole("WRITER");
   if (error) return error;
 
   const body = await req.json();

@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRole } from "@/lib/middleware/auth";
 import { updateArticleSchema } from "@/lib/validations";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { errorResponse } from "@/lib/errors";
 
+// Roles allowed to mutate articles they do not own. Mirrors EDITOR_ROLES in app/dashboard/article-actions.ts.
+const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
+
+// Public-safe projection: drop email, isAdmin, googleImage, emailVerified, createdAt, updatedAt.
+const publicUserSelect = {
+  id: true,
+  name: true,
+  image: true,
+  role: true,
+  displayTitle: true,
+} as const;
+
 const articleInclude = {
-  createdBy: true,
-  credits: { include: { user: true } },
+  createdBy: { select: publicUserSelect },
+  credits: { include: { user: { select: publicUserSelect } } },
   images: { orderBy: { order: "asc" as const } },
 };
 
@@ -15,15 +28,23 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await checkRole("EDITOR");
-  if (error) return error;
-
   const { id } = await params;
+  const session = await auth();
+  const role = session?.user?.role;
+  const canSeeDrafts =
+    !!role && (EDITOR_ROLES as readonly string[]).includes(role);
 
-  const article = await prisma.article.findUnique({
-    where: { id },
-    include: articleInclude,
-  });
+  // Editors+ can fetch any article by id; everyone else only PUBLISHED, matching /api/articles
+  // and /api/articles/by-slug behavior. Without this filter, any signed-in user could read drafts by id.
+  const article = canSeeDrafts
+    ? await prisma.article.findUnique({
+        where: { id },
+        include: articleInclude,
+      })
+    : await prisma.article.findFirst({
+        where: { id, group: { status: "PUBLISHED" } },
+        include: articleInclude,
+      });
 
   if (!article) {
     return errorResponse("NOT_FOUND", "Article not found", 404);
@@ -36,7 +57,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await checkRole("EDITOR");
+  const { session, error } = await checkRole("WRITER");
   if (error) return error;
 
   const { id } = await params;
@@ -44,6 +65,14 @@ export async function PATCH(
   const existing = await prisma.article.findUnique({ where: { id } });
   if (!existing) {
     return errorResponse("NOT_FOUND", "Article not found", 404);
+  }
+
+  // Ownership-or-editor gate: writers may edit their own drafts; only EDITOR+ may edit others'.
+  if (
+    existing.createdById !== session.user.id &&
+    !(EDITOR_ROLES as readonly string[]).includes(session.user.role)
+  ) {
+    return errorResponse("FORBIDDEN", "You can only modify your own articles", 403);
   }
 
   let body: unknown;
@@ -93,7 +122,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await checkRole("EDITOR");
+  const { session, error } = await checkRole("WRITER");
   if (error) return error;
 
   const { id } = await params;
@@ -101,6 +130,14 @@ export async function DELETE(
   const existing = await prisma.article.findUnique({ where: { id } });
   if (!existing) {
     return errorResponse("NOT_FOUND", "Article not found", 404);
+  }
+
+  // Ownership-or-editor gate: writers may delete their own drafts; only EDITOR+ may delete others'.
+  if (
+    existing.createdById !== session.user.id &&
+    !(EDITOR_ROLES as readonly string[]).includes(session.user.role)
+  ) {
+    return errorResponse("FORBIDDEN", "You can only delete your own articles", 403);
   }
 
   await prisma.article.delete({ where: { id } });
