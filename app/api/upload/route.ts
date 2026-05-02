@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRole } from "@/lib/middleware/auth";
-import { uploadRequestSchema, deleteImageSchema } from "@/lib/validations";
+import { uploadRequestSchema, deleteImageSchema, uploaderIdFromKey } from "@/lib/validations";
 import { createPresignedUploadUrl, deleteS3Object } from "@/lib/s3";
 import { errorResponse } from "@/lib/errors";
 import { randomUUID } from "crypto";
 
+const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"] as const;
+
 export async function POST(req: NextRequest) {
-  const { error } = await checkRole("WRITER");
+  const { session, error } = await checkRole("WRITER");
   if (error) return error;
 
   const body = await req.json();
@@ -22,7 +24,8 @@ export async function POST(req: NextRequest) {
   if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
     return errorResponse("BAD_REQUEST", "File extension must be jpg, jpeg, png, or webp");
   }
-  const key = `uploads/${randomUUID()}.${ext}`;
+  // Encode uploader id in the path so DELETE can authorize without a separate ownership table.
+  const key = `uploads/${session.user.id}/${randomUUID()}.${ext}`;
 
   const uploadUrl = await createPresignedUploadUrl(key, contentType, contentLength);
 
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { error } = await checkRole("EDITOR");
+  const { session, error } = await checkRole("WRITER");
   if (error) return error;
 
   const body = await req.json();
@@ -42,6 +45,15 @@ export async function DELETE(req: NextRequest) {
 
   if (!parsed.success) {
     return errorResponse("BAD_REQUEST", parsed.error.issues[0].message);
+  }
+
+  // Ownership-or-editor gate. New-format keys carry the uploader id; legacy-format keys (no uploader)
+  // require editor+ since we can't tell who put them there.
+  const isEditorPlus = (EDITOR_ROLES as readonly string[]).includes(session.user.role);
+  const uploaderId = uploaderIdFromKey(parsed.data.key);
+  const isOwner = uploaderId !== null && uploaderId === session.user.id;
+  if (!isEditorPlus && !isOwner) {
+    return errorResponse("FORBIDDEN", "You can only delete images you uploaded", 403);
   }
 
   await deleteS3Object(parsed.data.key);
