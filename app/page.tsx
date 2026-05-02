@@ -259,7 +259,7 @@ export default async function HomePage({
         <p className="text-center font-headline text-[12px] sm:text-[13px] font-semibold tracking-[0.05em] py-1.5">
           {volumeNumber && <>Vol. {volumeNumber}</>}
           {volumeNumber && issueNumber && <> &middot; </>}
-          {issueNumber && <>No. {issueNumber}</>}
+          {issueNumber && <>Issue {issueNumber}</>}
           {(volumeNumber || issueNumber) && <> &middot; </>}
           {formatDateLong(groupDate)}
         </p>
