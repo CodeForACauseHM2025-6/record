@@ -6,6 +6,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { generateUniqueRoundTableSlug } from "@/lib/slugify";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { invalidateHomepage } from "@/lib/page-cache";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
 const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
@@ -163,6 +164,7 @@ export async function updateRoundTable(id: string, formData: FormData) {
   revalidatePath(`/dashboard/roundtables/${id}/edit`);
   revalidatePath(`/dashboard/groups/${existing.groupId}`);
   revalidatePath("/roundtable");
+  invalidateHomepage();
   redirect(`/dashboard/roundtables/${id}/edit?saved=1`);
 }
 
@@ -176,5 +178,6 @@ export async function deleteRoundTable(id: string) {
   await prisma.roundTable.delete({ where: { id } });
   revalidatePath("/roundtable");
   if (rt) revalidatePath(`/dashboard/groups/${rt.groupId}`);
+  invalidateHomepage();
   redirect(rt ? `/dashboard/groups/${rt.groupId}` : "/dashboard");
 }

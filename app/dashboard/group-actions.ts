@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { invalidateHomepage } from "@/lib/page-cache";
 import { PATTERNS } from "@/lib/patterns";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
@@ -57,6 +58,7 @@ export async function updateGroup(id: string, formData: FormData) {
 
   revalidatePath(`/dashboard/groups/${id}`);
   revalidatePath("/");
+  invalidateHomepage();
   redirect(`/dashboard/groups/${id}?saved=1`);
 }
 
@@ -70,6 +72,7 @@ export async function publishGroup(id: string) {
   });
 
   revalidatePath("/");
+  invalidateHomepage();
   revalidatePath("/dashboard");
   redirect(`/dashboard/groups/${id}`);
 }
@@ -84,6 +87,7 @@ export async function unpublishGroup(id: string) {
   });
 
   revalidatePath("/");
+  invalidateHomepage();
   revalidatePath("/dashboard");
   redirect(`/dashboard/groups/${id}`);
 }
@@ -193,6 +197,7 @@ export async function addBlock(groupId: string, column: string, pattern: string)
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function deleteBlock(blockId: string, groupId: string) {
@@ -203,6 +208,7 @@ export async function deleteBlock(blockId: string, groupId: string) {
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function reorderBlocks(groupId: string, column: string, blockIds: string[]) {
@@ -217,6 +223,7 @@ export async function reorderBlocks(groupId: string, column: string, blockIds: s
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateDividerStyle(blockId: string, style: string, groupId: string) {
@@ -230,6 +237,7 @@ export async function updateDividerStyle(blockId: string, style: string, groupId
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function assignToBlockSlot(slotId: string, articleId: string | null, groupId: string) {
@@ -245,6 +253,7 @@ export async function assignToBlockSlot(slotId: string, articleId: string | null
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function assignMediaToBlockSlot(
@@ -265,6 +274,7 @@ export async function assignMediaToBlockSlot(
 
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function clearBlockSlot(slotId: string, groupId: string) {
@@ -279,6 +289,7 @@ export async function clearBlockSlot(slotId: string, groupId: string) {
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function clearSlotArticle(slotId: string, groupId: string) {
@@ -293,6 +304,7 @@ export async function clearSlotArticle(slotId: string, groupId: string) {
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateSlotScale(slotId: string, scale: string, groupId: string) {
@@ -309,6 +321,7 @@ export async function updateSlotScale(slotId: string, scale: string, groupId: st
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateSlotImageScale(slotId: string, imageScale: string, groupId: string) {
@@ -325,6 +338,7 @@ export async function updateSlotImageScale(slotId: string, imageScale: string, g
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateSlotPreviewLength(slotId: string, length: number, groupId: string) {
@@ -338,6 +352,7 @@ export async function updateSlotPreviewLength(slotId: string, length: number, gr
   });
 
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function toggleSlotFeatured(slotId: string, featured: boolean, groupId: string) {
@@ -351,6 +366,7 @@ export async function toggleSlotFeatured(slotId: string, featured: boolean, grou
 
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function toggleSlotByline(slotId: string, showByline: boolean, groupId: string) {
@@ -364,6 +380,7 @@ export async function toggleSlotByline(slotId: string, showByline: boolean, grou
 
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateImageFloat(slotId: string, imageFloat: string, groupId: string) {
@@ -380,6 +397,7 @@ export async function updateImageFloat(slotId: string, imageFloat: string, group
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateImageWidth(slotId: string, imageWidth: number, groupId: string) {
@@ -395,6 +413,7 @@ export async function updateImageWidth(slotId: string, imageWidth: number, group
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateImageCrop(slotId: string, imageCrop: string, imageCropCustom: string | null, groupId: string) {
@@ -411,6 +430,7 @@ export async function updateImageCrop(slotId: string, imageCrop: string, imageCr
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function updateMediaCredit(slotId: string, mediaCredit: string, groupId: string) {
@@ -425,6 +445,7 @@ export async function updateMediaCredit(slotId: string, mediaCredit: string, gro
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }
 
 export async function clearSlotMedia(slotId: string, groupId: string) {
@@ -439,4 +460,5 @@ export async function clearSlotMedia(slotId: string, groupId: string) {
   revalidatePath(`/dashboard/groups/${groupId}`);
   revalidatePath(`/dashboard/groups/${groupId}/layout`);
   revalidatePath("/");
+  invalidateHomepage();
 }

@@ -6,6 +6,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { generateUniqueSlug } from "@/lib/slugify";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { invalidateHomepage } from "@/lib/page-cache";
 
 function parseCredits(formData: FormData) {
   const count = parseInt(formData.get("credit_count") as string, 10) || 0;
@@ -104,6 +105,7 @@ export async function updateArticle(id: string, formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/");
+  invalidateHomepage();
   redirect("/dashboard?saved=1");
 }
 
@@ -129,6 +131,7 @@ export async function deleteArticle(id: string) {
   await prisma.article.delete({ where: { id } });
 
   revalidatePath("/");
+  invalidateHomepage();
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
