@@ -83,27 +83,34 @@ export function encryptWhereClause(
   return result;
 }
 
+// Plain object check — only walk into things we know are POJOs from Prisma. Date, Buffer,
+// Uint8Array, Decimal, etc. all have prototypes that lose their methods when reconstructed
+// via `Object.entries`, so we leave them alone.
+function isPlainObject(o: unknown): o is Record<string, unknown> {
+  if (o === null || typeof o !== "object") return false;
+  const proto = Object.getPrototypeOf(o);
+  return proto === Object.prototype || proto === null;
+}
+
 export function decryptResult(result: unknown): unknown {
   if (result === null || result === undefined) return result;
   if (typeof result === "string") return decrypt(result);
   if (Array.isArray(result)) return result.map(decryptResult);
-  if (typeof result === "object" && result !== null) {
-    const obj = result as Record<string, unknown>;
-    const decrypted: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === "string") {
-        decrypted[key] = decrypt(value);
-      } else if (Array.isArray(value)) {
-        decrypted[key] = value.map(decryptResult);
-      } else if (typeof value === "object" && value !== null) {
-        decrypted[key] = decryptResult(value);
-      } else {
-        decrypted[key] = value;
-      }
+  if (!isPlainObject(result)) return result;
+  const obj = result as Record<string, unknown>;
+  const decrypted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "string") {
+      decrypted[key] = decrypt(value);
+    } else if (Array.isArray(value)) {
+      decrypted[key] = value.map(decryptResult);
+    } else if (isPlainObject(value)) {
+      decrypted[key] = decryptResult(value);
+    } else {
+      decrypted[key] = value;
     }
-    return decrypted;
   }
-  return result;
+  return decrypted;
 }
 
 function getModelName(model: string | undefined): string | undefined {
