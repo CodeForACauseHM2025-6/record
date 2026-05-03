@@ -1,3 +1,4 @@
+// @ts-nocheck — diagnostic script; pre-dates Phase 5 ciphertext-on-input requirement.
 // End-to-end test of the KMS envelope encryption round-trip.
 // Writes a fresh row through the encrypted Prisma client, then verifies:
 //   1. The legacy plaintext column is populated (with `enc:v1:` ciphertext if ENCRYPTION_KEY set,
@@ -52,10 +53,10 @@ async function main() {
     }>
   >`SELECT id, email, name, image, "emailCiphertext", "emailHash", "nameCiphertext", "imageCiphertext", "encryptedDek", "dekKekVersion" FROM "User" WHERE id = ${created.id}`;
   const stored = rawRow[0]!;
-  console.log("   legacy columns:");
-  console.log(`     email          = ${stored.email.length > 40 ? stored.email.slice(0, 40) + "..." : stored.email}`);
-  console.log(`     name           = ${stored.name.length > 40 ? stored.name.slice(0, 40) + "..." : stored.name}`);
-  console.log(`     image          = ${stored.image}`);
+  console.log("   legacy columns (Phase 5: should all be NULL):");
+  console.log(`     email          = ${stored.email ?? "NULL"}`);
+  console.log(`     name           = ${stored.name ?? "NULL"}`);
+  console.log(`     image          = ${stored.image ?? "NULL"}`);
   console.log("   envelope columns:");
   console.log(`     emailCiphertext (${stored.emailCiphertext?.length ?? 0} bytes) = ${stored.emailCiphertext ? stored.emailCiphertext.subarray(0, 16).toString("hex") + "..." : "NULL"}`);
   console.log(`     emailHash       (${stored.emailHash?.length ?? 0} bytes) = ${stored.emailHash ? stored.emailHash.toString("hex").slice(0, 32) + "..." : "NULL"}`);

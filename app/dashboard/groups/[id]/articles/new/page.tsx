@@ -42,7 +42,7 @@ export default async function NewArticleInGroupPage({
 
   const allUsers = rawUsers.map((u: (typeof rawUsers)[number]) => ({
     id: u.id,
-    name: u.name,
+    name: u.name ?? "",
     defaultRole: (u as { displayTitle?: string | null }).displayTitle ?? ROLE_DISPLAY[u.role] ?? u.role,
   }));
 

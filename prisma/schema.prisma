@@ -36,8 +36,11 @@ enum ArticleStatus {
 
 model User {
   id            String    @id @default(uuid())
-  email         String    @unique
-  name          String
+  // Legacy columns — wiped to NULL by phase5_wipe_legacy migration. Kept in schema as nullable
+  // so call sites still typecheck; lib/prisma synthesizes plaintext from envelope on read and
+  // strips plaintext from `data` on write so Prisma stores NULL here.
+  email         String?   @unique
+  name          String?
   image         String?
   googleImage   String?
   emailVerified DateTime?
@@ -48,16 +51,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // KMS envelope encryption (Phase 1: columns added, Phase 2: dual-write,
-  // Phase 4: reads switch over, Phase 5: legacy columns above are dropped).
-  // emailHash is a blind index (HMAC) so equality lookups still work after
-  // email moves to random-IV ciphertext.
-  emailCiphertext Bytes?
-  emailHash       Bytes?  @unique
-  nameCiphertext  Bytes?
+  // KMS envelope encryption — canonical source of truth.
+  emailCiphertext Bytes
+  emailHash       Bytes   @unique
+  nameCiphertext  Bytes
   imageCiphertext Bytes?
-  encryptedDek    Bytes?
-  dekKekVersion   Int?
+  encryptedDek    Bytes
+  dekKekVersion   Int
 
   articles            Article[]
   articleCredits      ArticleCredit[]
@@ -99,7 +99,8 @@ model Article {
   id            String        @id @default(uuid())
   title         String        @db.VarChar(300)
   slug          String        @unique
-  body          String
+  // Legacy plaintext column — wiped; ciphertext is canonical.
+  body          String?
   excerpt       String?       @db.VarChar(500)
   featuredImage String?
   section       Section
@@ -109,11 +110,11 @@ model Article {
 
   groupId     String
 
-  // KMS envelope encryption — see comment on User for the migration phases.
-  bodyCiphertext          Bytes?
+  // KMS envelope encryption — canonical.
+  bodyCiphertext          Bytes
   featuredImageCiphertext Bytes?
-  encryptedDek            Bytes?
-  dekKekVersion           Int?
+  encryptedDek            Bytes
+  dekKekVersion           Int
 
   createdBy  User           @relation(fields: [createdById], references: [id])
   group      ArticleGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -124,38 +125,39 @@ model Article {
 }
 
 model ArticleCredit {
-  id         String @id @default(uuid())
+  id         String  @id @default(uuid())
   articleId  String
   userId     String
-  creditRole String
+  // Legacy plaintext column — wiped; ciphertext is canonical.
+  creditRole String?
 
-  // KMS envelope encryption — Phase 1 columns. creditRoleHash is the blind index
-  // that will replace creditRole in the unique constraint once Phase 4 lands.
-  creditRoleCiphertext Bytes?
-  creditRoleHash       Bytes?
-  encryptedDek         Bytes?
-  dekKekVersion        Int?
+  // KMS envelope encryption — canonical. Uniqueness is on creditRoleHash now.
+  creditRoleCiphertext Bytes
+  creditRoleHash       Bytes
+  encryptedDek         Bytes
+  dekKekVersion        Int
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
 
-  @@unique([articleId, userId, creditRole])
+  @@unique([articleId, userId, creditRoleHash])
 }
 
 model ArticleImage {
   id        String  @id @default(uuid())
   articleId String
-  url       String
+  // Legacy plaintext columns — wiped; ciphertext is canonical.
+  url       String?
   caption   String?
-  altText   String
+  altText   String?
   order     Int
 
-  // KMS envelope encryption — Phase 1 columns.
-  urlCiphertext     Bytes?
+  // KMS envelope encryption — canonical.
+  urlCiphertext     Bytes
   captionCiphertext Bytes?
-  altTextCiphertext Bytes?
-  encryptedDek      Bytes?
-  dekKekVersion     Int?
+  altTextCiphertext Bytes
+  encryptedDek      Bytes
+  dekKekVersion     Int
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }
@@ -185,15 +187,16 @@ model ArticleGroup {
 model RoundTable {
   id        String   @id @default(uuid())
   slug      String   @unique
-  prompt    String   @db.VarChar(500)
+  // Legacy plaintext column — wiped; ciphertext is canonical.
+  prompt    String?  @db.VarChar(500)
   groupId   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // KMS envelope encryption — Phase 1 columns.
-  promptCiphertext Bytes?
-  encryptedDek     Bytes?
-  dekKekVersion    Int?
+  // KMS envelope encryption — canonical.
+  promptCiphertext Bytes
+  encryptedDek     Bytes
+  dekKekVersion    Int
 
   group ArticleGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sides RoundTableSide[]
@@ -201,15 +204,16 @@ model RoundTable {
 }
 
 model RoundTableSide {
-  id           String @id @default(uuid())
+  id           String  @id @default(uuid())
   roundTableId String
-  label        String @db.VarChar(80)
+  // Legacy plaintext column — wiped; ciphertext is canonical.
+  label        String? @db.VarChar(80)
   order        Int
 
-  // KMS envelope encryption — Phase 1 columns.
-  labelCiphertext Bytes?
-  encryptedDek    Bytes?
-  dekKekVersion   Int?
+  // KMS envelope encryption — canonical.
+  labelCiphertext Bytes
+  encryptedDek    Bytes
+  dekKekVersion   Int
 
   roundTable RoundTable             @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
   authors    RoundTableSideAuthor[]
@@ -228,16 +232,17 @@ model RoundTableSideAuthor {
 }
 
 model RoundTableTurn {
-  id           String @id @default(uuid())
+  id           String  @id @default(uuid())
   roundTableId String
   sideId       String
-  body         String
+  // Legacy plaintext column — wiped; ciphertext is canonical.
+  body         String?
   order        Int
 
-  // KMS envelope encryption — Phase 1 columns.
-  bodyCiphertext Bytes?
-  encryptedDek   Bytes?
-  dekKekVersion  Int?
+  // KMS envelope encryption — canonical.
+  bodyCiphertext Bytes
+  encryptedDek   Bytes
+  dekKekVersion  Int
 
   roundTable RoundTable     @relation(fields: [roundTableId], references: [id], onDelete: Cascade)
   side       RoundTableSide @relation(fields: [sideId], references: [id], onDelete: Cascade)

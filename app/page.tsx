@@ -112,11 +112,11 @@ export default async function HomePage({
     groupRoundTable = currentRoundTable
       ? {
           slug: currentRoundTable.slug,
-          prompt: currentRoundTable.prompt,
+          prompt: currentRoundTable.prompt ?? "",
           sides: currentRoundTable.sides.map((s) => ({
-            label: s.label,
+            label: s.label ?? "",
             order: s.order,
-            authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name } })),
+            authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name ?? "" } })),
           })),
         }
       : null;

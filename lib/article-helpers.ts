@@ -40,11 +40,11 @@ export function formatDateLong(date: Date): string {
 }
 
 export function joinAuthorNames(
-  credits: { user: { id: string; name: string } }[],
+  credits: { user: { id: string; name: string | null } }[],
 ): string {
-  const names = [...new Map(credits.map((c) => [c.user.id, c.user.name])).values()];
+  const names = [...new Map(credits.map((c) => [c.user.id, c.user.name ?? ""])).values()].filter(Boolean);
   if (names.length === 0) return "";
-  if (names.length === 1) return names[0];
+  if (names.length === 1) return names[0]!;
   if (names.length === 2) return `${names[0]} & ${names[1]}`;
   return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
 }
@@ -52,8 +52,8 @@ export function joinAuthorNames(
 // Returns every credited author, deduped by id, plus the primary role
 // (from credits[0]). Falls back to createdBy only when there are no credits.
 export function getBylineAuthors(article: {
-  credits: { creditRole: string; user: { id: string; name: string } }[];
-  createdBy: { id: string; name: string; role: string; displayTitle: string | null };
+  credits: { creditRole: string | null; user: { id: string; name: string | null } }[];
+  createdBy: { id: string; name: string | null; role: string; displayTitle: string | null };
 }): { authors: { id: string; name: string }[]; primaryRole: string | null } {
   if (article.credits.length > 0) {
     const seen = new Set<string>();
@@ -61,10 +61,10 @@ export function getBylineAuthors(article: {
     for (const c of article.credits) {
       if (seen.has(c.user.id)) continue;
       seen.add(c.user.id);
-      authors.push({ id: c.user.id, name: c.user.name });
+      authors.push({ id: c.user.id, name: c.user.name ?? "" });
     }
-    const role = article.credits[0].creditRole;
-    return { authors, primaryRole: role === "Reader" ? null : role };
+    const role = article.credits[0]!.creditRole ?? "";
+    return { authors, primaryRole: role === "Reader" || role === "" ? null : role };
   }
   const ROLE_DISPLAY: Record<string, string> = {
     READER: "Reader",
@@ -79,7 +79,7 @@ export function getBylineAuthors(article: {
     ROLE_DISPLAY[article.createdBy.role] ??
     article.createdBy.role;
   return {
-    authors: [{ id: article.createdBy.id, name: article.createdBy.name }],
+    authors: [{ id: article.createdBy.id, name: article.createdBy.name ?? "" }],
     primaryRole: fallback === "Reader" ? null : fallback,
   };
 }

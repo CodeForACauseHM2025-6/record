@@ -37,6 +37,8 @@ export async function createRoundTable(groupId: string) {
   const placeholderPrompt = "Untitled Round Table";
   const slug = await generateUniqueRoundTableSlug(placeholderPrompt);
 
+  // Cast around Phase 5 schema requiring ciphertext fields on top-level + nested creates —
+  // extension populates them at runtime.
   const rt = await prisma.roundTable.create({
     data: {
       slug,
@@ -48,7 +50,7 @@ export async function createRoundTable(groupId: string) {
           { label: "Side B", order: 1 },
         ],
       },
-    },
+    } as never,
   });
 
   redirect(`/dashboard/roundtables/${rt.id}/edit`);
@@ -129,7 +131,7 @@ export async function updateRoundTable(id: string, formData: FormData) {
       sideIdByIndex.push(existingSide.id);
     } else {
       const created = await prisma.roundTableSide.create({
-        data: { roundTableId: id, label: payload.label, order: i },
+        data: { roundTableId: id, label: payload.label, order: i } as never,
       });
       sideIdByIndex.push(created.id);
     }
@@ -151,10 +153,10 @@ export async function updateRoundTable(id: string, formData: FormData) {
     await prisma.roundTableTurn.createMany({
       data: turns.map((t, idx) => ({
         roundTableId: id,
-        sideId: sideIdByIndex[idx % 2],
+        sideId: sideIdByIndex[idx % 2]!,
         body: sanitizeHtml(t.body),
         order: idx,
-      })),
+      })) as never,
     });
   }
 
