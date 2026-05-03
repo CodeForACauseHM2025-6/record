@@ -127,8 +127,8 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
                 include: {
                   article: {
                     include: {
-                      createdBy: true,
-                      credits: { include: { user: true } },
+                      createdBy: { select: userMinimalNameSelect },
+                      credits: { include: { user: { select: userMinimalNameSelect } } },
                     },
                   },
                 },
@@ -203,8 +203,8 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
         ...(assignedIds.size > 0 ? { id: { notIn: Array.from(assignedIds) } } : {}),
       },
       include: {
-        createdBy: true,
-        credits: { include: { user: true } },
+        createdBy: { select: userMinimalNameSelect },
+        credits: { include: { user: { select: userMinimalNameSelect } } },
         images: { orderBy: { order: "asc" }, take: 1 },
         group: { select: { publishedAt: true } },
       },

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect } from "@/lib/prisma-selects";
 import { Section } from "@prisma/client";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
@@ -116,8 +117,8 @@ export default async function SectionPage({
       skip: (currentPage - 1) * PER_PAGE,
       take: PER_PAGE,
       include: {
-        createdBy: true,
-        credits: { include: { user: true } },
+        createdBy: { select: userMinimalNameSelect },
+        credits: { include: { user: { select: userMinimalNameSelect } } },
         images: { orderBy: { order: "asc" } },
         group: { select: { publishedAt: true } },
     },

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     orderBy: { group: { publishedAt: "desc" } },
     take: 30,
     include: {
-      createdBy: { select: { id: true, name: true } },
+      createdBy: { select: userMinimalNameSelect },
       credits: { include: { user: { select: userMinimalNameSelect } } },
       group: { select: { publishedAt: true } },
     },

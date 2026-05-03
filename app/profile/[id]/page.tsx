@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import {
@@ -126,7 +127,7 @@ export default async function ProfilePage({
       skip: (currentPage - 1) * PER_PAGE,
       take: PER_PAGE,
       include: {
-        credits: { include: { user: true } },
+        credits: { include: { user: { select: userMinimalNameSelect } } },
         images: { orderBy: { order: "asc" }, take: 1 },
         group: { select: { publishedAt: true } },
       },

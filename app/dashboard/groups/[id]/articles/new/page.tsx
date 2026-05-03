@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { userPublicSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import { createArticleInGroup } from "@/app/dashboard/article-actions";
@@ -24,8 +25,8 @@ export default async function NewArticleInGroupPage({
       select: { id: true, name: true, volumeNumber: true, issueNumber: true },
     }),
     prisma.user.findMany({
-      select: { id: true, name: true, role: true, displayTitle: true },
-      orderBy: { name: "asc" },
+      select: userPublicSelect,
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 

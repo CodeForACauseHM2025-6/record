@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { userPublicWithEmailSelect } from "@/lib/prisma-selects";
 import { checkAdmin } from "@/lib/middleware/auth";
 import { updateAdminSchema } from "@/lib/validations";
 import { errorResponse } from "@/lib/errors";
@@ -31,8 +32,14 @@ export async function PATCH(
   const user = await prisma.user.update({
     where: { id },
     data: { isAdmin: parsed.data.isAdmin },
-    select: { id: true, email: true, name: true, role: true, isAdmin: true },
-  });
+    select: { ...userPublicWithEmailSelect, isAdmin: true },
+  }) as unknown as { id: string; email: string | null; name: string | null; image: string | null; role: string; displayTitle: string | null; isAdmin: boolean };
 
-  return NextResponse.json(user);
+  return NextResponse.json({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    isAdmin: user.isAdmin,
+  });
 }

@@ -39,3 +39,33 @@ export const userMinimalNameImageSelect = {
   nameCiphertext: true,
   imageCiphertext: true,
 } as const;
+
+// ---- Article ----
+// Article has random-encrypted body and (nullable) featuredImage. Any select that pulls back
+// either field MUST include the envelope columns or the field comes back NULL on disk and the
+// extension can't decrypt → callers blow up on `body.replace(...)` etc.
+
+export const articleListSelect = {
+  id: true,
+  title: true,
+  slug: true,
+  section: true,
+  body: true,
+  featuredImage: true,
+  createdAt: true,
+  encryptedDek: true,
+  dekKekVersion: true,
+  bodyCiphertext: true,
+  featuredImageCiphertext: true,
+} as const;
+
+// For places that just need the body for preview generation.
+export const articleBodySelect = {
+  id: true,
+  title: true,
+  section: true,
+  body: true,
+  encryptedDek: true,
+  dekKekVersion: true,
+  bodyCiphertext: true,
+} as const;

@@ -28,7 +28,7 @@ export default async function EditRoundTablePage({
     include: {
       sides: {
         orderBy: { order: "asc" },
-        include: { authors: { include: { user: true } } },
+        include: { authors: { include: { user: { select: userMinimalNameSelect } } } },
       },
       turns: { orderBy: { order: "asc" } },
       group: { select: { id: true, name: true, status: true } },
