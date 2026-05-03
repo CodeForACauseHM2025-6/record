@@ -76,6 +76,24 @@ export default async function HomePage({
   let groupDate = new Date();
   let groupRoundTable: import("@/app/patterns/types").RoundTableSummary | null = null;
 
+  // latestRoundTable is independent of currentGroup, so fan it out alongside the per-group fetches.
+  // moreArticles can't fan out yet because it excludes IDs assigned to the current group's blocks.
+  const latestRoundTablePromise = prisma.roundTable.findFirst({
+    where: { group: { status: "PUBLISHED" } },
+    orderBy: [
+      { group: { publishedAt: "desc" } },
+      { updatedAt: "desc" },
+    ],
+    include: {
+      sides: {
+        orderBy: { order: "asc" },
+        include: {
+          authors: { include: { user: { select: userMinimalNameSelect } } },
+        },
+      },
+    },
+  });
+
   if (currentGroup) {
     const [fullGroup, currentRoundTable] = await Promise.all([
       prisma.articleGroup.findUnique({
@@ -155,49 +173,39 @@ export default async function HomePage({
     }
   }
 
-  // Latest published round table — surfaced as a teaser on the homepage.
-  const latestRoundTable = (await prisma.roundTable.findFirst({
-    where: { group: { status: "PUBLISHED" } },
-    orderBy: [
-      { group: { publishedAt: "desc" } },
-      { updatedAt: "desc" },
-    ],
-    include: {
-      sides: {
-        orderBy: { order: "asc" },
-        include: {
-          authors: { include: { user: { select: userMinimalNameSelect } } },
-        },
+  // Latest round table was kicked off in parallel with the current-group fetch above; await
+  // alongside moreArticles so the two final round-trips overlap.
+  const [latestRoundTable, moreArticles] = (await Promise.all([
+    latestRoundTablePromise,
+    prisma.article.findMany({
+      where: {
+        group: { status: "PUBLISHED" },
+        ...(assignedIds.size > 0 ? { id: { notIn: Array.from(assignedIds) } } : {}),
       },
-    },
-  })) as unknown as {
-    slug: string;
-    prompt: string;
-    sides: {
-      label: string;
-      order: number;
-      authors: { user: { id: string; name: string } }[];
-    }[];
-  } | null;
-
-  // Recent articles across all published issues, excluding the ones already on this page.
-  const moreArticles = (await prisma.article.findMany({
-    where: {
-      group: { status: "PUBLISHED" },
-      ...(assignedIds.size > 0 ? { id: { notIn: Array.from(assignedIds) } } : {}),
-    },
-    include: {
-      createdBy: true,
-      credits: { include: { user: true } },
-      images: { orderBy: { order: "asc" }, take: 1 },
-      group: { select: { publishedAt: true } },
-    },
-    orderBy: [
-      { group: { publishedAt: "desc" } },
-      { createdAt: "desc" },
-    ],
-    take: 9,
-  })) as unknown as MoreArticle[];
+      include: {
+        createdBy: true,
+        credits: { include: { user: true } },
+        images: { orderBy: { order: "asc" }, take: 1 },
+        group: { select: { publishedAt: true } },
+      },
+      orderBy: [
+        { group: { publishedAt: "desc" } },
+        { createdAt: "desc" },
+      ],
+      take: 9,
+    }),
+  ])) as unknown as [
+    {
+      slug: string;
+      prompt: string;
+      sides: {
+        label: string;
+        order: number;
+        authors: { user: { id: string; name: string } }[];
+      }[];
+    } | null,
+    MoreArticle[],
+  ];
 
   // If the editor placed a round-table pattern in the layout, suppress the
   // bottom-of-page teaser so the round table doesn't appear twice.
