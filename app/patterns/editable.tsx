@@ -620,7 +620,10 @@ function MediaUploadPopup({
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [sizeError, setSizeError] = useState("");
-  const MAX_FILE_SIZE = 30 * 1024 * 1024;
+  // Must match `uploadRequestSchema` in lib/validations.ts. Server rejects anything bigger or
+  // any content type outside this list with a 400.
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+  const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -630,33 +633,57 @@ function MediaUploadPopup({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setSizeError("");
-    if (file.size > MAX_FILE_SIZE) {
-      setSizeError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 30MB.`);
+    if (!ALLOWED_TYPES.has(file.type)) {
+      setSizeError("File type must be JPEG, PNG, or WEBP");
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
-    let type = "image";
-    if (file.type.startsWith("video/")) type = "video";
-    else if (file.type === "image/gif") type = "gif";
+    if (file.size > MAX_FILE_SIZE) {
+      setSizeError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 10MB.`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    const type = "image";
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        setSizeError("Upload failed");
+    try {
+      // Step 1: ask the API for a presigned S3 URL.
+      const presignRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          contentLength: file.size,
+        }),
+      });
+      if (!presignRes.ok) {
+        const err = await presignRes.json().catch(() => ({}));
+        setSizeError(err?.error?.message ?? "Upload failed (presign)");
         return;
       }
-      const { url } = await res.json();
-      await assignMediaToBlockSlot(slotId, url, type, file.name, "", groupId);
+      const { uploadUrl, publicUrl } = await presignRes.json();
+
+      // Step 2: upload the file directly to S3 with the presigned URL.
+      const putRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) {
+        setSizeError("Upload failed (S3)");
+        return;
+      }
+
+      // Step 3: tell the server the slot now points at this URL.
+      await assignMediaToBlockSlot(slotId, publicUrl, type, file.name, "", groupId);
       onClose();
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setSizeError(`Upload failed: ${(err as Error).message}`);
+    }
   }
 
   return (
@@ -665,17 +692,24 @@ function MediaUploadPopup({
       className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-200 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-30 p-3"
     >
       <p className="font-headline text-[12px] font-semibold tracking-wide mb-2">Upload media</p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*,video/*"
-        onChange={handleFile}
-        className="block w-full font-headline text-[11px]"
-      />
+      <label className="cursor-pointer block w-full border border-dashed border-neutral-300 bg-neutral-50 hover:bg-neutral-100 hover:border-ink/40 transition-colors py-6 px-4 text-center">
+        <span className="font-headline text-[12px] tracking-wide text-ink/70 block">
+          Click to choose a file
+        </span>
+        <span className="font-headline text-[10px] tracking-wide text-caption/50 block mt-1">
+          JPEG, PNG, or WEBP &middot; max 10MB
+        </span>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFile}
+          className="hidden"
+        />
+      </label>
       {sizeError && (
         <p className="font-headline text-[10px] text-maroon mt-1.5">{sizeError}</p>
       )}
-      <p className="font-headline text-[10px] text-caption/50 mt-1.5">Max 30MB</p>
     </div>
   );
 }

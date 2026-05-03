@@ -7,6 +7,12 @@ const s3 = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
+  // AWS SDK v3 (2025+) enables CRC32 checksum signing by default. That bakes a
+  // x-amz-checksum-crc32 query param into presigned URLs which the browser PUT cannot satisfy
+  // (it would need to compute and send the matching checksum header). Disabling makes presigned
+  // PUTs work for plain `fetch(uploadUrl, { method: "PUT", body: file })`.
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 const BUCKET = process.env.AWS_S3_BUCKET!;
