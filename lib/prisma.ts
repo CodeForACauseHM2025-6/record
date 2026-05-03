@@ -113,6 +113,15 @@ function getModelName(model: string | undefined): string | undefined {
 
 type EncryptionContext = { recordType: string; recordId: string };
 
+// Prisma's pg adapter returns Bytes columns as Uint8Array (not Buffer). `instanceof Buffer`
+// returns false for plain Uint8Arrays; we check the wider type and coerce when handing to crypto.
+function isBytes(x: unknown): x is Uint8Array {
+  return x instanceof Uint8Array;
+}
+function toBuffer(x: Uint8Array): Buffer {
+  return Buffer.isBuffer(x) ? x : Buffer.from(x.buffer, x.byteOffset, x.byteLength);
+}
+
 // Relation map per model — used to recursively decrypt nested rows that come back via `include`.
 // Built manually from prisma/schema.prisma. Keep in sync if you add a relation.
 const RELATIONS: Record<string, Record<string, string>> = {
@@ -176,24 +185,23 @@ async function applyEnvelopeRead(
   const fields = ENCRYPTED_FIELDS[modelName];
   if (fields) {
     const wrapped = r.encryptedDek;
-    if (wrapped instanceof Buffer && wrapped.length > 0) {
+    if (isBytes(wrapped) && wrapped.length > 0) {
       const id = r.id;
       if (typeof id === "string") {
         try {
           const ctx: EncryptionContext = { recordType: modelName, recordId: id };
-          const dek = await unwrapDek(wrapped, ctx);
+          const dek = await unwrapDek(toBuffer(wrapped), ctx);
           for (const field of Object.keys(fields)) {
             const ct = r[`${field}Ciphertext`];
-            if (!(ct instanceof Buffer) || ct.length === 0) continue;
+            if (!isBytes(ct) || ct.length === 0) continue;
             try {
-              r[field] = decryptWithKey(ct, dek);
+              r[field] = decryptWithKey(toBuffer(ct), dek);
             } catch (err) {
               console.error(
                 `[prisma envelope-read] ${modelName}.${field}/${id} decrypt failed: ${(err as Error).message}`,
               );
             }
           }
-          // Note: dek is cached in lib/kms — don't fill(0), the cache hands out the same buffer.
         } catch (err) {
           console.error(
             `[prisma envelope-read] ${modelName}/${id} unwrap failed: ${(err as Error).message}`,
@@ -348,11 +356,12 @@ async function applyEnvelopeWrite(
           } as any)) as Record<string, unknown> | null;
           if (
             existing &&
-            existing.encryptedDek instanceof Buffer &&
-            existing.encryptedDek.length > 0
+            isBytes(existing.encryptedDek) &&
+            (existing.encryptedDek as Uint8Array).length > 0
           ) {
-            dek = await unwrapDek(existing.encryptedDek as Buffer, ctx);
-            wrappedDek = existing.encryptedDek as Buffer;
+            const wrappedExisting = toBuffer(existing.encryptedDek as Uint8Array);
+            dek = await unwrapDek(wrappedExisting, ctx);
+            wrappedDek = wrappedExisting;
             kekVersion = (existing.dekKekVersion as number | null) ?? 1;
           } else {
             const fresh = await generateDek(ctx);
