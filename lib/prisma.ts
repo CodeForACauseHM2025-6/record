@@ -160,10 +160,10 @@ async function applyEnvelopeRead(
 // the type below in EncryptionContext.
 type EncryptionContext = { recordType: string; recordId: string };
 
-// Phase 4: rewrite where clauses on deterministic-encrypted fields so they match either the
-// blind-index hash (new path, populated by dual-write + backfill) OR the legacy deterministic
-// ciphertext (rows that pre-date the migration and haven't been backfilled yet). Single query;
-// both branches are unique-indexed.
+// Phase 4: rewrite where clauses on deterministic-encrypted fields to hit the blind-index hash
+// column instead of the legacy column. Hash-only — Phase 4 deployment requires the Phase 3
+// backfill to be complete in production so every row has a populated *Hash. Using only the hash
+// keeps `findUnique` semantics intact (Prisma rejects `OR` in UniqueWhereInput).
 function applyEnvelopeWhere(
   modelName: string,
   where: Record<string, unknown> | undefined,
@@ -175,18 +175,49 @@ function applyEnvelopeWhere(
   const result = { ...where };
   for (const [key, value] of Object.entries(result)) {
     if (fields[key] !== "deterministic") continue;
-    if (typeof value !== "string") continue;
-    // Replace `{ email: "x" }` with `{ OR: [{ emailHash: hash }, { email: "x" }] }`. The legacy
-    // branch's value will be encrypted to the deterministic ciphertext by encryptWhereClause()
-    // downstream when isEncryptionEnabled() is true.
-    const hash = blindIndex(value);
-    delete result[key];
-    const existingOr = Array.isArray(result.OR) ? (result.OR as Record<string, unknown>[]) : [];
-    result.OR = [
-      ...existingOr,
-      { [`${key}Hash`]: hash },
-      { [key]: value },
-    ];
+
+    if (typeof value === "string") {
+      delete result[key];
+      result[`${key}Hash`] = blindIndex(value);
+    } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      // operator object: { email: { equals: "x" } } / { in: [...] } / { not: "y" }
+      const ops = value as Record<string, unknown>;
+      const hashOps: Record<string, unknown> = {};
+      if (typeof ops.equals === "string") hashOps.equals = blindIndex(ops.equals);
+      if (Array.isArray(ops.in)) {
+        hashOps.in = ops.in.map((v: unknown) =>
+          typeof v === "string" ? blindIndex(v) : v,
+        );
+      }
+      if (typeof ops.not === "string") hashOps.not = blindIndex(ops.not);
+      if (Object.keys(hashOps).length > 0) {
+        delete result[key];
+        result[`${key}Hash`] = hashOps;
+      }
+    }
+  }
+  // Recurse into AND/OR/NOT clauses so nested deterministic predicates are rewritten too.
+  if (Array.isArray(result.AND)) {
+    result.AND = (result.AND as Record<string, unknown>[]).map((c) =>
+      applyEnvelopeWhere(modelName, c) ?? c,
+    );
+  }
+  if (Array.isArray(result.OR)) {
+    result.OR = (result.OR as Record<string, unknown>[]).map((c) =>
+      applyEnvelopeWhere(modelName, c) ?? c,
+    );
+  }
+  if (result.NOT && typeof result.NOT === "object") {
+    if (Array.isArray(result.NOT)) {
+      result.NOT = (result.NOT as Record<string, unknown>[]).map((c) =>
+        applyEnvelopeWhere(modelName, c) ?? c,
+      );
+    } else {
+      result.NOT = applyEnvelopeWhere(
+        modelName,
+        result.NOT as Record<string, unknown>,
+      );
+    }
   }
   return result;
 }
