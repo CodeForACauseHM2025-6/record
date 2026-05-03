@@ -111,54 +111,106 @@ function getModelName(model: string | undefined): string | undefined {
   return model.charAt(0).toUpperCase() + model.slice(1);
 }
 
+type EncryptionContext = { recordType: string; recordId: string };
+
+// Relation map per model — used to recursively decrypt nested rows that come back via `include`.
+// Built manually from prisma/schema.prisma. Keep in sync if you add a relation.
+const RELATIONS: Record<string, Record<string, string>> = {
+  User: {
+    articles: "Article",
+    articleCredits: "ArticleCredit",
+    approvals: "Approval",
+    roundTableSides: "RoundTableSideAuthor",
+  },
+  Article: {
+    createdBy: "User",
+    credits: "ArticleCredit",
+    images: "ArticleImage",
+    group: "ArticleGroup",
+    blockSlots: "BlockSlot",
+    approvals: "Approval",
+  },
+  ArticleCredit: { article: "Article", user: "User" },
+  ArticleImage: { article: "Article" },
+  ArticleGroup: {
+    blocks: "LayoutBlock",
+    articles: "Article",
+    approvals: "Approval",
+    roundTables: "RoundTable",
+  },
+  RoundTable: {
+    group: "ArticleGroup",
+    sides: "RoundTableSide",
+    turns: "RoundTableTurn",
+  },
+  RoundTableSide: {
+    roundTable: "RoundTable",
+    authors: "RoundTableSideAuthor",
+    turns: "RoundTableTurn",
+  },
+  RoundTableTurn: { roundTable: "RoundTable", side: "RoundTableSide" },
+  RoundTableSideAuthor: { side: "RoundTableSide", user: "User" },
+  Approval: { user: "User", article: "Article", group: "ArticleGroup" },
+  LayoutBlock: { group: "ArticleGroup", slots: "BlockSlot" },
+  BlockSlot: { block: "LayoutBlock", article: "Article" },
+};
+
 // Phase 4: when a returned row carries a populated `encryptedDek`, decrypt the *Ciphertext
-// columns and override the legacy plaintext fields with the envelope-decrypted values. This
-// makes the envelope columns the source of truth for any row that has been backfilled (Phase 3)
-// or written under dual-write (Phase 2). Rows without `encryptedDek` keep their legacy
-// plaintext (which the legacy decryptResult path handles).
+// columns and override the legacy plaintext fields with the envelope-decrypted values.
+// Recursively walks `include`d relations so nested encrypted models (e.g., Article.createdBy)
+// also get decrypted, not just the top-level model. Without this, Phase 5's drop of legacy
+// columns would surface ciphertext on related records that the legacy decryptResult fallback
+// no longer covers.
 async function applyEnvelopeRead(
   modelName: string,
   result: unknown,
 ): Promise<void> {
   if (!isKmsConfigured() || result == null) return;
+  if (Array.isArray(result)) {
+    for (const item of result) await applyEnvelopeRead(modelName, item);
+    return;
+  }
+  if (typeof result !== "object") return;
+  const r = result as Record<string, unknown>;
+
   const fields = ENCRYPTED_FIELDS[modelName];
-  if (!fields) return;
-
-  const rows = Array.isArray(result) ? result : [result];
-  for (const row of rows) {
-    if (!row || typeof row !== "object") continue;
-    const r = row as Record<string, unknown>;
+  if (fields) {
     const wrapped = r.encryptedDek;
-    if (!(wrapped instanceof Buffer) || wrapped.length === 0) continue;
-    const id = r.id;
-    if (typeof id !== "string") continue;
-
-    try {
-      const ctx: EncryptionContext = { recordType: modelName, recordId: id };
-      const dek = await unwrapDek(wrapped, ctx);
-      for (const field of Object.keys(fields)) {
-        const ct = r[`${field}Ciphertext`];
-        if (!(ct instanceof Buffer) || ct.length === 0) continue;
+    if (wrapped instanceof Buffer && wrapped.length > 0) {
+      const id = r.id;
+      if (typeof id === "string") {
         try {
-          r[field] = decryptWithKey(ct, dek);
+          const ctx: EncryptionContext = { recordType: modelName, recordId: id };
+          const dek = await unwrapDek(wrapped, ctx);
+          for (const field of Object.keys(fields)) {
+            const ct = r[`${field}Ciphertext`];
+            if (!(ct instanceof Buffer) || ct.length === 0) continue;
+            try {
+              r[field] = decryptWithKey(ct, dek);
+            } catch (err) {
+              console.error(
+                `[prisma envelope-read] ${modelName}.${field}/${id} decrypt failed: ${(err as Error).message}`,
+              );
+            }
+          }
+          // Note: dek is cached in lib/kms — don't fill(0), the cache hands out the same buffer.
         } catch (err) {
           console.error(
-            `[prisma envelope-read] ${modelName}.${field}/${id} decrypt failed: ${(err as Error).message}`,
+            `[prisma envelope-read] ${modelName}/${id} unwrap failed: ${(err as Error).message}`,
           );
         }
       }
-      // Note: dek is cached in lib/kms — don't fill(0) here, the cache hands out the same buffer.
-    } catch (err) {
-      console.error(
-        `[prisma envelope-read] ${modelName}/${id} unwrap failed: ${(err as Error).message}`,
-      );
+    }
+  }
+
+  const relations = RELATIONS[modelName];
+  if (relations) {
+    for (const [relName, relModel] of Object.entries(relations)) {
+      if (!(relName in r)) continue;
+      await applyEnvelopeRead(relModel, r[relName]);
     }
   }
 }
-
-// Imported here to avoid a forward reference; unused-var lint is satisfied because we reference
-// the type below in EncryptionContext.
-type EncryptionContext = { recordType: string; recordId: string };
 
 // Phase 4: rewrite where clauses on deterministic-encrypted fields to hit the blind-index hash
 // column instead of the legacy column. Hash-only — Phase 4 deployment requires the Phase 3
