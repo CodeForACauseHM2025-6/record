@@ -36,33 +36,9 @@ const SECTION_LABELS: Record<string, string> = {
   MD_ALUMNI: "MD/Alumni",
 };
 
-export const PLACEHOLDER_BODY =
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
-
-/**
- * Returns a fully-formed placeholder article object that patterns can use as
- * a fallback when a slot has no real article assigned. Patterns then render
- * normally (matching live page typography), and the EditableSlot wrapper will
- * style this with reduced opacity + click-to-assign affordance in edit mode.
- */
-export function getPlaceholderArticle(): SlotArticle {
-  return {
-    id: "placeholder",
-    title: "Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing",
-    slug: "#",
-    body: PLACEHOLDER_BODY,
-    section: "NEWS",
-    featuredImage: null,
-    publishedAt: null,
-    createdBy: {
-      id: "placeholder",
-      name: "Author Name",
-      role: "WRITER",
-      displayTitle: "Staff Writer",
-    },
-    credits: [],
-  };
-}
+// Re-exported from a server-safe module so server-component patterns can call them.
+// The actual definitions live in app/patterns/placeholder.ts (no "use client").
+export { PLACEHOLDER_BODY, getPlaceholderArticle } from "@/app/patterns/placeholder";
 
 /* ------------------------------------------------------------------ */
 /*  Crop ratio helper                                                  */

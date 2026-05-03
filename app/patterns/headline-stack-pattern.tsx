@@ -3,7 +3,8 @@ import { PopulatedSlot } from "@/app/patterns/types";
 import { scalePx } from "@/lib/scale";
 import { getBylineAuthors } from "@/lib/article-helpers";
 import { BylineAuthors } from "@/app/patterns/byline-authors";
-import { EditableSlot, getPlaceholderArticle } from "@/app/patterns/editable";
+import { EditableSlot } from "@/app/patterns/editable";
+import { getPlaceholderArticle } from "@/app/patterns/placeholder";
 
 export function HeadlineStackPattern({
   slots,

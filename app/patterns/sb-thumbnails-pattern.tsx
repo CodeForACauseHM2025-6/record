@@ -5,8 +5,8 @@ import {
   EditableSlot,
   EditableImage,
   EditableImagePlaceholder,
-  getPlaceholderArticle,
 } from "@/app/patterns/editable";
+import { getPlaceholderArticle } from "@/app/patterns/placeholder";
 
 export function SbThumbnailsPattern({
   slots,
