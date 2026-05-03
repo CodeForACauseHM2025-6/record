@@ -1,10 +1,39 @@
 import { z } from "zod";
 
+// `z.string().url()` accepts `javascript:` and `data:` URLs which are dangerous in href/src contexts.
+// Restrict to http(s) by default; opt-in to `data:image/*` for fields like Article.featuredImage that
+// the dashboard form intentionally writes as base64 data URLs (see app/dashboard/CLAUDE.md).
+function isAllowedUrl(value: string, allowDataImage: boolean): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === "http:" || parsed.protocol === "https:") return true;
+  if (allowDataImage && parsed.protocol === "data:") {
+    const meta = value.slice("data:".length).split(",", 1)[0] ?? "";
+    return meta.startsWith("image/");
+  }
+  return false;
+}
+
+const safeUrl = (allowDataImage = false) =>
+  z.string().refine((v) => isAllowedUrl(v, allowDataImage), {
+    message: allowDataImage
+      ? "URL must use http(s) or data:image/* scheme"
+      : "URL must use http(s) scheme",
+  });
+
+// Cap featuredImage at ~1MB of characters. Comfortably fits typical hero-image data URLs but
+// rejects multi-MB base64 payloads that bloat Postgres rows.
+const FEATURED_IMAGE_MAX = 1_000_000;
+
 export const createArticleSchema = z.object({
   title: z.string().min(1).max(300),
   body: z.string().min(1).max(102400), // 100KB
   excerpt: z.string().max(500).optional(),
-  featuredImage: z.string().url().optional(),
+  featuredImage: safeUrl(true).max(FEATURED_IMAGE_MAX).optional(),
   section: z.enum(["NEWS", "OPINIONS", "LIONS_DEN", "A_AND_E", "FEATURES", "THE_ROUNDTABLE", "MD_ALUMNI"]),
   groupId: z.string().uuid(),
   credits: z
@@ -18,7 +47,7 @@ export const createArticleSchema = z.object({
   images: z
     .array(
       z.object({
-        url: z.string().url(),
+        url: safeUrl(false),
         caption: z.string().optional(),
         altText: z.string().min(1),
         order: z.number().int().min(0),
@@ -42,15 +71,25 @@ export const uploadRequestSchema = z.object({
   contentLength: z.number().int().min(1).max(10 * 1024 * 1024), // 10MB
 });
 
-// Constrains delete keys to the exact shape POST /api/upload generates: uploads/<uuid>.<ext>.
-// Without this the route accepts any S3 key — a signed-in user could wipe the entire bucket.
-const UPLOAD_KEY_PATTERN = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$/;
+// Two accepted shapes:
+//   - uploads/<uuid>.<ext>                   (legacy keys; uploader unknown — editor+ only to delete)
+//   - uploads/<uploaderId>/<uuid>.<ext>      (new keys; uploader id encoded for ownership gating)
+const UUID_RE = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const UPLOAD_KEY_PATTERN = new RegExp(
+  `^uploads\\/(?:${UUID_RE}\\/)?${UUID_RE}\\.(jpg|jpeg|png|webp)$`,
+);
 
 export const deleteImageSchema = z.object({
   key: z
     .string()
     .regex(UPLOAD_KEY_PATTERN, "Invalid upload key"),
 });
+
+// Returns the uploader id encoded in a new-format key, or null for legacy keys.
+export function uploaderIdFromKey(key: string): string | null {
+  const match = key.match(new RegExp(`^uploads\\/(${UUID_RE})\\/${UUID_RE}\\.`));
+  return match ? match[1]! : null;
+}
 
 export const updateRoleSchema = z.object({
   role: z.enum(["READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"]),
