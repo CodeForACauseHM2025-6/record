@@ -1,7 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { initEncryption, encrypt, ENCRYPTED_FIELDS } from "../lib/encryption";
 
-const rawPrisma = new PrismaClient();
+const rawPrisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+});
 
 async function main() {
   const key = process.env.ENCRYPTION_KEY;
