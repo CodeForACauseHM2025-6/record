@@ -66,7 +66,11 @@ export async function unwrapDek(
   evictExpired();
   const cacheKey = wrappedDek.toString("base64");
   const cached = dekCache.get(cacheKey);
-  if (cached) return cached.dek;
+  // Return a fresh copy each time so callers can `dek.fill(0)` to wipe their plaintext copy
+  // after use without corrupting the cached entry. Without this, an update path that calls
+  // unwrapDek() and then wipes its DEK would zero out the cached buffer, and every subsequent
+  // read for the same row would get an all-zeros "DEK" and fail AES-GCM auth.
+  if (cached) return Buffer.from(cached.dek);
 
   const out = await client().send(
     new DecryptCommand({
@@ -78,7 +82,8 @@ export async function unwrapDek(
 
   const dek = Buffer.from(out.Plaintext);
   dekCache.set(cacheKey, { dek, expiresAt: Date.now() + DEK_TTL_MS });
-  return dek;
+  // Return a copy so the caller's wipe doesn't touch the cache entry.
+  return Buffer.from(dek);
 }
 
 // Test/admin hook only — clears the cache so a fresh KMS call is forced.
