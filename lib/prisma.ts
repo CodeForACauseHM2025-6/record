@@ -181,9 +181,6 @@ async function applyEnvelopeRead(
   }
   if (typeof result !== "object") return;
   const r = result as Record<string, unknown>;
-  if (process.env.DEBUG_KMS === "1") {
-    console.log(`[envelope-read] ${modelName} keys=${Object.keys(r).join(",")} hasDek=${(r.encryptedDek as Uint8Array | undefined)?.length ?? "no"}`);
-  }
 
   const fields = ENCRYPTED_FIELDS[modelName];
   if (fields) {
@@ -508,7 +505,18 @@ const encryptedPrisma = basePrisma.$extends({
       if (!model) return query(args);
 
       const modelName = getModelName(model);
-      if (!modelName || !ENCRYPTED_FIELDS[modelName]) return query(args);
+      if (!modelName) return query(args);
+
+      // Non-encrypted models can still have encrypted nested includes (e.g. ArticleGroup with
+      // blocks→slots→article). Apply envelope writes for nested data, run the query, recursively
+      // decrypt nested rows. The legacy decryptResult walk preserved this behavior pre-Phase-5
+      // by recursing through `enc:v1:` strings; envelope reads need an explicit recursion.
+      if (!ENCRYPTED_FIELDS[modelName]) {
+        await applyEnvelopeWriteNested(modelName, args as Record<string, unknown>);
+        const result = await query(args);
+        await applyEnvelopeRead(modelName, result);
+        return result;
+      }
 
       const mutableArgs = { ...args } as Record<string, unknown>;
 
