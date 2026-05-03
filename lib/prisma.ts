@@ -7,6 +7,7 @@ import {
   isEncryptionEnabled,
   ENCRYPTED_FIELDS,
   encryptWithKey,
+  decryptWithKey,
   blindIndex,
 } from "@/lib/encryption";
 import { generateDek, unwrapDek, isKmsConfigured } from "@/lib/kms";
@@ -110,6 +111,177 @@ function getModelName(model: string | undefined): string | undefined {
   return model.charAt(0).toUpperCase() + model.slice(1);
 }
 
+type EncryptionContext = { recordType: string; recordId: string };
+
+// Prisma's pg adapter returns Bytes columns as Uint8Array (not Buffer). `instanceof Buffer`
+// returns false for plain Uint8Arrays; we check the wider type and coerce when handing to crypto.
+function isBytes(x: unknown): x is Uint8Array {
+  return x instanceof Uint8Array;
+}
+function toBuffer(x: Uint8Array): Buffer {
+  return Buffer.isBuffer(x) ? x : Buffer.from(x.buffer, x.byteOffset, x.byteLength);
+}
+
+// Relation map per model — used to recursively decrypt nested rows that come back via `include`.
+// Built manually from prisma/schema.prisma. Keep in sync if you add a relation.
+const RELATIONS: Record<string, Record<string, string>> = {
+  User: {
+    articles: "Article",
+    articleCredits: "ArticleCredit",
+    approvals: "Approval",
+    roundTableSides: "RoundTableSideAuthor",
+  },
+  Article: {
+    createdBy: "User",
+    credits: "ArticleCredit",
+    images: "ArticleImage",
+    group: "ArticleGroup",
+    blockSlots: "BlockSlot",
+    approvals: "Approval",
+  },
+  ArticleCredit: { article: "Article", user: "User" },
+  ArticleImage: { article: "Article" },
+  ArticleGroup: {
+    blocks: "LayoutBlock",
+    articles: "Article",
+    approvals: "Approval",
+    roundTables: "RoundTable",
+  },
+  RoundTable: {
+    group: "ArticleGroup",
+    sides: "RoundTableSide",
+    turns: "RoundTableTurn",
+  },
+  RoundTableSide: {
+    roundTable: "RoundTable",
+    authors: "RoundTableSideAuthor",
+    turns: "RoundTableTurn",
+  },
+  RoundTableTurn: { roundTable: "RoundTable", side: "RoundTableSide" },
+  RoundTableSideAuthor: { side: "RoundTableSide", user: "User" },
+  Approval: { user: "User", article: "Article", group: "ArticleGroup" },
+  LayoutBlock: { group: "ArticleGroup", slots: "BlockSlot" },
+  BlockSlot: { block: "LayoutBlock", article: "Article" },
+};
+
+// Phase 4: when a returned row carries a populated `encryptedDek`, decrypt the *Ciphertext
+// columns and override the legacy plaintext fields with the envelope-decrypted values.
+// Recursively walks `include`d relations so nested encrypted models (e.g., Article.createdBy)
+// also get decrypted, not just the top-level model. Without this, Phase 5's drop of legacy
+// columns would surface ciphertext on related records that the legacy decryptResult fallback
+// no longer covers.
+async function applyEnvelopeRead(
+  modelName: string,
+  result: unknown,
+): Promise<void> {
+  if (!isKmsConfigured() || result == null) return;
+  if (Array.isArray(result)) {
+    for (const item of result) await applyEnvelopeRead(modelName, item);
+    return;
+  }
+  if (typeof result !== "object") return;
+  const r = result as Record<string, unknown>;
+
+  const fields = ENCRYPTED_FIELDS[modelName];
+  if (fields) {
+    const wrapped = r.encryptedDek;
+    if (isBytes(wrapped) && wrapped.length > 0) {
+      const id = r.id;
+      if (typeof id === "string") {
+        try {
+          const ctx: EncryptionContext = { recordType: modelName, recordId: id };
+          const dek = await unwrapDek(toBuffer(wrapped), ctx);
+          for (const field of Object.keys(fields)) {
+            const ct = r[`${field}Ciphertext`];
+            if (!isBytes(ct) || ct.length === 0) continue;
+            try {
+              r[field] = decryptWithKey(toBuffer(ct), dek);
+            } catch (err) {
+              console.error(
+                `[prisma envelope-read] ${modelName}.${field}/${id} decrypt failed: ${(err as Error).message}`,
+              );
+            }
+          }
+        } catch (err) {
+          console.error(
+            `[prisma envelope-read] ${modelName}/${id} unwrap failed: ${(err as Error).message}`,
+          );
+        }
+      }
+    }
+  }
+
+  const relations = RELATIONS[modelName];
+  if (relations) {
+    for (const [relName, relModel] of Object.entries(relations)) {
+      if (!(relName in r)) continue;
+      await applyEnvelopeRead(relModel, r[relName]);
+    }
+  }
+}
+
+// Phase 4: rewrite where clauses on deterministic-encrypted fields to hit the blind-index hash
+// column instead of the legacy column. Hash-only — Phase 4 deployment requires the Phase 3
+// backfill to be complete in production so every row has a populated *Hash. Using only the hash
+// keeps `findUnique` semantics intact (Prisma rejects `OR` in UniqueWhereInput).
+function applyEnvelopeWhere(
+  modelName: string,
+  where: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!where || !isKmsConfigured()) return where;
+  const fields = ENCRYPTED_FIELDS[modelName];
+  if (!fields) return where;
+
+  const result = { ...where };
+  for (const [key, value] of Object.entries(result)) {
+    if (fields[key] !== "deterministic") continue;
+
+    if (typeof value === "string") {
+      delete result[key];
+      result[`${key}Hash`] = blindIndex(value);
+    } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      // operator object: { email: { equals: "x" } } / { in: [...] } / { not: "y" }
+      const ops = value as Record<string, unknown>;
+      const hashOps: Record<string, unknown> = {};
+      if (typeof ops.equals === "string") hashOps.equals = blindIndex(ops.equals);
+      if (Array.isArray(ops.in)) {
+        hashOps.in = ops.in.map((v: unknown) =>
+          typeof v === "string" ? blindIndex(v) : v,
+        );
+      }
+      if (typeof ops.not === "string") hashOps.not = blindIndex(ops.not);
+      if (Object.keys(hashOps).length > 0) {
+        delete result[key];
+        result[`${key}Hash`] = hashOps;
+      }
+    }
+  }
+  // Recurse into AND/OR/NOT clauses so nested deterministic predicates are rewritten too.
+  if (Array.isArray(result.AND)) {
+    result.AND = (result.AND as Record<string, unknown>[]).map((c) =>
+      applyEnvelopeWhere(modelName, c) ?? c,
+    );
+  }
+  if (Array.isArray(result.OR)) {
+    result.OR = (result.OR as Record<string, unknown>[]).map((c) =>
+      applyEnvelopeWhere(modelName, c) ?? c,
+    );
+  }
+  if (result.NOT && typeof result.NOT === "object") {
+    if (Array.isArray(result.NOT)) {
+      result.NOT = (result.NOT as Record<string, unknown>[]).map((c) =>
+        applyEnvelopeWhere(modelName, c) ?? c,
+      );
+    } else {
+      result.NOT = applyEnvelopeWhere(
+        modelName,
+        result.NOT as Record<string, unknown>,
+      );
+    }
+  }
+  return result;
+}
+
 // Phase 2 dual-write: populate the *Ciphertext / *Hash / encryptedDek / dekKekVersion
 // columns added in the kms_envelope_phase1 migration. Legacy columns are still written by
 // the encryptFields() path below. Reads still come from legacy columns until Phase 4.
@@ -184,11 +356,12 @@ async function applyEnvelopeWrite(
           } as any)) as Record<string, unknown> | null;
           if (
             existing &&
-            existing.encryptedDek instanceof Buffer &&
-            existing.encryptedDek.length > 0
+            isBytes(existing.encryptedDek) &&
+            (existing.encryptedDek as Uint8Array).length > 0
           ) {
-            dek = await unwrapDek(existing.encryptedDek as Buffer, ctx);
-            wrappedDek = existing.encryptedDek as Buffer;
+            const wrappedExisting = toBuffer(existing.encryptedDek as Uint8Array);
+            dek = await unwrapDek(wrappedExisting, ctx);
+            wrappedDek = wrappedExisting;
             kekVersion = (existing.dekKekVersion as number | null) ?? 1;
           } else {
             const fresh = await generateDek(ctx);
@@ -249,11 +422,24 @@ const encryptedPrisma = basePrisma.$extends({
 
       const mutableArgs = { ...args } as Record<string, unknown>;
 
+      // Phase 4: rewrite where clauses on deterministic fields to also match the blind-index
+      // hash column. Runs BEFORE the legacy where-encryption so both paths are valid.
+      if (mutableArgs.where && typeof mutableArgs.where === "object") {
+        mutableArgs.where = applyEnvelopeWhere(
+          modelName,
+          mutableArgs.where as Record<string, unknown>,
+        );
+      }
+
       // Phase 2 dual-write: populate envelope-encrypted columns BEFORE the legacy step
       // mutates plaintext into legacy ciphertext. No-op when KMS is not configured.
       await applyEnvelopeWrite(modelName, operation, mutableArgs);
 
-      if (!isEncryptionEnabled()) return query(mutableArgs);
+      if (!isEncryptionEnabled()) {
+        const result = await query(mutableArgs);
+        await applyEnvelopeRead(modelName, result);
+        return result;
+      }
 
       // Encrypt where clauses (deterministic fields only)
       if (mutableArgs.where) {
@@ -291,7 +477,11 @@ const encryptedPrisma = basePrisma.$extends({
         );
       }
 
-      return query(mutableArgs).then((result: unknown) => decryptResult(result));
+      const result = await query(mutableArgs);
+      // Envelope decryption first (overrides legacy fields when encryptedDek present),
+      // then legacy decryptResult() walks any remaining `enc:v1:` strings.
+      await applyEnvelopeRead(modelName, result);
+      return decryptResult(result);
     },
   },
 });
