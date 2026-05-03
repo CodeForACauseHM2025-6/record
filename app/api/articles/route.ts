@@ -14,6 +14,11 @@ const publicUserSelect = {
   image: true,
   role: true,
   displayTitle: true,
+  // envelope encryption metadata — needed by lib/prisma to decrypt name/image. Not PII.
+  encryptedDek: true,
+  dekKekVersion: true,
+  nameCiphertext: true,
+  imageCiphertext: true,
 } as const;
 
 export async function GET(req: NextRequest) {

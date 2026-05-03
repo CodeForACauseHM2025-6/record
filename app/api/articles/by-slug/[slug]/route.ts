@@ -10,6 +10,10 @@ const publicUserSelect = {
   image: true,
   role: true,
   displayTitle: true,
+  encryptedDek: true,
+  dekKekVersion: true,
+  nameCiphertext: true,
+  imageCiphertext: true,
 } as const;
 
 export async function GET(
