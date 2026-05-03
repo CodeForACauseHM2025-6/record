@@ -29,7 +29,7 @@ export function SingleFeaturePattern({
   const { authors, primaryRole } = getBylineAuthors(article);
   const sc = slot?.scale;
 
-  const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
+  const imgSrc = slot?.mediaUrl ?? null;
   const iFloat = slot?.imageFloat ?? "full";
   const isFloated = iFloat === "left" || iFloat === "right";
   const cropRatio =

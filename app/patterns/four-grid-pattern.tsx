@@ -87,7 +87,7 @@ export function FourGridPattern({
       {bottomSlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
         const { authors, primaryRole } = getBylineAuthors(article);
-        const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
+        const imgSrc = slot?.mediaUrl ?? null;
         const imgSize = scalePx(60, slot?.imageScale);
         const cropRatio =
           slot?.imageCrop === "landscape"

@@ -22,7 +22,7 @@ export function SbThumbnailsPattern({
     <div>
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
-        const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
+        const imgSrc = slot?.mediaUrl ?? null;
         const thumbSize = scalePx(40, slot?.imageScale);
         const cropRatio =
           slot?.imageCrop === "landscape"

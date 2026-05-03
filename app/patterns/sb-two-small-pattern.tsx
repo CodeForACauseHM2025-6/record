@@ -25,7 +25,7 @@ export function SbTwoSmallPattern({
       {displaySlots.map((slot, idx) => {
         const article = slot?.article ?? getPlaceholderArticle();
         const { authors, primaryRole } = getBylineAuthors(article);
-        const imgSrc = slot?.mediaUrl ?? slot?.article?.featuredImage ?? null;
+        const imgSrc = slot?.mediaUrl ?? null;
         const cropRatio =
           slot?.imageCrop === "landscape"
             ? "16/9"
