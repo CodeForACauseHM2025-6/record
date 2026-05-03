@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
+import { userMinimalNameSelect } from "@/lib/prisma-selects";
 import { auth } from "@/lib/auth";
 import { AccountDropdown } from "@/app/account-dropdown";
 import { HamburgerButton } from "@/app/sidebar-menu";
 import { Footer } from "@/app/footer";
 import { PatternRenderer } from "@/app/patterns/pattern-renderer";
 import { BlockData } from "@/app/patterns/types";
+import { getOrLoad } from "@/lib/page-cache";
 import {
   getAuthorInfo,
   getSectionLabel,
@@ -47,15 +48,34 @@ interface MoreArticle {
   group: { publishedAt: Date | null } | null;
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const session = await auth();
-  const { page: pageParam } = await searchParams;
-  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+type LatestRoundTable = {
+  slug: string;
+  prompt: string;
+  sides: {
+    label: string;
+    order: number;
+    authors: { user: { id: string; name: string } }[];
+  }[];
+} | null;
 
+interface HomepageData {
+  totalPages: number;
+  volumeNumber: number | null;
+  issueNumber: number | null;
+  groupDate: Date;
+  mainBlocks: BlockData[];
+  sidebarBlocks: BlockData[];
+  fullBlocks: BlockData[];
+  latestRoundTable: LatestRoundTable;
+  moreArticles: MoreArticle[];
+  layoutHasRoundTable: boolean;
+  hasCurrentGroup: boolean;
+}
+
+// All the heavy lifting (DB queries + envelope decryption) for one page of the homepage. Wrapped
+// in getOrLoad so concurrent visitors share the result and we don't burn ~30 KMS Decrypt calls
+// per render. Invalidated by dashboard mutations via invalidateHomepage().
+async function loadHomepageData(currentPage: number): Promise<HomepageData> {
   // Fetch published issues, sorted by vol/issue desc (most recent first).
   const groups = await prisma.articleGroup.findMany({
     where: { status: "PUBLISHED" },
@@ -162,7 +182,7 @@ export default async function HomePage({
     groupDate = currentGroup.publishedAt ?? currentGroup.createdAt;
   }
 
-  const issueNumber = (currentGroup as any)?.issueNumber ?? null;
+  const issueNumber = (currentGroup as { issueNumber?: number | null } | null)?.issueNumber ?? null;
 
   // Collect article IDs already shown on this page so we don't duplicate them in the rails.
   const assignedIds = new Set<string>();
@@ -194,24 +214,51 @@ export default async function HomePage({
       ],
       take: 9,
     }),
-  ])) as unknown as [
-    {
-      slug: string;
-      prompt: string;
-      sides: {
-        label: string;
-        order: number;
-        authors: { user: { id: string; name: string } }[];
-      }[];
-    } | null,
-    MoreArticle[],
-  ];
+  ])) as unknown as [LatestRoundTable, MoreArticle[]];
 
   // If the editor placed a round-table pattern in the layout, suppress the
   // bottom-of-page teaser so the round table doesn't appear twice.
   const layoutHasRoundTable = [...mainBlocks, ...sidebarBlocks, ...fullBlocks].some(
     (b) => b.pattern === "round-table" || b.pattern === "sb-round-table" || b.pattern === "round-table-full",
   );
+
+  return {
+    totalPages,
+    volumeNumber,
+    issueNumber,
+    groupDate,
+    mainBlocks,
+    sidebarBlocks,
+    fullBlocks,
+    latestRoundTable,
+    moreArticles,
+    layoutHasRoundTable,
+    hasCurrentGroup: currentGroup != null,
+  };
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const session = await auth();
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+
+  const {
+    totalPages,
+    volumeNumber,
+    issueNumber,
+    groupDate,
+    mainBlocks,
+    sidebarBlocks,
+    fullBlocks,
+    latestRoundTable,
+    moreArticles,
+    layoutHasRoundTable,
+    hasCurrentGroup,
+  } = await getOrLoad(`homepage:page=${currentPage}`, () => loadHomepageData(currentPage));
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-body page-enter">
@@ -315,7 +362,7 @@ export default async function HomePage({
         ) : (
           <div className="text-center py-24">
             <p className="font-headline text-2xl text-neutral-400">
-              {currentGroup ? "This edition has no content yet." : "No editions published yet."}
+              {hasCurrentGroup ? "This edition has no content yet." : "No editions published yet."}
             </p>
           </div>
         )}
