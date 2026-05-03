@@ -52,6 +52,11 @@ export default async function AboutPage() {
       priority: true,
       image: true,
       googleImage: true,
+      // envelope encryption metadata — needed by lib/prisma to decrypt name/image. Not PII.
+      encryptedDek: true,
+      dekKekVersion: true,
+      nameCiphertext: true,
+      imageCiphertext: true,
     },
   })) as unknown as StaffUser[];
 
@@ -61,7 +66,7 @@ export default async function AboutPage() {
       .filter((u) => row.roles.includes(u.role))
       .sort((a, b) => {
         if (a.priority !== b.priority) return b.priority - a.priority;
-        return a.name.localeCompare(b.name);
+        return (a.name ?? "").localeCompare(b.name ?? "");
       });
   }
 

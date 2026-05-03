@@ -46,6 +46,12 @@ export default async function EditUserPage({
         displayTitle: true,
         priority: true,
         createdAt: true,
+        // envelope encryption metadata — needed for decryption.
+        encryptedDek: true,
+        dekKekVersion: true,
+        emailCiphertext: true,
+        nameCiphertext: true,
+        imageCiphertext: true,
       },
     }),
     prisma.article.count({ where: { credits: { some: { userId: id } } } }),

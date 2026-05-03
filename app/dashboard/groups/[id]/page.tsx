@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import {
   updateGroup,
@@ -47,7 +48,7 @@ export default async function GroupEditorPage({
           title: true,
           section: true,
           credits: {
-            select: { creditRole: true, user: { select: { id: true, name: true } } },
+            select: { creditRole: true, user: { select: userMinimalNameSelect } },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -79,7 +80,7 @@ export default async function GroupEditorPage({
         },
       },
       approvals: {
-        include: { user: { select: { id: true, name: true, image: true } } },
+        include: { user: { select: userMinimalNameImageSelect } },
         orderBy: { createdAt: "asc" as const },
       },
     },
