@@ -181,6 +181,9 @@ async function applyEnvelopeRead(
   }
   if (typeof result !== "object") return;
   const r = result as Record<string, unknown>;
+  if (process.env.DEBUG_KMS === "1") {
+    console.log(`[envelope-read] ${modelName} keys=${Object.keys(r).join(",")} hasDek=${(r.encryptedDek as Uint8Array | undefined)?.length ?? "no"}`);
+  }
 
   const fields = ENCRYPTED_FIELDS[modelName];
   if (fields) {
