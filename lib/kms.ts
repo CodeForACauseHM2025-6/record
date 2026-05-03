@@ -18,10 +18,13 @@ export function isKmsConfigured(): boolean {
 }
 
 // Plaintext DEK cache so a request that touches the same row N times only burns one KMS Decrypt call.
-// Keyed by base64(wrappedDek). 60s TTL is much longer than any single request, short enough that a
-// process-memory dump captures little.
+// Keyed by base64(wrappedDek). The homepage fans out to 20-30+ encrypted rows per render; without a
+// cross-request cache, consecutive page loads each spend that many KMS Decrypt calls (tripping the
+// CloudWatch decrypt-spike alarm and adding ~1s of KMS round-trip latency on warm renders).
+// 10 min is long enough that a normal browsing session reuses the same DEKs, short enough that a
+// process-memory dump captures only the working set, not historical content.
 const dekCache = new Map<string, { dek: Buffer; expiresAt: number }>();
-const DEK_TTL_MS = 60_000;
+const DEK_TTL_MS = 600_000;
 
 function evictExpired() {
   const now = Date.now();
