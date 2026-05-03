@@ -174,6 +174,22 @@ export function blindIndex(plaintext: string): Buffer {
   return getCrypto().createHmac("sha256", blindIndexKey as BinaryLike).update(plaintext).digest();
 }
 
+// Self-initialize at module load time. instrumentation.ts also calls initEncryption(), but
+// Next.js's bundler can split this module across chunks (instrumentation gets one copy, the
+// Prisma extension gets another). Each copy needs its own init or blindIndex() throws on use.
+// Reading process.env directly here makes every chunk-local copy self-sufficient.
+//
+// Production must have ENCRYPTION_KEY set; dev tolerates missing key (encryption becomes a
+// passthrough). Secrets-Manager-sourced keys still need instrumentation.ts to populate the env
+// var before this module loads — practically that means populating it via .env / pm2 config.
+if (process.env.ENCRYPTION_KEY && !encryptionKey) {
+  try {
+    initEncryption(process.env.ENCRYPTION_KEY);
+  } catch (err) {
+    markEncryptionInitFailed(`module-load init: ${(err as Error).message}`);
+  }
+}
+
 export type EncryptionMode = "deterministic" | "random";
 
 export const ENCRYPTED_FIELDS: Record<string, Record<string, EncryptionMode>> = {
