@@ -17,7 +17,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, profile }) {
-      if (!user.email?.endsWith("@horacemann.org")) {
+      // Source of truth is the OAuth profile (always populated by Google). After Phase 5 the
+      // legacy User.email column is NULL on disk; the Prisma extension synthesizes it from the
+      // envelope ciphertext on read, but adapter-level lookups can land in the callback before
+      // that synthesis applies, so we check the raw profile email too.
+      const email = (profile as { email?: string } | null)?.email ?? user.email;
+      if (!email?.endsWith("@horacemann.org")) {
         return false;
       }
       // Persist the Google profile image so it survives custom uploads
