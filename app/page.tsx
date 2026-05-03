@@ -222,7 +222,12 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
     (b) => b.pattern === "round-table" || b.pattern === "sb-round-table" || b.pattern === "round-table-full",
   );
 
-  return {
+  // Strip envelope-encryption byte columns before caching. The lib/prisma extension already
+  // populated the plaintext fields on these objects; the Uint8Array columns (encryptedDek,
+  // *Ciphertext, *Hash) only exist to feed the decrypt path and are not used by the JSX. Holding
+  // them in a long-lived Map causes Next 16's RSC pipeline to throw "Cannot perform Construct on
+  // a detached ArrayBuffer" when their underlying buffers get transferred between renders.
+  const payload: HomepageData = {
     totalPages,
     volumeNumber,
     issueNumber,
@@ -235,6 +240,28 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
     layoutHasRoundTable,
     hasCurrentGroup: currentGroup != null,
   };
+  stripBytesDeep(payload);
+  return payload;
+}
+
+// Walk an object/array tree and delete any Uint8Array properties in place. Plain JSON values
+// (strings, numbers, Dates, null) pass through unchanged. Cycles aren't expected in Prisma
+// results, so no visited set.
+function stripBytesDeep(node: unknown): void {
+  if (node == null || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const item of node) stripBytesDeep(item);
+    return;
+  }
+  const obj = node as Record<string, unknown>;
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v instanceof Uint8Array || ArrayBuffer.isView(v)) {
+      delete obj[k];
+    } else if (typeof v === "object") {
+      stripBytesDeep(v);
+    }
+  }
 }
 
 export default async function HomePage({
