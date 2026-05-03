@@ -440,8 +440,22 @@ function PatternList({
   const label =
     column === "main" ? "main" : column === "sidebar" ? "sidebar" : "full row";
 
+  // Main/sidebar pickers go fixed-position so they follow you when you scroll past the
+  // flex container into the Full Row section. Sticky alone can't reach there because its
+  // containing block ends with the main+sidebar flex row. Full-row picker stays inline.
+  const pickerWrapperClass =
+    column === "full"
+      ? "sticky top-12 z-30 bg-white pt-3 pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto"
+      : "lg:fixed lg:top-16 lg:w-[280px] lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto z-30 bg-white pt-3 pb-4 lg:p-4 lg:border lg:border-neutral-200 lg:shadow-[0_4px_16px_rgba(0,0,0,0.06)]";
+
+  // Pin to the viewport edge that matches the column the picker is rendered in. column="main"
+  // means picker is shown in the sidebar (right) slot; column="sidebar" means picker is in the
+  // main (left) slot.
+  const pickerSideClass =
+    column === "main" ? "lg:right-8" : column === "sidebar" ? "lg:left-8" : "";
+
   return (
-    <div className="sticky top-12 z-30 bg-white pt-3 pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div className={`${pickerWrapperClass} ${pickerSideClass}`}>
       <div className="flex items-center justify-between mb-4">
         <p className="font-headline text-[14px] font-semibold tracking-wide">
           Choose a {label} pattern
