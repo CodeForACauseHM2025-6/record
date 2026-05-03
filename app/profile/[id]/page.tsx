@@ -54,6 +54,11 @@ async function loadUser(id: string): Promise<UserData | null> {
       role: true,
       displayTitle: true,
       createdAt: true,
+      // envelope encryption metadata — needed by lib/prisma extension to decrypt name/image.
+      encryptedDek: true,
+      dekKekVersion: true,
+      nameCiphertext: true,
+      imageCiphertext: true,
     },
   })) as unknown as UserData | null;
   return user;
@@ -138,7 +143,7 @@ export default async function ProfilePage({
   const totalPages = Math.ceil(totalCount / PER_PAGE);
 
   const rl = roleLabel(user);
-  const firstInitial = user.name.charAt(0).toUpperCase();
+  const firstInitial = (user.name ?? "?").charAt(0).toUpperCase();
   const basePath = `/profile/${id}`;
 
   return (
