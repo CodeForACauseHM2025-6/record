@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
+import { userMinimalNameSelect, userMinimalNameImageSelect, userPublicSelect } from "@/lib/prisma-selects";
 import { Footer } from "@/app/footer";
 import { LayoutEditorWrapper } from "@/app/dashboard/layout-editor-wrapper";
 import { formatIssueTitle } from "@/lib/article-helpers";
@@ -53,7 +53,7 @@ export default async function LayoutEditorPage({
                   select: {
                     id: true, title: true, slug: true, section: true, body: true,
                     featuredImage: true,
-                    createdBy: { select: { id: true, name: true, role: true, displayTitle: true } },
+                    createdBy: { select: userPublicSelect },
                     credits: { select: { creditRole: true, user: { select: userMinimalNameSelect } } },
                   },
                 },
@@ -65,7 +65,7 @@ export default async function LayoutEditorPage({
     }),
     prisma.user.findMany({
       where: { role: { in: ["WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"] } },
-      select: { id: true, name: true },
+      select: userMinimalNameSelect,
       orderBy: { name: "asc" },
     }),
     prisma.roundTable.findUnique({

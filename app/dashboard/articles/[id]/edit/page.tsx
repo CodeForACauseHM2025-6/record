@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
+import { userMinimalNameSelect, userMinimalNameImageSelect, userPublicSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import {
@@ -37,7 +37,7 @@ export default async function EditArticlePage({
     prisma.article.findUnique({
       where: { id },
       include: {
-        credits: { include: { user: { select: { id: true, name: true, role: true, displayTitle: true } } } },
+        credits: { include: { user: { select: userPublicSelect } } },
         approvals: {
           include: { user: { select: userMinimalNameImageSelect } },
           orderBy: { createdAt: "asc" as const },
@@ -46,7 +46,7 @@ export default async function EditArticlePage({
       },
     }),
     prisma.user.findMany({
-      select: { id: true, name: true, role: true, displayTitle: true },
+      select: userPublicSelect,
       orderBy: { name: "asc" },
     }),
   ]);

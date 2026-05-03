@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { RoundTableForm } from "@/app/dashboard/roundtable-form";
 import { SavedToast } from "@/app/dashboard/saved-toast";
@@ -54,7 +55,7 @@ export default async function EditRoundTablePage({
 
   const staff = await prisma.user.findMany({
     where: { role: { not: "READER" } },
-    select: { id: true, name: true },
+    select: userMinimalNameSelect,
     orderBy: { name: "asc" },
   });
 
