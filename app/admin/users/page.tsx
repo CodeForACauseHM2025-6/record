@@ -48,6 +48,12 @@ export default async function UsersListPage({
         image: true,
         role: true,
         createdAt: true,
+        // envelope encryption metadata — needed by lib/prisma extension to decrypt name/email/image.
+        encryptedDek: true,
+        dekKekVersion: true,
+        emailCiphertext: true,
+        nameCiphertext: true,
+        imageCiphertext: true,
       },
     }),
     prisma.user.count({ where }),

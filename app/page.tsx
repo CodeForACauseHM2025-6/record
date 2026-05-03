@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { auth } from "@/lib/auth";
 import { AccountDropdown } from "@/app/account-dropdown";
 import { HamburgerButton } from "@/app/sidebar-menu";
@@ -103,7 +104,7 @@ export default async function HomePage({
         include: {
           sides: {
             orderBy: { order: "asc" },
-            include: { authors: { include: { user: { select: { id: true, name: true } } } } },
+            include: { authors: { include: { user: { select: { id: true, name: true, encryptedDek: true, dekKekVersion: true, nameCiphertext: true } } } } },
           },
         },
       }),
@@ -165,7 +166,7 @@ export default async function HomePage({
       sides: {
         orderBy: { order: "asc" },
         include: {
-          authors: { include: { user: { select: { id: true, name: true } } } },
+          authors: { include: { user: { select: userMinimalNameSelect } } },
         },
       },
     },

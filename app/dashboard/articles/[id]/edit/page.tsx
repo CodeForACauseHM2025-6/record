@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { ArticleForm } from "@/app/dashboard/article-form";
 import {
@@ -38,7 +39,7 @@ export default async function EditArticlePage({
       include: {
         credits: { include: { user: { select: { id: true, name: true, role: true, displayTitle: true } } } },
         approvals: {
-          include: { user: { select: { id: true, name: true, image: true } } },
+          include: { user: { select: userMinimalNameImageSelect } },
           orderBy: { createdAt: "asc" as const },
         },
         group: { select: { status: true, name: true } },

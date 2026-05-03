@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     take: 30,
     include: {
       createdBy: { select: { id: true, name: true } },
-      credits: { include: { user: { select: { id: true, name: true } } } },
+      credits: { include: { user: { select: userMinimalNameSelect } } },
       group: { select: { publishedAt: true } },
     },
   });

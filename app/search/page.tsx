@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import { SearchClient } from "@/app/search/search-client";
@@ -35,7 +36,7 @@ export default async function SearchPage({
       take: 30,
       include: {
         createdBy: { select: { id: true, name: true } },
-        credits: { include: { user: { select: { id: true, name: true } } } },
+        credits: { include: { user: { select: userMinimalNameSelect } } },
         group: { select: { publishedAt: true } },
       },
     });

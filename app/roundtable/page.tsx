@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import { RoundTableDisplay } from "@/app/roundtable/round-table-display";
@@ -29,7 +30,7 @@ export default async function RoundTableIndexPage() {
         orderBy: { order: "asc" },
         include: {
           authors: {
-            include: { user: { select: { id: true, name: true, image: true } } },
+            include: { user: { select: userMinimalNameImageSelect } },
           },
         },
       },
