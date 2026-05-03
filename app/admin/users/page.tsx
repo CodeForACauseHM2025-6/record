@@ -140,7 +140,7 @@ export default async function UsersListPage({
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-maroon text-white flex items-center justify-center font-headline font-bold text-[13px]">
-                      {u.name.charAt(0).toUpperCase()}
+                      {(u.name ?? "?").charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0">

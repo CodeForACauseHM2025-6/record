@@ -95,6 +95,8 @@ export async function POST(req: NextRequest) {
   const slug = await generateUniqueSlug(title);
   const sanitizedBody = sanitizeHtml(articleBody);
 
+  // Cast around the Phase 5 schema requiring ciphertext fields on top-level + nested creates —
+  // the lib/prisma extension populates them at runtime via applyEnvelopeWrite + Nested.
   const article = await prisma.article.create({
     data: {
       title,
@@ -105,13 +107,9 @@ export async function POST(req: NextRequest) {
       section,
       groupId,
       createdById: session!.user.id,
-      credits: credits
-        ? { create: credits }
-        : undefined,
-      images: images
-        ? { create: images }
-        : undefined,
-    },
+      credits: credits ? { create: credits } : undefined,
+      images: images ? { create: images } : undefined,
+    } as never,
     include: {
       createdBy: { select: publicUserSelect },
       credits: { include: { user: { select: publicUserSelect } } },

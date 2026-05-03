@@ -105,6 +105,7 @@ export async function PATCH(
     await prisma.articleImage.deleteMany({ where: { articleId: id } });
   }
 
+  // Cast around the Phase 5 schema requiring ciphertext fields on nested creates.
   const article = await prisma.article.update({
     where: { id },
     data: {
@@ -113,8 +114,8 @@ export async function PATCH(
       ...(excerpt !== undefined && { excerpt }),
       ...(featuredImage !== undefined && { featuredImage }),
       ...(section !== undefined && { section }),
-      ...(credits !== undefined && { credits: { create: credits } }),
-      ...(images !== undefined && { images: { create: images } }),
+      ...(credits !== undefined && { credits: { create: credits } as never }),
+      ...(images !== undefined && { images: { create: images } as never }),
     },
     include: articleInclude,
   });

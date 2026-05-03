@@ -8,7 +8,7 @@ async function main() {
     initEncryption(key);
     console.log("Encryption enabled for seeding");
   }
-  // Create sample users
+  // Cast around Phase 5 schema requiring ciphertext fields — extension fills them at runtime.
   const admin = await prisma.user.upsert({
     where: { email: "admin@horacemann.org" },
     update: {},
@@ -17,7 +17,7 @@ async function main() {
       name: "Admin User",
       role: "EDITOR",
       isAdmin: true,
-    },
+    } as never,
   });
 
   const editor = await prisma.user.upsert({
@@ -28,7 +28,7 @@ async function main() {
       name: "Editor User",
       role: "EDITOR",
       isAdmin: false,
-    },
+    } as never,
   });
 
   const writer = await prisma.user.upsert({
@@ -39,7 +39,7 @@ async function main() {
       name: "Writer User",
       role: "WRITER",
       isAdmin: false,
-    },
+    } as never,
   });
 
   // Create sample group
@@ -47,7 +47,7 @@ async function main() {
     data: { volumeNumber: 123, issueNumber: 1 },
   });
 
-  // Create sample articles
+  // Create sample articles (cast for Phase 5 ciphertext requirements)
   const article1 = await prisma.article.upsert({
     where: { slug: "welcome-to-the-record" },
     update: {},
@@ -62,7 +62,7 @@ async function main() {
       credits: {
         create: [{ userId: writer.id, creditRole: "Writer" }],
       },
-    },
+    } as never,
   });
 
   const article2 = await prisma.article.upsert({
@@ -76,7 +76,7 @@ async function main() {
       section: "LIONS_DEN",
       groupId: group.id,
       createdById: editor.id,
-    },
+    } as never,
   });
 
   console.log("Seed data created:", {

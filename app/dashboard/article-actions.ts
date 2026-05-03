@@ -65,7 +65,7 @@ export async function createArticleInGroup(groupId: string, formData: FormData) 
       createdById: session!.user!.id,
       credits: credits.length > 0 ? { create: credits } : undefined,
       groupId,
-    },
+    } as never,
   });
 
   redirect(`/dashboard/groups/${groupId}`);
@@ -98,7 +98,7 @@ export async function updateArticle(id: string, formData: FormData) {
       body: sanitizeHtml(body),
       featuredImage,
       section: section as "NEWS" | "OPINIONS" | "LIONS_DEN" | "A_AND_E" | "FEATURES" | "THE_ROUNDTABLE" | "MD_ALUMNI",
-      credits: credits.length > 0 ? { create: credits } : undefined,
+      credits: credits.length > 0 ? ({ create: credits } as never) : undefined,
     },
   });
 

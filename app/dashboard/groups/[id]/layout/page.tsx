@@ -83,11 +83,11 @@ export default async function LayoutEditorPage({
   const groupRoundTable = roundTable
     ? {
         slug: roundTable.slug,
-        prompt: roundTable.prompt,
+        prompt: roundTable.prompt ?? "",
         sides: roundTable.sides.map((s) => ({
-          label: s.label,
+          label: s.label ?? "",
           order: s.order,
-          authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name } })),
+          authors: s.authors.map((a) => ({ user: { id: a.user.id, name: a.user.name ?? "" } })),
         })),
       }
     : null;

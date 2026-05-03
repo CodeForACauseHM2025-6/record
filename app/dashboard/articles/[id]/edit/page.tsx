@@ -63,8 +63,8 @@ export default async function EditArticlePage({
 
   const existingCredits = article.credits.map((c: (typeof article.credits)[number]) => ({
     userId: c.user.id,
-    userName: c.user.name,
-    creditRole: c.creditRole,
+    userName: c.user.name ?? "",
+    creditRole: c.creditRole ?? "",
   }));
 
   const boundUpdate = updateArticle.bind(null, id);
@@ -73,7 +73,7 @@ export default async function EditArticlePage({
   // Build user list with default display titles for the form
   const usersWithDefaults = allUsers.map((u: (typeof allUsers)[number]) => ({
     id: u.id,
-    name: u.name,
+    name: u.name ?? "",
     defaultRole: (u as { displayTitle?: string | null }).displayTitle ?? defaultRoleDisplay(u.role),
   }));
 
@@ -139,9 +139,9 @@ export default async function EditArticlePage({
             action={boundUpdate}
             defaultValues={{
               title: article.title,
-              body: article.body,
+              body: article.body ?? "",
               section: article.section,
-              featuredImage: article.featuredImage,
+              featuredImage: article.featuredImage ?? null,
             }}
             defaultCredits={existingCredits}
             availableUsers={usersWithDefaults}

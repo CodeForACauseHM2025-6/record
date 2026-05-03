@@ -302,9 +302,23 @@ async function applyEnvelopeWrite(
 ): Promise<void> {
   if (!isKmsConfigured()) return;
   const fields = ENCRYPTED_FIELDS[modelName];
-  if (!fields) return;
+  if (!fields) {
+    // Even when the top-level model isn't encrypted, nested writes might be (e.g.,
+    // ArticleGroup.create({ articles: { create: [...] } }) where Article IS encrypted).
+    await applyEnvelopeWriteNested(modelName, args);
+    return;
+  }
 
-  if (operation !== "create" && operation !== "update" && operation !== "upsert") return;
+  if (
+    operation !== "create" &&
+    operation !== "createMany" &&
+    operation !== "update" &&
+    operation !== "updateMany" &&
+    operation !== "upsert"
+  ) {
+    await applyEnvelopeWriteNested(modelName, args);
+    return;
+  }
 
   // Locate the data block we need to mutate. For upsert there are separate create/update keys.
   const dataBlocks: Record<string, unknown>[] = [];
@@ -312,9 +326,18 @@ async function applyEnvelopeWrite(
     if (args.create && typeof args.create === "object") dataBlocks.push(args.create as Record<string, unknown>);
     if (args.update && typeof args.update === "object") dataBlocks.push(args.update as Record<string, unknown>);
   } else if (args.data && typeof args.data === "object") {
-    dataBlocks.push(args.data as Record<string, unknown>);
+    if (Array.isArray(args.data)) {
+      for (const item of args.data) {
+        if (item && typeof item === "object") dataBlocks.push(item as Record<string, unknown>);
+      }
+    } else {
+      dataBlocks.push(args.data as Record<string, unknown>);
+    }
   }
-  if (dataBlocks.length === 0) return;
+  if (dataBlocks.length === 0) {
+    await applyEnvelopeWriteNested(modelName, args);
+    return;
+  }
 
   for (const data of dataBlocks) {
     try {
@@ -322,7 +345,11 @@ async function applyEnvelopeWrite(
       let recordId: string | undefined;
       if (typeof data.id === "string") {
         recordId = data.id;
-      } else if (operation === "create" || (operation === "upsert" && data === (args.create as unknown))) {
+      } else if (
+        operation === "create" ||
+        operation === "createMany" ||
+        (operation === "upsert" && data === (args.create as unknown))
+      ) {
         // Generate up-front so the encryption context matches what Prisma stores.
         recordId = randomUUID();
         data.id = recordId;
@@ -382,7 +409,9 @@ async function applyEnvelopeWrite(
         kekVersion = fresh.kekVersion;
       }
 
-      // Encrypt every plaintext field present in this data block.
+      // Encrypt every plaintext field present in this data block, then DELETE the plaintext
+      // field name so Prisma writes NULL to the legacy column. Phase 5 wipe-legacy keeps legacy
+      // columns NULL on disk; the read path synthesizes plaintext from envelope columns.
       for (const [field, mode] of Object.entries(fields)) {
         const plaintext = data[field];
         if (typeof plaintext !== "string") continue;
@@ -390,6 +419,7 @@ async function applyEnvelopeWrite(
         if (mode === "deterministic") {
           data[`${field}Hash`] = blindIndex(plaintext);
         }
+        delete data[field];
       }
 
       if (wrappedDek && kekVersion !== null) {
@@ -404,10 +434,67 @@ async function applyEnvelopeWrite(
       // Wipe the plaintext DEK from memory before this iteration ends.
       dek.fill(0);
     } catch (err) {
-      // Soft-fail: legacy write proceeds, backfill resolves inconsistency.
       console.error(
         `[prisma envelope-write] ${modelName}.${operation} skipped envelope path: ${(err as Error).message}`,
       );
+    }
+  }
+
+  // Recurse into nested creates so e.g. Article.create({ data: { credits: { create: [...] } } })
+  // populates each nested ArticleCredit's envelope columns too.
+  await applyEnvelopeWriteNested(modelName, args);
+}
+
+// Walk known relations on data blocks and apply envelope-write recursively to nested writes.
+// Handles `{ create: X | X[] }` and `{ createMany: { data: X[] } }` shapes.
+async function applyEnvelopeWriteNested(
+  modelName: string,
+  args: Record<string, unknown>,
+): Promise<void> {
+  if (!isKmsConfigured()) return;
+  const relations = RELATIONS[modelName];
+  if (!relations) return;
+
+  const dataBlocks: Record<string, unknown>[] = [];
+  if (args.create && typeof args.create === "object" && !Array.isArray(args.create)) {
+    dataBlocks.push(args.create as Record<string, unknown>);
+  }
+  if (args.update && typeof args.update === "object" && !Array.isArray(args.update)) {
+    dataBlocks.push(args.update as Record<string, unknown>);
+  }
+  if (args.data) {
+    if (Array.isArray(args.data)) {
+      for (const item of args.data) {
+        if (item && typeof item === "object") dataBlocks.push(item as Record<string, unknown>);
+      }
+    } else if (typeof args.data === "object") {
+      dataBlocks.push(args.data as Record<string, unknown>);
+    }
+  }
+
+  for (const data of dataBlocks) {
+    for (const [relName, relModel] of Object.entries(relations)) {
+      const relValue = data[relName];
+      if (!relValue || typeof relValue !== "object" || Array.isArray(relValue)) continue;
+      const relObj = relValue as Record<string, unknown>;
+
+      if ("create" in relObj && relObj.create) {
+        const items = Array.isArray(relObj.create) ? relObj.create : [relObj.create];
+        for (const item of items) {
+          if (item && typeof item === "object") {
+            await applyEnvelopeWrite(relModel, "create", { data: item });
+          }
+        }
+      }
+      if ("createMany" in relObj && relObj.createMany) {
+        const inner = relObj.createMany as Record<string, unknown>;
+        const items = Array.isArray(inner.data) ? inner.data : [];
+        for (const item of items) {
+          if (item && typeof item === "object") {
+            await applyEnvelopeWrite(relModel, "create", { data: item });
+          }
+        }
+      }
     }
   }
 }

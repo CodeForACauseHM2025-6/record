@@ -1,3 +1,4 @@
+// @ts-nocheck — one-shot migration tool; predates Phase 5 ciphertext columns.
 /**
  * Migrate articles from an old Record DB to a new one.
  *

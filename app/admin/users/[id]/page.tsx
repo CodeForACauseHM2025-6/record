@@ -70,12 +70,12 @@ export default async function EditUserPage({
         {user.image ? (
           <img
             src={user.image}
-            alt={user.name}
+            alt={user.name ?? ""}
             className="w-20 h-20 rounded-full object-cover bg-neutral-200 shrink-0"
           />
         ) : (
           <div className="w-20 h-20 rounded-full bg-maroon text-white flex items-center justify-center font-headline font-bold text-[30px] shrink-0">
-            {user.name.charAt(0).toUpperCase()}
+            {(user.name ?? "?").charAt(0).toUpperCase()}
           </div>
         )}
         <div className="min-w-0">

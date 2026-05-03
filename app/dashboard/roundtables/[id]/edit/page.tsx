@@ -43,13 +43,13 @@ export default async function EditRoundTablePage({
 
   const initialSides = rt.sides.map((s) => ({
     id: s.id,
-    label: s.label,
+    label: s.label ?? "",
     authorIds: s.authors.map((a) => a.userId),
   }));
 
   const initialTurns = rt.turns.map((t) => ({
     sideIndex: sideIndexById[t.sideId] ?? 0,
-    body: t.body,
+    body: t.body ?? "",
   }));
 
   const staff = await prisma.user.findMany({
@@ -97,10 +97,10 @@ export default async function EditRoundTablePage({
 
         <RoundTableForm
           action={updateAction}
-          defaultPrompt={rt.prompt}
+          defaultPrompt={rt.prompt ?? ""}
           initialSides={initialSides}
           initialTurns={initialTurns}
-          availableUsers={staff.map((u) => ({ id: u.id, name: u.name }))}
+          availableUsers={staff.map((u) => ({ id: u.id, name: u.name ?? "" }))}
         />
 
         <div className="mt-12 pt-8 border-t border-rule flex items-center justify-between gap-3">
