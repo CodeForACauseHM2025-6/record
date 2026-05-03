@@ -162,6 +162,10 @@ const RELATIONS: Record<string, Record<string, string>> = {
   Approval: { user: "User", article: "Article", group: "ArticleGroup" },
   LayoutBlock: { group: "ArticleGroup", slots: "BlockSlot" },
   BlockSlot: { block: "LayoutBlock", article: "Article" },
+  // NextAuth adapter touchpoints — `account.findUnique({ select: { user: true } })` is the
+  // sign-in lookup; without recursion here the User comes back undecrypted and signIn fails.
+  Account: { user: "User" },
+  Session: { user: "User" },
 };
 
 // Phase 4: when a returned row carries a populated `encryptedDek`, decrypt the *Ciphertext
