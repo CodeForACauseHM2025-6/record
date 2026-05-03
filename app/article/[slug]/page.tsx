@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect } from "@/lib/prisma-selects";
+import { userMinimalNameImageSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import {
@@ -41,8 +41,8 @@ async function loadArticle(slug: string): Promise<ArticleData | null> {
   const article = (await prisma.article.findFirst({
     where: { slug, group: { status: "PUBLISHED" } },
     include: {
-      createdBy: { select: userMinimalNameSelect },
-      credits: { include: { user: { select: userMinimalNameSelect } } },
+      createdBy: { select: userMinimalNameImageSelect },
+      credits: { include: { user: { select: userMinimalNameImageSelect } } },
       images: { orderBy: { order: "asc" } },
       group: true,
     },
