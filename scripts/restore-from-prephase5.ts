@@ -18,6 +18,12 @@
 // What it does NOT do: commit, push, deploy. Run it locally first and verify before pointing
 // DATABASE_URL at prod.
 
+// Auto-load .env so the script picks up KMS_KEY_ARN / AWS creds / ENCRYPTION_KEY without
+// requiring callers to manually `source` them. Override DATABASE_URL / SOURCE_DATABASE_URL on
+// the command line — those should NEVER come from the project's .env (which targets prod).
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
+
 import { Pool } from "pg";
 import { initEncryption } from "../lib/encryption";
 
