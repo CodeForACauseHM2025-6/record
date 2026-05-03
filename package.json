@@ -13,20 +13,20 @@
     "migrate-articles": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/migrate-articles.ts"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
+    "@auth/prisma-adapter": "^2.11.2",
     "@aws-sdk/client-kms": "^3.1041.0",
-    "@aws-sdk/client-s3": "^3.1012.0",
-    "@aws-sdk/client-secrets-manager": "^3.1015.0",
-    "@aws-sdk/s3-request-presigner": "^3.1012.0",
-    "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
+    "@aws-sdk/client-s3": "^3.1041.0",
+    "@aws-sdk/client-secrets-manager": "^3.1041.0",
+    "@aws-sdk/s3-request-presigner": "^3.1041.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "next": "^16.2.4",
     "next-auth": "^5.0.0-beta.30",
     "pg": "^8.20.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "slugify": "^1.6.8",
-    "zod": "^4.3.6"
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "slugify": "^1.6.9",
+    "zod": "^4.4.2"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -38,16 +38,16 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.0",
+    "eslint-config-next": "16.2.4",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "prisma": "^7.5.0",
     "tailwindcss": "^4",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
 }
