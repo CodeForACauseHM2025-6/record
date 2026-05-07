@@ -13,6 +13,7 @@ import {
 } from "@/app/dashboard/group-actions";
 import { SavedToast } from "@/app/dashboard/saved-toast";
 import { ApprovalDisplay } from "@/app/dashboard/approval-display";
+import { IssuePdfSection } from "@/app/dashboard/issue-pdf-section";
 import { joinAuthorNames, formatIssueTitle } from "@/lib/article-helpers";
 import { getSiteVolumeAndIssue } from "@/lib/site-volume";
 
@@ -336,6 +337,19 @@ export default async function GroupEditorPage({
               No round table for this group yet.
             </p>
           )}
+        </div>
+        <div className="mt-6 h-[2px] bg-rule" />
+
+        {/* PDF */}
+        <div className="mt-8">
+          <IssuePdfSection
+            groupId={id}
+            hasPdf={!!group.pdfKey}
+            pdfFilename={group.pdfFilename ?? null}
+            pdfByteSize={group.pdfByteSize ?? null}
+            pdfUploadedAt={group.pdfUploadedAt ?? null}
+            canManage={canManage}
+          />
         </div>
         <div className="mt-6 h-[2px] bg-rule" />
 

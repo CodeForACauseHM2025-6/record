@@ -178,10 +178,31 @@ model ArticleGroup {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Optional print-issue PDF, served via streaming proxy at /api/issues/[id]/pdf.
+  // Stored in private S3 prefix issue-pdfs/<groupId>/<uuid>.pdf. Filename/size are
+  // upload-time metadata for dashboard display; not encrypted (binary lives in S3).
+  pdfKey        String?
+  pdfFilename   String?
+  pdfByteSize   Int?
+  pdfUploadedAt DateTime?
+
   blocks      LayoutBlock[]
   articles    Article[]
   approvals   Approval[]
   roundTables RoundTable[]
+}
+
+// Append-only audit log of issue PDF fetches. No FKs so historical access survives
+// user/group deletion. Indexed for "who read what" and "who has been reading PDFs"
+// queries from the admin panel (out of scope for v1; just collected).
+model IssuePdfAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
+  fetchedAt DateTime @default(now())
+
+  @@index([groupId, fetchedAt])
+  @@index([userId, fetchedAt])
 }
 
 model RoundTable {

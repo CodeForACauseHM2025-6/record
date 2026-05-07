@@ -70,6 +70,11 @@ interface HomepageData {
   moreArticles: MoreArticle[];
   layoutHasRoundTable: boolean;
   hasCurrentGroup: boolean;
+  // Current issue's PDF presence + id, surfaced for the date-bar "Read the print
+  // issue" link. We expose only the id (not the S3 key) — fetch goes through the
+  // streaming proxy at /api/issues/[id]/pdf which auth-checks every request.
+  currentGroupId: string | null;
+  currentGroupHasPdf: boolean;
 }
 
 // All the heavy lifting (DB queries + envelope decryption) for one page of the homepage. Wrapped
@@ -183,6 +188,8 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
   }
 
   const issueNumber = (currentGroup as { issueNumber?: number | null } | null)?.issueNumber ?? null;
+  const currentGroupId = currentGroup?.id ?? null;
+  const currentGroupHasPdf = !!(currentGroup as { pdfKey?: string | null } | null)?.pdfKey;
 
   // Collect article IDs already shown on this page so we don't duplicate them in the rails.
   const assignedIds = new Set<string>();
@@ -239,6 +246,8 @@ async function loadHomepageData(currentPage: number): Promise<HomepageData> {
     moreArticles,
     layoutHasRoundTable,
     hasCurrentGroup: currentGroup != null,
+    currentGroupId,
+    currentGroupHasPdf,
   };
   stripBytesDeep(payload);
   return payload;
@@ -285,6 +294,8 @@ export default async function HomePage({
     moreArticles,
     layoutHasRoundTable,
     hasCurrentGroup,
+    currentGroupId,
+    currentGroupHasPdf,
   } = await getOrLoad(`homepage:page=${currentPage}`, () => loadHomepageData(currentPage));
 
   return (
@@ -345,6 +356,19 @@ export default async function HomePage({
           {issueNumber && <>Issue {issueNumber}</>}
           {(volumeNumber || issueNumber) && <> &middot; </>}
           {formatDateLong(groupDate)}
+          {currentGroupHasPdf && currentGroupId && (
+            <>
+              {" "}&middot;{" "}
+              <Link
+                href={`/api/issues/${currentGroupId}/pdf`}
+                target="_blank"
+                rel="noopener"
+                className="text-maroon hover:underline"
+              >
+                Read the print issue
+              </Link>
+            </>
+          )}
         </p>
       </div>
 

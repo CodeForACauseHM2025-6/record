@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3 = new S3Client({
@@ -39,4 +39,45 @@ export async function deleteS3Object(key: string): Promise<void> {
   });
 
   await s3.send(command);
+}
+
+// Streams a private S3 object through the Next.js server. Used by the issue-PDF proxy route
+// so the underlying S3 URL never reaches the client. Returns the readable body plus headers
+// the route handler should forward to the browser.
+export async function getS3ObjectStream(key: string): Promise<{
+  body: ReadableStream<Uint8Array>;
+  contentLength: number | undefined;
+  contentType: string | undefined;
+}> {
+  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  const response = await s3.send(command);
+  if (!response.Body) {
+    throw new Error(`S3 object ${key} returned no body`);
+  }
+  // The AWS SDK v3 returns a Node Readable; transformToWebStream() converts to a WHATWG
+  // ReadableStream<Uint8Array> that Next.js's Response can consume directly.
+  const body = (response.Body as { transformToWebStream: () => ReadableStream<Uint8Array> })
+    .transformToWebStream();
+  return {
+    body,
+    contentLength: response.ContentLength,
+    contentType: response.ContentType,
+  };
+}
+
+// Reads only the first `length` bytes of an S3 object via a Range request. Used to verify
+// magic bytes (e.g. "%PDF" for PDFs) post-upload before trusting client-asserted Content-Type.
+export async function getS3ObjectHead(key: string, length: number): Promise<Buffer> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Range: `bytes=0-${length - 1}`,
+  });
+  const response = await s3.send(command);
+  if (!response.Body) {
+    throw new Error(`S3 object ${key} returned no body for range request`);
+  }
+  const bytes = await (response.Body as { transformToByteArray: () => Promise<Uint8Array> })
+    .transformToByteArray();
+  return Buffer.from(bytes);
 }

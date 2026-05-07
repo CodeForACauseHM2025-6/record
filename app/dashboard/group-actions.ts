@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { invalidateHomepage } from "@/lib/page-cache";
 import { PATTERNS } from "@/lib/patterns";
+import { deleteS3Object, getS3ObjectHead } from "@/lib/s3";
+import { parseIssuePdfKey } from "@/lib/validations";
 
 const DASHBOARD_ROLES = ["WRITER", "DESIGNER", "PHOTOGRAPHER", "ART_TEAM", "EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
 const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
@@ -112,10 +114,112 @@ export async function deleteGroup(id: string) {
   const session = await auth();
   requireEditor(session);
 
+  // Pull the PDF key first so we can clean up S3 after the row is gone. Cascade-delete on
+  // the group covers DB rows but doesn't touch object storage.
+  const group = await prisma.articleGroup.findUnique({
+    where: { id },
+    select: { pdfKey: true },
+  });
+
   await prisma.articleGroup.delete({ where: { id } });
+
+  if (group?.pdfKey) {
+    await deleteS3Object(group.pdfKey).catch((e) => {
+      console.error(`[deleteGroup] failed to delete PDF ${group.pdfKey}:`, e);
+    });
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");
+}
+
+// Attach a PDF to an issue. The client uploads via presigned PUT first (POST
+// /api/upload/issue-pdf) and then calls this with the resulting S3 key. We re-validate
+// the key shape to reject swapped keys, verify magic bytes to reject renamed binaries
+// (the presigned-PUT Content-Type is client-asserted), and replace any prior PDF.
+export async function setIssuePdf(
+  groupId: string,
+  key: string,
+  filename: string,
+  byteSize: number,
+): Promise<void> {
+  const session = await auth();
+  requireEditor(session);
+
+  const parsed = parseIssuePdfKey(key);
+  if (!parsed || parsed.groupId !== groupId) {
+    throw new Error("Invalid PDF key");
+  }
+
+  // Magic-byte check. Real PDFs start with "%PDF" (0x25 0x50 0x44 0x46). A renamed
+  // image/exe/anything else fails this. If the check fails we delete the just-uploaded
+  // S3 object so we don't leave garbage in the bucket.
+  const head = await getS3ObjectHead(key, 4);
+  const isPdf =
+    head.length >= 4 &&
+    head[0] === 0x25 &&
+    head[1] === 0x50 &&
+    head[2] === 0x44 &&
+    head[3] === 0x46;
+  if (!isPdf) {
+    await deleteS3Object(key).catch(() => {});
+    throw new Error("Uploaded file is not a valid PDF");
+  }
+
+  const existing = await prisma.articleGroup.findUnique({
+    where: { id: groupId },
+    select: { pdfKey: true },
+  });
+
+  await prisma.articleGroup.update({
+    where: { id: groupId },
+    data: {
+      pdfKey: key,
+      pdfFilename: filename.slice(0, 255),
+      pdfByteSize: byteSize,
+      pdfUploadedAt: new Date(),
+    },
+  });
+
+  if (existing?.pdfKey && existing.pdfKey !== key) {
+    await deleteS3Object(existing.pdfKey).catch((e) => {
+      console.error(`[setIssuePdf] failed to delete old PDF ${existing.pdfKey}:`, e);
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  invalidateHomepage();
+}
+
+export async function removeIssuePdf(groupId: string): Promise<void> {
+  const session = await auth();
+  requireEditor(session);
+
+  const existing = await prisma.articleGroup.findUnique({
+    where: { id: groupId },
+    select: { pdfKey: true },
+  });
+
+  await prisma.articleGroup.update({
+    where: { id: groupId },
+    data: {
+      pdfKey: null,
+      pdfFilename: null,
+      pdfByteSize: null,
+      pdfUploadedAt: null,
+    },
+  });
+
+  if (existing?.pdfKey) {
+    await deleteS3Object(existing.pdfKey).catch((e) => {
+      console.error(`[removeIssuePdf] failed to delete PDF ${existing.pdfKey}:`, e);
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/dashboard/groups/${groupId}`);
+  invalidateHomepage();
 }
 
 export async function approveGroup(groupId: string) {

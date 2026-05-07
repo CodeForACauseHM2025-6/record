@@ -91,6 +91,26 @@ export function uploaderIdFromKey(key: string): string | null {
   return match ? match[1]! : null;
 }
 
+// Issue PDF upload (presigned PUT to private S3 prefix). 50 MB cap. EDITOR+ only — auth gate
+// is enforced in the route handler.
+export const issuePdfUploadRequestSchema = z.object({
+  filename: z.string().min(1).max(255),
+  contentType: z.literal("application/pdf"),
+  contentLength: z.number().int().min(1).max(50 * 1024 * 1024), // 50 MB
+  groupId: z.string().uuid(),
+});
+
+const ISSUE_PDF_KEY_RE = new RegExp(
+  `^issue-pdfs\\/(${UUID_RE})\\/${UUID_RE}\\.pdf$`,
+);
+
+// Returns the groupId encoded in an issue-pdf key, or null if the key doesn't match the
+// expected shape. Use to reject swapped keys in setIssuePdf.
+export function parseIssuePdfKey(key: string): { groupId: string } | null {
+  const match = key.match(ISSUE_PDF_KEY_RE);
+  return match ? { groupId: match[1]! } : null;
+}
+
 export const updateRoleSchema = z.object({
   role: z.enum(["READER", "WRITER", "DESIGNER", "EDITOR", "WEB_TEAM", "WEB_MASTER"]),
 });
