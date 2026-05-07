@@ -19,7 +19,7 @@ const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
 const ADMIN_ROLES = ["WEB_MASTER", "WEB_TEAM"];
 
 export default auth((req) => {
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
 
   // Rate limiting for API routes
   if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
@@ -62,11 +62,25 @@ export default auth((req) => {
     }
   }
 
-  // All non-API, non-login pages require authentication
-  if (!pathname.startsWith("/api") && pathname !== "/login" && pathname !== "/auth-error") {
-    if (!req.auth?.user) {
-      return NextResponse.redirect(new URL("/login", req.url));
+  // Auth gate. /api/auth/* is exempt (NextAuth's own endpoints); /login and /auth-error are
+  // exempt so anonymous visitors can reach the sign-in flow. Everything else requires a session.
+  // API routes get a JSON 401; pages get a redirect to /login with callbackUrl preserved so
+  // deep-links return to the intended URL after sign-in.
+  const isAuthExempt =
+    pathname.startsWith("/api/auth") ||
+    pathname === "/login" ||
+    pathname === "/auth-error";
+
+  if (!isAuthExempt && !req.auth?.user) {
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Sign in required" } },
+        { status: 401 }
+      );
     }
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname + search);
+    return NextResponse.redirect(loginUrl);
   }
 
   const role = req.auth?.user?.role;
@@ -96,5 +110,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf)).*)",
+  ],
 };

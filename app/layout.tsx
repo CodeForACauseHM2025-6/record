@@ -26,6 +26,7 @@ const bodyFont = Crimson_Pro({
 export const metadata = {
   title: "The Record — Horace Mann School",
   description: "Horace Mann's Weekly Newspaper Since 1903",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({
