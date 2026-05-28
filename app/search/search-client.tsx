@@ -3,13 +3,14 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import type { SearchResultItem } from "@/lib/search";
 
 const SECTION_LABELS: Record<string, string> = {
   NEWS: "News",
   FEATURES: "Features",
   OPINIONS: "Opinions",
   A_AND_E: "A&E",
-  LIONS_DEN: "Lion\u2019s Den",
+  LIONS_DEN: "Lion’s Den",
   THE_ROUNDTABLE: "The Roundtable",
   MD_ALUMNI: "MD/Alumni",
 };
@@ -24,17 +25,6 @@ const SECTION_HREFS: Record<string, string> = {
   MD_ALUMNI: "/section/md-alumni",
 };
 
-interface SearchResult {
-  id: string;
-  title: string;
-  slug: string;
-  body: string;
-  section: string;
-  publishedAt: string | null;
-  authorName: string;
-  authorId: string;
-}
-
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
@@ -42,7 +32,7 @@ function stripHtml(html: string): string {
 function getExcerpt(body: string): string {
   const plain = stripHtml(body);
   if (plain.length <= 200) return plain;
-  return plain.slice(0, 200).replace(/\s+\S*$/, "") + "\u2026";
+  return plain.slice(0, 200).replace(/\s+\S*$/, "") + "…";
 }
 
 function formatDate(date: string): string {
@@ -54,14 +44,14 @@ function formatDate(date: string): string {
 }
 
 export function SearchClient({ initialResults, initialQuery }: {
-  initialResults: SearchResult[];
+  initialResults: SearchResultItem[];
   initialQuery: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
   const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
-  const [results, setResults] = useState<SearchResult[]>(initialResults);
+  const [results, setResults] = useState<SearchResultItem[]>(initialResults);
   const [resultKey, setResultKey] = useState(0);
   const [, startTransition] = useTransition();
 
@@ -91,7 +81,7 @@ export function SearchClient({ initialResults, initialQuery }: {
     const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
     if (res.ok) {
       const data = await res.json();
-      setResults(data.articles);
+      setResults(data.results);
       setResultKey((k) => k + 1);
     }
   }
@@ -105,7 +95,7 @@ export function SearchClient({ initialResults, initialQuery }: {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search articles..."
+            placeholder="Search articles or issues (e.g. Issue 26)..."
             autoFocus
             className="flex-1 min-w-0 px-5 py-4 font-headline text-[16px] sm:text-[18px] tracking-wide placeholder:text-caption/40 outline-none bg-transparent"
           />
@@ -133,56 +123,84 @@ export function SearchClient({ initialResults, initialQuery }: {
 
           {results.length > 0 ? (
             <div key={resultKey} className="divide-y divide-neutral-200">
-              {results.map((article, i) => (
-                <article
-                  key={article.id}
-                  className={`reveal py-6 first:pt-0 ${
-                    i < 6 ? `reveal-delay-${Math.min(i + 1, 7)}` : ""
-                  }`}
-                >
-                  <Link
-                    href={SECTION_HREFS[article.section] ?? "#"}
-                    className="font-headline text-maroon italic text-[14px] tracking-wide"
-                  >
-                    {SECTION_LABELS[article.section] ?? article.section}
-                  </Link>
-
-                  <h3 className="font-headline text-[20px] sm:text-[22px] font-bold leading-snug mt-1">
-                    <Link
-                      href={`/article/${article.slug}`}
-                      className="hover:text-maroon transition-colors"
-                    >
-                      {article.title}
-                    </Link>
-                  </h3>
-
-                  <p className="text-[15px] leading-[1.6] text-caption mt-2">
-                    {getExcerpt(article.body)}
-                  </p>
-
-                  <div className="mt-3 font-headline text-[14px]">
-                    <Link
-                      href={`/profile/${article.authorId}`}
-                      className="text-maroon font-semibold hover:underline"
-                    >
-                      {article.authorName}
-                    </Link>
-                    {article.publishedAt && (
-                      <span className="text-caption ml-2">
-                        &middot; {formatDate(article.publishedAt)}
+              {results.map((item, i) => {
+                const delay = i < 6 ? `reveal-delay-${Math.min(i + 1, 7)}` : "";
+                if (item.kind === "issue") {
+                  return (
+                    <article key={item.id} className={`reveal py-6 first:pt-0 ${delay}`}>
+                      <span className="font-headline text-maroon italic text-[14px] tracking-wide">
+                        Print Issue
                       </span>
-                    )}
-                  </div>
-                </article>
-              ))}
+                      <h3 className="font-headline text-[20px] sm:text-[22px] font-bold leading-snug mt-1">
+                        <a
+                          href={`/api/issues/${item.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-maroon transition-colors inline-flex items-center gap-2"
+                        >
+                          {item.title}
+                          <span className="font-body not-italic text-[11px] font-semibold tracking-[0.08em] uppercase border border-ink/30 text-caption px-1.5 py-0.5 align-middle">
+                            PDF
+                          </span>
+                        </a>
+                      </h3>
+                      <p className="text-[15px] leading-[1.6] text-caption mt-2">
+                        Full print edition · opens the issue PDF
+                      </p>
+                      {item.publishedAt && (
+                        <div className="mt-3 font-headline text-[14px] text-caption">
+                          {formatDate(item.publishedAt)}
+                        </div>
+                      )}
+                    </article>
+                  );
+                }
+                return (
+                  <article key={item.id} className={`reveal py-6 first:pt-0 ${delay}`}>
+                    <Link
+                      href={SECTION_HREFS[item.section] ?? "#"}
+                      className="font-headline text-maroon italic text-[14px] tracking-wide"
+                    >
+                      {SECTION_LABELS[item.section] ?? item.section}
+                    </Link>
+
+                    <h3 className="font-headline text-[20px] sm:text-[22px] font-bold leading-snug mt-1">
+                      <Link
+                        href={`/article/${item.slug}`}
+                        className="hover:text-maroon transition-colors"
+                      >
+                        {item.title}
+                      </Link>
+                    </h3>
+
+                    <p className="text-[15px] leading-[1.6] text-caption mt-2">
+                      {getExcerpt(item.body)}
+                    </p>
+
+                    <div className="mt-3 font-headline text-[14px]">
+                      <Link
+                        href={`/profile/${item.authorId}`}
+                        className="text-maroon font-semibold hover:underline"
+                      >
+                        {item.authorName}
+                      </Link>
+                      {item.publishedAt && (
+                        <span className="text-caption ml-2">
+                          &middot; {formatDate(item.publishedAt)}
+                        </span>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16">
               <p className="font-headline text-[22px] text-caption/50 italic">
-                No articles found.
+                No results found.
               </p>
               <p className="font-headline text-[14px] text-caption/40 mt-2 tracking-wide">
-                Try a different keyword or browse by section.
+                Try a different keyword, an issue number, or browse by section.
               </p>
             </div>
           )}

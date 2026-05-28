@@ -1,8 +1,7 @@
-import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect, userMinimalNameImageSelect, userPublicSelect } from "@/lib/prisma-selects";
 import { SubpageHeader } from "@/app/subpage-header";
 import { Footer } from "@/app/footer";
 import { SearchClient } from "@/app/search/search-client";
+import { searchAll, type SearchResultItem } from "@/lib/search";
 
 export default async function SearchPage({
   searchParams,
@@ -12,50 +11,9 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
 
-  let initialResults: {
-    id: string;
-    title: string;
-    slug: string;
-    body: string;
-    section: string;
-    publishedAt: string | null;
-    authorName: string;
-    authorId: string;
-  }[] = [];
-
+  let initialResults: SearchResultItem[] = [];
   if (query.length > 0) {
-    const articles = await prisma.article.findMany({
-      where: {
-        group: { status: "PUBLISHED" },
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { body: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      orderBy: { group: { publishedAt: "desc" } },
-      take: 30,
-      include: {
-        createdBy: { select: userMinimalNameSelect },
-        credits: { include: { user: { select: userMinimalNameSelect } } },
-        group: { select: { publishedAt: true } },
-      },
-    });
-
-    initialResults = articles.map((a: (typeof articles)[number]) => {
-      const author = a.credits.length > 0
-        ? { name: a.credits[0]!.user.name ?? "", id: a.credits[0]!.user.id }
-        : { name: a.createdBy.name ?? "", id: a.createdBy.id };
-      return {
-        id: a.id,
-        title: a.title,
-        slug: a.slug,
-        body: a.body ?? "",
-        section: a.section,
-        publishedAt: a.group?.publishedAt?.toISOString() ?? null,
-        authorName: author.name,
-        authorId: author.id,
-      };
-    });
+    initialResults = await searchAll(query);
   }
 
   return (

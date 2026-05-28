@@ -1,46 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { userMinimalNameSelect, userMinimalNameImageSelect } from "@/lib/prisma-selects";
+import { searchAll } from "@/lib/search";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!q) {
-    return NextResponse.json({ articles: [] });
+    return NextResponse.json({ results: [] });
   }
 
-  const articles = await prisma.article.findMany({
-    where: {
-      group: { status: "PUBLISHED" },
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { body: { contains: q, mode: "insensitive" } },
-      ],
-    },
-    orderBy: { group: { publishedAt: "desc" } },
-    take: 30,
-    include: {
-      createdBy: { select: userMinimalNameSelect },
-      credits: { include: { user: { select: userMinimalNameSelect } } },
-      group: { select: { publishedAt: true } },
-    },
-  });
-
-  const results = articles.map((a: (typeof articles)[number]) => {
-    const author = a.credits.length > 0
-      ? { name: a.credits[0].user.name, id: a.credits[0].user.id }
-      : { name: a.createdBy.name, id: a.createdBy.id };
-    return {
-      id: a.id,
-      title: a.title,
-      slug: a.slug,
-      body: a.body,
-      section: a.section,
-      publishedAt: a.group?.publishedAt?.toISOString() ?? null,
-      authorName: author.name,
-      authorId: author.id,
-    };
-  });
-
-  return NextResponse.json({ articles: results });
+  const results = await searchAll(q);
+  return NextResponse.json({ results });
 }
