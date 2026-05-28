@@ -34,7 +34,7 @@ interface ArticleData {
   createdBy: { id: string; name: string; role: string; image: string | null; displayTitle: string | null };
   credits: { creditRole: string; user: { id: string; name: string; image: string | null } }[];
   images: { url: string; caption: string | null; altText: string }[];
-  group: { issueNumber: number | null; volumeNumber: number | null; publishedAt: Date | null; status: string } | null;
+  group: { issueNumber: number | null; volumeNumber: number | null; publishedAt: Date | null; status: string; pdfKey: string | null } | null;
 }
 
 async function loadArticle(slug: string): Promise<ArticleData | null> {
@@ -192,6 +192,23 @@ export default async function ArticlePage({
             <p className="mt-1 font-headline text-[13px] tracking-[0.05em] text-caption">
               {formatDateLong(article.group.publishedAt)}
             </p>
+          )}
+
+          {article.group?.pdfKey && (
+            <div className="mt-6">
+              <a
+                href={`/api/issues/${article.groupId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-headline font-bold text-[13px] tracking-[0.06em] uppercase border-2 border-ink px-5 py-2.5 hover:bg-ink hover:text-white transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                </svg>
+                View Issue PDF
+              </a>
+            </div>
           )}
 
           <div className="mt-8 h-[2px] bg-rule" />
