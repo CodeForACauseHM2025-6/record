@@ -13,6 +13,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Google verifies email ownership and we restrict to @horacemann.org + require email_verified
+      // below, so linking a new Google sign-in to an existing (placeholder) User by email is safe —
+      // it's what claims a directory-added author when that person finally logs in.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
@@ -25,14 +29,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!email?.endsWith("@horacemann.org")) {
         return false;
       }
-      // Persist the Google profile image so it survives custom uploads
+      // Account-linking trusts the email to attach a Google login to an existing (placeholder)
+      // row, so the email MUST be verified by Google — a domain suffix alone is not ownership.
+      const emailVerified = (profile as { email_verified?: boolean } | null)?.email_verified;
+      if (emailVerified === false) {
+        return false;
+      }
+      // Persist the Google profile image so it survives custom uploads, and — if this row was a
+      // directory-added placeholder — claim it: clear the flag and refresh name/photo from Google.
+      // The adapter links this Google account to the existing row by email
+      // (allowDangerousEmailAccountLinking), so every credit already pointing at it now applies.
       const googleImage = (profile as { picture?: string })?.picture ?? user.image;
-      if (googleImage && user.id) {
+      const googleName = (profile as { name?: string })?.name ?? user.name ?? undefined;
+      if (user.id) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { googleImage },
+          data: {
+            ...(googleImage ? { googleImage } : {}),
+            isPlaceholder: false,
+            ...(googleName ? { name: googleName } : {}),
+          },
         }).catch(() => {
-          // User may not exist yet on first sign-in (adapter creates after)
+          // User may not exist yet on first sign-in (adapter creates after); the next session
+          // load reconciles. Placeholders already exist, so this update applies to them.
         });
       }
       return true;
