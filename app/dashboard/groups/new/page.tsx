@@ -6,7 +6,7 @@ import { getSiteVolumeAndIssue } from "@/lib/site-volume";
 
 export default async function NewGroupPage() {
   const session = await auth();
-  const EDITOR_ROLES = ["EDITOR", "WEB_TEAM", "WEB_MASTER"];
+  const EDITOR_ROLES = ["EDITOR", "CHIEF_EDITOR", "WEB_TEAM", "WEB_MASTER"];
   if (!session?.user || !EDITOR_ROLES.includes(session.user.role ?? "")) redirect("/dashboard");
 
   const { volumeNumber: currentVolume } = await getSiteVolumeAndIssue();
