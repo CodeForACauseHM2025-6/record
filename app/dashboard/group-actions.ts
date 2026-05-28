@@ -68,6 +68,17 @@ export async function publishGroup(id: string) {
   const session = await auth();
   requireEditor(session);
 
+  // An issue can't go public without a volume + issue number — those identify the edition
+  // everywhere (homepage masthead, search-by-"Issue X Volume X", the issue PDF label).
+  const group = await prisma.articleGroup.findUnique({
+    where: { id },
+    select: { volumeNumber: true, issueNumber: true },
+  });
+  if (!group) throw new Error("Issue not found");
+  if (group.volumeNumber == null || group.issueNumber == null) {
+    throw new Error("Set a volume number and issue number before publishing this issue.");
+  }
+
   await prisma.articleGroup.update({
     where: { id },
     data: { status: "PUBLISHED", publishedAt: new Date() },

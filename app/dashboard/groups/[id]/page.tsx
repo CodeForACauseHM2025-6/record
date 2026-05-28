@@ -191,11 +191,27 @@ export default async function GroupEditorPage({
         {/* Actions */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {canPublish && group.status === "DRAFT" && (
-            <form action={boundPublish}>
-              <button type="submit" className="cursor-pointer font-headline font-bold text-[14px] tracking-wide bg-green-800 text-white px-5 py-2 hover:bg-green-900 transition-colors">
-                Publish Now
-              </button>
-            </form>
+            (group as any).volumeNumber != null && (group as any).issueNumber != null ? (
+              <form action={boundPublish}>
+                <button type="submit" className="cursor-pointer font-headline font-bold text-[14px] tracking-wide bg-green-800 text-white px-5 py-2 hover:bg-green-900 transition-colors">
+                  Publish Now
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled
+                  title="Set a volume number and issue number before publishing"
+                  className="font-headline font-bold text-[14px] tracking-wide bg-green-800/40 text-white px-5 py-2 cursor-not-allowed"
+                >
+                  Publish Now
+                </button>
+                <span className="font-headline text-[12px] text-maroon">
+                  Set a volume &amp; issue number above to publish.
+                </span>
+              </div>
+            )
           )}
           {canPublish && group.status === "PUBLISHED" && (
             <form action={boundUnpublish}>
