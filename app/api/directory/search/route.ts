@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { errorResponse } from "@/lib/errors";
+import { directorySearchSchema } from "@/lib/validations";
 import { isDirectoryConfigured, searchDirectory } from "@/lib/google-directory";
 
 const DASHBOARD_ROLES = [
@@ -25,11 +26,17 @@ export async function GET(req: NextRequest) {
     return errorResponse("DIRECTORY_UNCONFIGURED", "Directory lookup is not configured", 503);
   }
 
-  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
-  if (!q) return NextResponse.json({ results: [] });
+  const raw = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  if (!raw) return NextResponse.json({ results: [] });
+
+  // Validate (and length-cap at 100) via the shared Zod schema before it reaches the Google API.
+  const parsed = directorySearchSchema.safeParse({ q: raw });
+  if (!parsed.success) {
+    return errorResponse("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid query", 400);
+  }
 
   try {
-    const results = await searchDirectory(q);
+    const results = await searchDirectory(parsed.data.q);
     return NextResponse.json({ results });
   } catch (err) {
     console.error("[directory search] failed:", err);
