@@ -4,21 +4,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDirectoryUserByEmail } from "@/lib/google-directory";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 
-const DASHBOARD_ROLES = [
-  "WRITER",
-  "DESIGNER",
-  "PHOTOGRAPHER",
-  "ART_TEAM",
-  "EDITOR",
-  "CHIEF_EDITOR",
-  "WEB_TEAM",
-  "WEB_MASTER",
-];
+// Creating authors is a WEB_TEAM+ (admin-panel) action. Writers can still credit existing
+// placeholder authors via the article credit picker; they just can't mint new ones.
+const ADMIN_ROLES = ["WEB_TEAM", "WEB_MASTER"];
 
-function requireDashboardRole(session: { user?: { role?: string } } | null) {
-  if (!session?.user?.role || !DASHBOARD_ROLES.includes(session.user.role)) {
-    throw new Error("Dashboard access required");
+function requireWebTeam(session: { user?: { role?: string } } | null) {
+  if (!session?.user?.role || !ADMIN_ROLES.includes(session.user.role)) {
+    throw new Error("Web team access required");
   }
 }
 
@@ -29,7 +23,7 @@ export type AddAuthorResult = { id: string; name: string };
 // duplicates. New rows are created as unclaimed placeholders (READER, no Account).
 export async function addDirectoryAuthor(email: string): Promise<AddAuthorResult> {
   const session = await auth();
-  requireDashboardRole(session);
+  requireWebTeam(session);
 
   const normalized = email.trim().toLowerCase();
   if (!normalized.endsWith("@horacemann.org")) {
@@ -62,15 +56,61 @@ export async function addDirectoryAuthor(email: string): Promise<AddAuthorResult
     select: { id: true, name: true },
   });
 
-  revalidatePath("/dashboard/authors");
+  revalidatePath("/admin/authors");
   return { id: created.id, name: created.name ?? person.name };
+}
+
+// Manually add an author: name required, email + photo optional. (Policy — not enforced here —
+// is that this is for HM people only.) When no email is given we synthesize a unique, non-routable
+// `.invalid` address (RFC 2606) so the required encrypted email columns (emailCiphertext / unique
+// emailHash) are satisfied; such an author can never be claimed on login (no real Google account
+// matches), which is the intended "may never claim" case. A blank photo stays null — the byline
+// falls back to the initial-letter avatar.
+export async function addManualAuthor(input: {
+  name: string;
+  email?: string;
+  photoUrl?: string;
+}): Promise<AddAuthorResult> {
+  const session = await auth();
+  requireWebTeam(session);
+
+  const name = input.name.trim();
+  if (!name) throw new Error("Name is required");
+
+  const email = input.email?.trim().toLowerCase() || "";
+  const photoUrl = input.photoUrl?.trim() || null;
+
+  if (email) {
+    // Dedup against an existing user (real or placeholder) when an email is provided.
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true },
+    });
+    if (existing) return { id: existing.id, name: existing.name ?? name };
+  }
+
+  const finalEmail = email || `manual-${randomUUID()}@manual.invalid`;
+
+  const created = await prisma.user.create({
+    data: {
+      email: finalEmail,
+      name,
+      image: photoUrl,
+      role: "READER",
+      isPlaceholder: true,
+    } as never,
+    select: { id: true, name: true },
+  });
+
+  revalidatePath("/admin/authors");
+  return { id: created.id, name: created.name ?? name };
 }
 
 // Remove an unclaimed placeholder author. Refuses if the row was claimed (has logged in) or has
 // any attribution (authored articles or credits) so we never orphan real authorship.
 export async function removeDirectoryAuthor(id: string): Promise<void> {
   const session = await auth();
-  requireDashboardRole(session);
+  requireWebTeam(session);
 
   // Check + delete in one interactive transaction so a concurrent article edit can't add a credit
   // between the guard and the delete (which would orphan attribution). None of these fields are
@@ -91,5 +131,5 @@ export async function removeDirectoryAuthor(id: string): Promise<void> {
     await tx.user.delete({ where: { id } });
   });
 
-  revalidatePath("/dashboard/authors");
+  revalidatePath("/admin/authors");
 }

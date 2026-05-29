@@ -17,7 +17,11 @@ jest.mock("@/lib/prisma", () => {
   };
 });
 
-import { addDirectoryAuthor, removeDirectoryAuthor } from "@/app/dashboard/author-actions";
+import {
+  addDirectoryAuthor,
+  addManualAuthor,
+  removeDirectoryAuthor,
+} from "@/app/admin/author-actions";
 import { auth } from "@/lib/auth";
 import { getDirectoryUserByEmail } from "@/lib/google-directory";
 import { prisma } from "@/lib/prisma";
@@ -30,11 +34,11 @@ const mockUser = prisma.user as unknown as {
   delete: jest.Mock;
 };
 
-const writer = { user: { id: "u1", role: "WRITER" } };
+const webTeam = { user: { id: "u1", role: "WEB_TEAM" } };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockAuth.mockResolvedValue(writer);
+  mockAuth.mockResolvedValue(webTeam);
 });
 
 describe("addDirectoryAuthor", () => {
@@ -42,9 +46,14 @@ describe("addDirectoryAuthor", () => {
     await expect(addDirectoryAuthor("x@gmail.com")).rejects.toThrow("@horacemann.org");
   });
 
-  it("rejects when not a dashboard role", async () => {
+  it("rejects a WRITER (now WEB_TEAM+ only)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "w", role: "WRITER" } });
+    await expect(addDirectoryAuthor("x@horacemann.org")).rejects.toThrow("Web team access");
+  });
+
+  it("rejects a READER", async () => {
     mockAuth.mockResolvedValue({ user: { id: "r", role: "READER" } });
-    await expect(addDirectoryAuthor("x@horacemann.org")).rejects.toThrow("Dashboard access");
+    await expect(addDirectoryAuthor("x@horacemann.org")).rejects.toThrow("Web team access");
   });
 
   it("returns the existing user without creating a duplicate", async () => {
@@ -77,6 +86,57 @@ describe("addDirectoryAuthor", () => {
     mockUser.findUnique.mockResolvedValue(null);
     mockGetDir.mockResolvedValue(null);
     await expect(addDirectoryAuthor("ghost@horacemann.org")).rejects.toThrow("No matching directory");
+  });
+});
+
+describe("addManualAuthor", () => {
+  it("rejects a WRITER (WEB_TEAM+ only)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "w", role: "WRITER" } });
+    await expect(addManualAuthor({ name: "Guest" })).rejects.toThrow("Web team access");
+  });
+
+  it("rejects an empty name", async () => {
+    await expect(addManualAuthor({ name: "   " })).rejects.toThrow("Name is required");
+  });
+
+  it("creates a placeholder with a synthetic email when none is given", async () => {
+    mockUser.create.mockResolvedValue({ id: "m1", name: "Guest Writer" });
+    const res = await addManualAuthor({ name: "Guest Writer" });
+    expect(res).toEqual({ id: "m1", name: "Guest Writer" });
+    expect(mockUser.findUnique).not.toHaveBeenCalled(); // no email → no dedup lookup
+    const data = mockUser.create.mock.calls[0][0].data;
+    expect(data).toEqual(
+      expect.objectContaining({ isPlaceholder: true, role: "READER", name: "Guest Writer" }),
+    );
+    expect(String(data.email)).toMatch(/@manual\.invalid$/);
+    expect(data.image).toBeNull();
+  });
+
+  it("dedups against an existing user when an email is provided", async () => {
+    mockUser.findUnique.mockResolvedValue({ id: "existing", name: "Jane" });
+    const res = await addManualAuthor({ name: "Jane", email: "Jane@horacemann.org" });
+    expect(res).toEqual({ id: "existing", name: "Jane" });
+    expect(mockUser.create).not.toHaveBeenCalled();
+  });
+
+  it("uses the provided email and photo when creating", async () => {
+    mockUser.findUnique.mockResolvedValue(null);
+    mockUser.create.mockResolvedValue({ id: "m2", name: "New Guest" });
+    await addManualAuthor({
+      name: "New Guest",
+      email: "guest@horacemann.org",
+      photoUrl: "https://pic",
+    });
+    expect(mockUser.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "guest@horacemann.org",
+          image: "https://pic",
+          isPlaceholder: true,
+          role: "READER",
+        }),
+      }),
+    );
   });
 });
 

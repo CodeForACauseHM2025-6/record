@@ -56,22 +56,14 @@ export default async function DashboardPage({
           <h2 className="font-headline text-[28px] sm:text-[34px] font-bold tracking-wide">
             Issues
           </h2>
-          <div className="flex items-center gap-3">
+          {canManage && (
             <Link
-              href="/dashboard/authors"
-              className="font-headline font-bold text-[13px] tracking-wide border border-ink/20 px-4 py-2 hover:border-maroon hover:text-maroon transition-colors"
+              href="/dashboard/groups/new"
+              className="font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2.5 hover:bg-maroon transition-colors"
             >
-              Directory Authors
+              New Issue
             </Link>
-            {canManage && (
-              <Link
-                href="/dashboard/groups/new"
-                className="font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2.5 hover:bg-maroon transition-colors"
-              >
-                New Issue
-              </Link>
-            )}
-          </div>
+          )}
         </div>
         <div className="mt-3 h-[2px] bg-rule" />
 

@@ -2,16 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { addDirectoryAuthor, removeDirectoryAuthor } from "@/app/dashboard/author-actions";
+import {
+  addDirectoryAuthor,
+  addManualAuthor,
+  removeDirectoryAuthor,
+} from "@/app/admin/author-actions";
 
 type PlaceholderAuthor = { id: string; name: string };
 
 export function AuthorsClient({ initialAuthors }: { initialAuthors: PlaceholderAuthor[] }) {
   const router = useRouter();
+
+  // Directory search state
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ email: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Manual add state
+  const [manualName, setManualName] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualPhoto, setManualPhoto] = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
 
   async function search() {
     const q = query.trim();
@@ -51,6 +64,29 @@ export function AuthorsClient({ initialAuthors }: { initialAuthors: PlaceholderA
     }
   }
 
+  async function addManual(e: React.FormEvent) {
+    e.preventDefault();
+    const name = manualName.trim();
+    if (!name) return;
+    setManualLoading(true);
+    setManualError(null);
+    try {
+      await addManualAuthor({
+        name,
+        email: manualEmail.trim() || undefined,
+        photoUrl: manualPhoto.trim() || undefined,
+      });
+      setManualName("");
+      setManualEmail("");
+      setManualPhoto("");
+      router.refresh();
+    } catch (err) {
+      setManualError(err instanceof Error ? err.message : "Could not add author");
+    } finally {
+      setManualLoading(false);
+    }
+  }
+
   async function remove(id: string) {
     setError(null);
     try {
@@ -63,7 +99,11 @@ export function AuthorsClient({ initialAuthors }: { initialAuthors: PlaceholderA
 
   return (
     <div className="mt-6">
-      {/* Search + add */}
+      {/* ---- Directory lookup ---- */}
+      <h3 className="font-headline text-[18px] font-bold tracking-wide">From the HM directory</h3>
+      <p className="font-headline text-[13px] text-caption mt-1 mb-3">
+        Search the Workspace directory and add a real account; name and photo are pulled from Google.
+      </p>
       <div className="flex gap-2">
         <input
           type="text"
@@ -110,13 +150,52 @@ export function AuthorsClient({ initialAuthors }: { initialAuthors: PlaceholderA
         </div>
       )}
 
-      {/* People added from the directory who haven't signed in yet */}
+      {/* ---- Manual add ---- */}
+      <h3 className="mt-10 font-headline text-[18px] font-bold tracking-wide">Add manually</h3>
+      <p className="font-headline text-[13px] text-caption mt-1 mb-3">
+        Name is required. Email is optional — include an HM email if you want the credits to attach
+        automatically when they log in. Photo URL is optional.
+      </p>
+      <form onSubmit={addManual} className="space-y-2">
+        <input
+          type="text"
+          value={manualName}
+          onChange={(e) => setManualName(e.target.value)}
+          placeholder="Full name (required)"
+          className="w-full border border-ink/20 px-4 py-2.5 font-headline text-[15px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
+        />
+        <input
+          type="email"
+          value={manualEmail}
+          onChange={(e) => setManualEmail(e.target.value)}
+          placeholder="Email (optional)"
+          className="w-full border border-ink/20 px-4 py-2.5 font-headline text-[15px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
+        />
+        <input
+          type="url"
+          value={manualPhoto}
+          onChange={(e) => setManualPhoto(e.target.value)}
+          placeholder="Photo URL (optional)"
+          className="w-full border border-ink/20 px-4 py-2.5 font-headline text-[15px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={manualLoading || manualName.trim().length === 0}
+          className="cursor-pointer font-headline font-bold text-[14px] tracking-wide bg-ink text-white px-5 py-2 hover:bg-maroon transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {manualLoading ? "Adding…" : "Add author"}
+        </button>
+      </form>
+
+      {manualError && <p className="mt-3 font-headline text-[13px] text-maroon">{manualError}</p>}
+
+      {/* ---- People added who haven't signed in yet ---- */}
       <h3 className="mt-10 font-headline text-[18px] font-bold tracking-wide">
         Hasn&rsquo;t logged in yet
       </h3>
       <p className="font-headline text-[13px] text-caption mt-1">
-        Added from the directory and creditable now. Their account activates automatically the
-        first time they sign in, and everything credited to them carries over.
+        Creditable now. An author with an HM email activates automatically the first time they sign
+        in, and everything credited to them carries over.
       </p>
 
       {initialAuthors.length === 0 ? (

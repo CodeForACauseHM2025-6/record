@@ -4,22 +4,15 @@ import { errorResponse } from "@/lib/errors";
 import { directorySearchSchema } from "@/lib/validations";
 import { isDirectoryConfigured, searchDirectory } from "@/lib/google-directory";
 
-const DASHBOARD_ROLES = [
-  "WRITER",
-  "DESIGNER",
-  "PHOTOGRAPHER",
-  "ART_TEAM",
-  "EDITOR",
-  "CHIEF_EDITOR",
-  "WEB_TEAM",
-  "WEB_MASTER",
-];
+// Directory search is a WEB_TEAM+ (admin-panel) capability — it's only used by the admin
+// "Authors" page, where placeholder authors are created.
+const ADMIN_ROLES = ["WEB_TEAM", "WEB_MASTER"];
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return errorResponse("UNAUTHORIZED", "Sign in required", 401);
-  if (!DASHBOARD_ROLES.includes(session.user.role)) {
-    return errorResponse("FORBIDDEN", "Dashboard access required", 403);
+  if (!ADMIN_ROLES.includes(session.user.role)) {
+    return errorResponse("FORBIDDEN", "Web team access required", 403);
   }
 
   if (!isDirectoryConfigured()) {
