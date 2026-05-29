@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { addDirectoryAuthor } from "@/app/dashboard/author-actions";
 
 const SECTIONS = [
   { value: "NEWS", label: "News" },
@@ -248,11 +249,53 @@ function AuthorSearch({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [dirLoading, setDirLoading] = useState(false);
+  const [dirError, setDirError] = useState<string | null>(null);
+  const [dirResults, setDirResults] = useState<{ email: string; name: string }[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
   const filtered = query.length > 0
     ? users.filter((u) => u.name.toLowerCase().includes(query.toLowerCase()))
     : users;
+
+  async function runDirectorySearch() {
+    const q = query.trim();
+    if (!q) return;
+    setDirLoading(true);
+    setDirError(null);
+    setDirResults([]);
+    try {
+      const res = await fetch(`/api/directory/search?q=${encodeURIComponent(q)}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setDirError(data?.error?.message ?? "Directory lookup failed");
+        return;
+      }
+      const data = await res.json();
+      setDirResults(data.results ?? []);
+      if ((data.results ?? []).length === 0) setDirError("No directory matches");
+    } catch {
+      setDirError("Directory lookup failed");
+    } finally {
+      setDirLoading(false);
+    }
+  }
+
+  async function addFromDirectory(email: string) {
+    setDirLoading(true);
+    setDirError(null);
+    try {
+      const created = await addDirectoryAuthor(email);
+      onSelect({ id: created.id, name: created.name, defaultRole: "Staff" });
+      setQuery("");
+      setDirResults([]);
+      setOpen(false);
+    } catch (err) {
+      setDirError(err instanceof Error ? err.message : "Could not add author");
+    } finally {
+      setDirLoading(false);
+    }
+  }
 
   return (
     <div ref={ref} className="relative">
@@ -262,14 +305,16 @@ function AuthorSearch({
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
+          setDirResults([]);
+          setDirError(null);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
         placeholder="Search for an author to add..."
         className="w-full border border-ink/20 px-4 py-2.5 font-headline text-[15px] tracking-wide placeholder:text-caption/30 outline-none focus:border-ink transition-colors"
       />
-      {open && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-ink/15 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-20 max-h-48 overflow-y-auto">
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-ink/15 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-20 max-h-64 overflow-y-auto">
           {filtered.map((u) => (
             <button
               key={u.id}
@@ -286,6 +331,34 @@ function AuthorSearch({
               <span className="text-[12px] text-caption/50">{u.defaultRole}</span>
             </button>
           ))}
+
+          {/* Directory section */}
+          <div className="border-t border-ink/10">
+            {dirResults.map((d) => (
+              <button
+                key={d.email}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => addFromDirectory(d.email)}
+                className="cursor-pointer w-full text-left px-4 py-2.5 font-headline text-[15px] tracking-wide hover:bg-neutral-50 hover:text-maroon transition-colors flex items-baseline justify-between"
+              >
+                <span>{d.name}</span>
+                <span className="text-[12px] text-caption/50">{d.email}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={runDirectorySearch}
+              disabled={dirLoading || query.trim().length === 0}
+              className="cursor-pointer w-full text-left px-4 py-2.5 font-headline text-[13px] tracking-[0.04em] uppercase text-caption hover:bg-neutral-50 hover:text-maroon transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {dirLoading ? "Searching directory…" : "Search HM directory"}
+            </button>
+            {dirError && (
+              <p className="px-4 py-2 font-headline text-[12px] text-maroon">{dirError}</p>
+            )}
+          </div>
         </div>
       )}
     </div>
