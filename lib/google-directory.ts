@@ -1,4 +1,7 @@
-import { google } from "googleapis";
+// Use the modular @googleapis/admin package (just the Admin SDK Directory API) instead of the
+// monolithic `googleapis` — the latter bundles types for every Google API and OOM-kills the
+// production build on the 1 GB Linode box.
+import { admin, auth as googleAuth } from "@googleapis/admin";
 
 const SCOPES = ["https://www.googleapis.com/auth/admin.directory.user.readonly"];
 
@@ -44,21 +47,21 @@ export function mapDirectoryUser(u: {
 async function directoryClient() {
   const creds = getCreds();
   if (!creds) throw new Error("Google directory not configured");
-  const jwt = new google.auth.JWT({
+  const jwt = new googleAuth.JWT({
     email: creds.key.client_email,
     key: creds.key.private_key,
     scopes: SCOPES,
     subject: creds.subject,
   });
   await jwt.authorize();
-  return google.admin({ version: "directory_v1", auth: jwt });
+  return admin({ version: "directory_v1", auth: jwt });
 }
 
 export async function searchDirectory(query: string): Promise<DirectoryPerson[]> {
   const q = query.trim();
   if (!q) return [];
-  const admin = await directoryClient();
-  const res = await admin.users.list({
+  const dir = await directoryClient();
+  const res = await dir.users.list({
     customer: "my_customer",
     query: `email:${q}* OR name:${q}*`,
     viewType: "domain_public",
@@ -71,9 +74,9 @@ export async function searchDirectory(query: string): Promise<DirectoryPerson[]>
 }
 
 export async function getDirectoryUserByEmail(email: string): Promise<DirectoryPerson | null> {
-  const admin = await directoryClient();
+  const dir = await directoryClient();
   try {
-    const res = await admin.users.get({ userKey: email, viewType: "domain_public" });
+    const res = await dir.users.get({ userKey: email, viewType: "domain_public" });
     return mapDirectoryUser(res.data);
   } catch {
     return null;
