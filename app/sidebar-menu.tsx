@@ -33,6 +33,7 @@ export function HamburgerButton({
   const [open, setOpen] = useState(false);
 
   const pages: { label: string; href: string }[] = [{ label: "Home", href: "/" }];
+  pages.push({ label: "Join Our Team", href: "/join" },)
   if (isAuthenticated) {
     if (userRole && DASHBOARD_ROLES.includes(userRole)) {
       pages.push({ label: "Dashboard", href: "/dashboard" });
@@ -62,7 +63,7 @@ export function HamburgerButton({
         </svg>
       </button>
 
-      {/* Backdrop — fades in/out */}
+      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -72,7 +73,7 @@ export function HamburgerButton({
 
       {/* Slide-out panel */}
       <nav
-        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-[4px_0_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-[4px_0_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -146,6 +147,21 @@ export function HamburgerButton({
               {p.label}
             </Link>
           ))}
+        </div>
+
+        {/* Bottom: Created by Code for a Cause */}
+        <div className="mt-auto px-6 py-6 border-t border-ink/10 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/CFAC_Logo.png"
+            alt="Code for a Cause"
+            width={100}
+            height={100}
+            className="object-contain"
+          />
+          <span className="font-headline text-[24px] text-caption leading-tight">
+            Created by<br />Code for a Cause
+          </span>
         </div>
       </nav>
     </>
